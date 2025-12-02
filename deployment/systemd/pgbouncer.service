@@ -1,0 +1,40 @@
+[Unit]
+Description=PgBouncer PostgreSQL Connection Pooler
+Documentation=man:pgbouncer(1)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=forking
+User=postgres
+Group=postgres
+
+# PgBouncer実行
+ExecStart=/usr/sbin/pgbouncer -d /etc/pgbouncer/pgbouncer.ini
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Pidファイル
+PIDFile=/var/run/postgresql/pgbouncer.pid
+
+# 再起動設定
+Restart=on-failure
+RestartSec=5
+
+# セキュリティ設定
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/run/postgresql /var/log/postgresql
+
+# リソース制限
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# ログ
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pgbouncer
+
+[Install]
+WantedBy=multi-user.target

@@ -93,6 +93,21 @@ class CeleryConfig:
             "task": "app.tasks.maintenance_tasks.check_offline_media",
             "schedule": timedelta(days=1),
         },
+        # PostgreSQL performance monitoring (every 5 minutes) - Phase 13
+        "postgres-performance-check": {
+            "task": "app.tasks.postgres_monitoring_tasks.check_postgres_performance",
+            "schedule": timedelta(minutes=5),
+        },
+        # Slow query report (daily at 9:00 AM) - Phase 13
+        "postgres-slow-query-report": {
+            "task": "app.tasks.postgres_monitoring_tasks.generate_slow_query_report",
+            "schedule": crontab(hour=9, minute=0),
+        },
+        # Backup status check (daily at 10:00 AM) - Phase 13
+        "postgres-backup-status": {
+            "task": "app.tasks.postgres_monitoring_tasks.check_backup_status",
+            "schedule": crontab(hour=10, minute=0),
+        },
     }
 
     # Result backend settings
