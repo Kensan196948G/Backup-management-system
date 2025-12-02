@@ -2,7 +2,7 @@
 Unit tests for notification tasks.
 Phase 11: Asynchronous Task Processing
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
@@ -26,7 +26,7 @@ class TestSendTeamsNotificationTask:
         """Test successful Teams notification."""
         from app.tasks.notification_tasks import send_teams_notification
 
-        with patch("app.tasks.notification_tasks.TeamsNotificationService") as mock:
+        with patch("app.services.teams_notification_service.TeamsNotificationService") as mock:
             service = Mock()
             service.is_configured.return_value = True
             service.send_info_notification.return_value = True
@@ -47,7 +47,7 @@ class TestSendTeamsNotificationTask:
         """Test Teams notification when not configured."""
         from app.tasks.notification_tasks import send_teams_notification
 
-        with patch("app.tasks.notification_tasks.TeamsNotificationService") as mock:
+        with patch("app.services.teams_notification_service.TeamsNotificationService") as mock:
             service = Mock()
             service.is_configured.return_value = False
             mock.return_value = service
@@ -60,13 +60,13 @@ class TestSendTeamsNotificationTask:
                 )
 
                 assert result["status"] == "failed"
-                assert "not configured" in result["error"]
+                assert "not configured" in result.get("error", "")
 
     def test_send_teams_critical_alert(self, app, celery_app):
         """Test critical alert sends to Teams."""
         from app.tasks.notification_tasks import send_teams_notification
 
-        with patch("app.tasks.notification_tasks.TeamsNotificationService") as mock:
+        with patch("app.services.teams_notification_service.TeamsNotificationService") as mock:
             service = Mock()
             service.is_configured.return_value = True
             service.send_critical_alert.return_value = True
@@ -102,7 +102,7 @@ class TestSendMultiChannelNotificationTask:
         """Test multi-channel with email only."""
         from app.tasks.notification_tasks import send_multi_channel_notification
 
-        with patch("app.tasks.notification_tasks.send_backup_notification") as mock_email:
+        with patch("app.tasks.email_tasks.send_backup_notification") as mock_email:
             mock_email.apply_async.return_value = Mock(id="email-task-123")
 
             with app.app_context():
@@ -160,7 +160,7 @@ class TestSendMultiChannelNotificationTask:
         """Test multi-channel with all channels."""
         from app.tasks.notification_tasks import send_multi_channel_notification
 
-        with patch("app.tasks.notification_tasks.send_backup_notification") as mock_email:
+        with patch("app.tasks.email_tasks.send_backup_notification") as mock_email:
             with patch("app.tasks.notification_tasks.send_teams_notification") as mock_teams:
                 with patch("app.tasks.notification_tasks._create_dashboard_alert") as mock_alert:
                     mock_email.apply_async.return_value = Mock(id="email-123")
@@ -199,20 +199,23 @@ class TestSendBackupStatusUpdateTask:
         """Test status update when job not found."""
         from app.tasks.notification_tasks import send_backup_status_update
 
-        with app.app_context():
-            result = send_backup_status_update(
-                job_id=99999,  # Non-existent job
-                status="success",
-            )
+        with patch("app.models.BackupJob") as mock_job_class:
+            mock_job_class.query.get.return_value = None
 
-            assert "error" in result
-            assert "not found" in result["error"]
+            with app.app_context():
+                result = send_backup_status_update(
+                    job_id=99999,  # Non-existent job
+                    status="success",
+                )
+
+                assert "error" in result
+                assert "not found" in result["error"]
 
     def test_status_update_success(self, app, celery_app):
         """Test successful status update notification."""
         from app.tasks.notification_tasks import send_backup_status_update
 
-        with patch("app.tasks.notification_tasks.BackupJob") as mock_job_class:
+        with patch("app.models.BackupJob") as mock_job_class:
             mock_job = Mock()
             mock_job.name = "Test Backup Job"
             mock_job.job_type = "full"

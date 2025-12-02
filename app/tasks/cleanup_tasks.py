@@ -208,8 +208,8 @@ def cleanup_old_notifications(
 
         cutoff = datetime.utcnow() - timedelta(days=retention_days)
 
-        # Delete old notifications
-        deleted = NotificationLog.query.filter(NotificationLog.created_at < cutoff).delete()
+        # Delete old notifications (using sent_at field)
+        deleted = NotificationLog.query.filter(NotificationLog.sent_at < cutoff).delete()
 
         db.session.commit()
 
@@ -270,7 +270,7 @@ def cleanup_old_alerts(
         query = Alert.query.filter(Alert.created_at < cutoff)
 
         if only_read:
-            query = query.filter(Alert.is_read.is_(True))
+            query = query.filter(Alert.is_acknowledged.is_(True))
 
         deleted = query.delete()
 
@@ -326,9 +326,14 @@ def vacuum_database(self) -> Dict[str, Any]:
         db_url = current_app.config.get("SQLALCHEMY_DATABASE_URI", "")
 
         if "sqlite" in db_url:
-            # SQLite VACUUM
-            db.session.execute("VACUUM")
-            db.session.execute("ANALYZE")
+            # SQLite VACUUM - use raw connection for VACUUM which needs AUTOCOMMIT
+            connection = db.engine.raw_connection()
+            connection.isolation_level = None  # AUTOCOMMIT for SQLite
+            cursor = connection.cursor()
+            cursor.execute("VACUUM")
+            cursor.execute("ANALYZE")
+            cursor.close()
+            connection.close()
             result["database_type"] = "sqlite"
         elif "postgresql" in db_url:
             # PostgreSQL VACUUM

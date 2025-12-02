@@ -2,7 +2,7 @@
 Unit tests for email tasks.
 Phase 11: Asynchronous Task Processing
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -10,18 +10,6 @@ import pytest
 
 class TestSendEmailTask:
     """Tests for send_email task."""
-
-    @pytest.fixture
-    def mock_email_service(self):
-        """Create mock email service."""
-        with patch("app.tasks.email_tasks.EmailNotificationService") as mock:
-            service = Mock()
-            service.is_configured.return_value = True
-            service.validate_email.return_value = True
-            service.check_rate_limit.return_value = True
-            service.send_email.return_value = True
-            mock.return_value = service
-            yield service
 
     @pytest.fixture
     def celery_app(self, app):
@@ -34,29 +22,38 @@ class TestSendEmailTask:
         )
         return celery_app
 
-    def test_send_email_success(self, app, mock_email_service, celery_app):
+    def test_send_email_success(self, app, celery_app):
         """Test successful email sending."""
         from app.tasks.email_tasks import send_email
 
-        with app.app_context():
-            result = send_email(
-                to="test@example.com",
-                subject="Test Subject",
-                html_body="<h1>Test</h1>",
-            )
+        # Mock at the actual import location inside the function
+        with patch("app.services.notification_service.EmailNotificationService") as mock_service:
+            service = Mock()
+            service.is_configured.return_value = True
+            service.validate_email.return_value = True
+            service.check_rate_limit.return_value = True
+            service.send_email.return_value = True
+            mock_service.return_value = service
 
-            assert result["status"] == "sent"
-            assert result["to"] == "test@example.com"
-            mock_email_service.send_email.assert_called_once()
+            with app.app_context():
+                result = send_email(
+                    to="test@example.com",
+                    subject="Test Subject",
+                    html_body="<h1>Test</h1>",
+                )
+
+                assert result["status"] == "sent"
+                assert result["to"] == "test@example.com"
+                service.send_email.assert_called_once()
 
     def test_send_email_not_configured(self, app, celery_app):
         """Test email sending when service not configured."""
         from app.tasks.email_tasks import send_email
 
-        with patch("app.tasks.email_tasks.EmailNotificationService") as mock:
+        with patch("app.services.notification_service.EmailNotificationService") as mock_service:
             service = Mock()
             service.is_configured.return_value = False
-            mock.return_value = service
+            mock_service.return_value = service
 
             with app.app_context():
                 result = send_email(
@@ -66,17 +63,17 @@ class TestSendEmailTask:
                 )
 
                 assert result["status"] == "failed"
-                assert "not configured" in result["error"]
+                assert "not configured" in result.get("error", "")
 
     def test_send_email_invalid_address(self, app, celery_app):
         """Test email sending with invalid address."""
         from app.tasks.email_tasks import send_email
 
-        with patch("app.tasks.email_tasks.EmailNotificationService") as mock:
+        with patch("app.services.notification_service.EmailNotificationService") as mock_service:
             service = Mock()
             service.is_configured.return_value = True
             service.validate_email.return_value = False
-            mock.return_value = service
+            mock_service.return_value = service
 
             with app.app_context():
                 result = send_email(
@@ -86,18 +83,18 @@ class TestSendEmailTask:
                 )
 
                 assert result["status"] == "failed"
-                assert "Invalid email" in result["error"]
+                assert "Invalid email" in result.get("error", "")
 
     def test_send_email_rate_limited(self, app, celery_app):
         """Test email sending when rate limited."""
         from app.tasks.email_tasks import send_email
 
-        with patch("app.tasks.email_tasks.EmailNotificationService") as mock:
+        with patch("app.services.notification_service.EmailNotificationService") as mock_service:
             service = Mock()
             service.is_configured.return_value = True
             service.validate_email.return_value = True
             service.check_rate_limit.return_value = False
-            mock.return_value = service
+            mock_service.return_value = service
 
             with app.app_context():
                 # Rate limited should trigger retry, which in eager mode raises
@@ -163,7 +160,7 @@ class TestSendBackupNotificationTask:
         with patch("app.tasks.email_tasks.send_email") as mock_send:
             mock_send.apply_async.return_value = Mock(id="task-456")
 
-            with patch("app.tasks.email_tasks.EmailNotificationService") as mock_svc:
+            with patch("app.services.notification_service.EmailNotificationService") as mock_svc:
                 service = Mock()
                 service.render_template.return_value = "<h1>Backup Success</h1>"
                 mock_svc.return_value = service
@@ -186,7 +183,7 @@ class TestSendBackupNotificationTask:
         with patch("app.tasks.email_tasks.send_email") as mock_send:
             mock_send.apply_async.return_value = Mock(id="task-789")
 
-            with patch("app.tasks.email_tasks.EmailNotificationService") as mock_svc:
+            with patch("app.services.notification_service.EmailNotificationService") as mock_svc:
                 service = Mock()
                 service.render_template.return_value = None  # Template not found
                 mock_svc.return_value = service
