@@ -1,0 +1,117 @@
+name: 🤖 Auto-Repair Request
+description: Create an issue for automatic error detection and repair
+title: "[Auto-Repair] "
+labels: ["auto-repair", "automated"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🤖 自動修復リクエスト
+
+        このIssueを作成すると、自動修復システムがトリガーされます。
+
+        **重要**: `auto-repair` ラベルが付いている限り、システムは30分ごとに自動的に修復を試みます。
+
+  - type: dropdown
+    id: error_type
+    attributes:
+      label: エラータイプ
+      description: 検出されたエラーの種類を選択してください
+      options:
+        - 構文エラー (Syntax Error)
+        - インポートエラー (Import Error)
+        - Lintエラー (Lint Error)
+        - 型エラー (Type Error)
+        - テスト失敗 (Test Failure)
+        - データベースエラー (Database Error)
+        - Flask起動エラー (Flask Error)
+        - テンプレートエラー (Template Error)
+        - セキュリティ問題 (Security Issue)
+        - 依存関係エラー (Dependency Error)
+        - その他 (Other)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 重要度
+      description: エラーの重要度を選択してください
+      options:
+        - 🔴 Critical (クリティカル - 即時対応必要)
+        - 🟠 High (高 - 早急な対応必要)
+        - 🟡 Medium (中 - 次のスプリントで対応)
+        - 🟢 Low (低 - 時間があれば対応)
+    validations:
+      required: true
+
+  - type: textarea
+    id: error_details
+    attributes:
+      label: エラー詳細
+      description: |
+        エラーの詳細情報を入力してください。
+        可能であれば、エラーメッセージ、スタックトレース、関連するファイル名を含めてください。
+      placeholder: |
+        ### ❌ 検出されたエラー
+
+        1. エラー内容をここに記載
+
+        ### 📁 関連ファイル
+
+        - ファイルパスをここに記載
+
+        ### 📋 エラーログ
+
+        ```
+        エラーログをここに貼り付け
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: 再現手順
+      description: エラーを再現する手順を記載してください（オプション）
+      placeholder: |
+        1. 手順1
+        2. 手順2
+        3. ...
+
+  - type: checkboxes
+    id: auto_repair_options
+    attributes:
+      label: 自動修復オプション
+      description: 自動修復システムの動作を選択してください
+      options:
+        - label: 自動修復を許可する (Allow auto-repair)
+          required: true
+        - label: 修復後に自動コミットを許可する (Allow auto-commit after repair)
+        - label: 修復後に自動マージを許可する (Allow auto-merge after repair)
+
+  - type: dropdown
+    id: max_cycles
+    attributes:
+      label: 最大修復サイクル数
+      description: 自動修復の最大試行回数を選択してください
+      options:
+        - "5"
+        - "10"
+        - "15 (デフォルト)"
+        - "20"
+      default: 2
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: 追加情報
+      description: その他の関連情報があれば記載してください
+      placeholder: |
+        - 環境情報
+        - 最近の変更内容
+        - 関連するPR/Issue番号
