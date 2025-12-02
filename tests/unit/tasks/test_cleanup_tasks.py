@@ -6,11 +6,10 @@ These tests verify the Celery cleanup task functionality with proper mocking
 to isolate task behavior from actual system state.
 """
 import os
-import shutil
 import tempfile
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, call, patch
+from unittest.mock import Mock, patch
 
 import pytest
 

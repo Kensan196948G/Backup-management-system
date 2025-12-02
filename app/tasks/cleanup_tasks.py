@@ -6,10 +6,9 @@ This module provides background maintenance tasks for
 log cleanup, database optimization, and system health checks.
 """
 import logging
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from app.tasks import celery_app
 

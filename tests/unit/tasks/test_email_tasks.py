@@ -2,8 +2,7 @@
 Unit tests for email tasks.
 Phase 11: Asynchronous Task Processing
 """
-from datetime import datetime, timezone
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
