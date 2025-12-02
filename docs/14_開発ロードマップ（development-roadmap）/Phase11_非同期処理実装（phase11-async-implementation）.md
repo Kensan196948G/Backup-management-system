@@ -191,12 +191,37 @@ pip install -r requirements.txt
 ### 2. Redis起動
 
 ```bash
-# Docker使用
-docker run -d -p 6379:6379 redis:7-alpine
+# Ubuntu/Debian
+sudo apt install redis-server
+sudo systemctl enable redis-server
+sudo systemctl start redis-server
 
-# または systemd
+# CentOS/RHEL
+sudo yum install redis
+sudo systemctl enable redis
 sudo systemctl start redis
+
+# 動作確認
+redis-cli ping
+# PONG と表示されればOK
 ```
+
+#### Windows環境での代替案
+
+Windows環境ではRedisの公式サポートがないため、以下の選択肢があります:
+
+1. **WSL2内でRedisを実行** (推奨)
+   ```bash
+   # WSL2のUbuntuで
+   sudo apt install redis-server
+   sudo service redis-server start
+   ```
+
+2. **Memurai** (Windows向けRedis互換)
+   - https://www.memurai.com/ からダウンロード
+
+3. **開発時のみ同期実行**
+   - テスト環境では`task_always_eager=True`で同期実行可能
 
 ### 3. Celeryワーカー起動
 
@@ -321,7 +346,7 @@ export CELERY_LOG_LEVEL=WARNING
 
 1. [ ] Flask-Celery統合のテスト作成
 2. [ ] Flower UIの認証設定
-3. [ ] Docker Compose更新 (Redis追加)
+3. [ ] systemdサービスファイル作成 (Celery/Redis)
 4. [ ] 本番環境デプロイガイド
 
 ### Phase 12 準備
