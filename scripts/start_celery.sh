@@ -63,14 +63,22 @@ start_beat() {
 # Function to start flower
 start_flower() {
     echo "Starting Flower monitoring..."
+
+    # Authentication settings
+    FLOWER_BASIC_AUTH="${FLOWER_BASIC_AUTH:-admin:admin}"
+
     celery -A celery_worker.celery_app flower \
         --port="${FLOWER_PORT:-5555}" \
+        --basic_auth="$FLOWER_BASIC_AUTH" \
         --persistent=True \
         --db="$PROJECT_ROOT/data/flower.db" \
         --logging="$LOG_LEVEL" \
+        --url_prefix="${FLOWER_URL_PREFIX:-}" \
         &
     echo $! > "$PID_DIR/celery-flower.pid"
     echo "Flower started on port ${FLOWER_PORT:-5555}"
+    echo "  Basic Auth: ${FLOWER_BASIC_AUTH%%:*}:****"
+    echo "  URL: http://localhost:${FLOWER_PORT:-5555}${FLOWER_URL_PREFIX:-}"
 }
 
 # Function to stop all services
@@ -162,6 +170,8 @@ case "${1:-start}" in
         echo "  CELERY_LOG_LEVEL   - Log level (default: INFO)"
         echo "  CELERY_QUEUES      - Queues to consume (default: all)"
         echo "  FLOWER_PORT        - Flower UI port (default: 5555)"
+        echo "  FLOWER_BASIC_AUTH  - Flower auth user:pass (default: admin:admin)"
+        echo "  FLOWER_URL_PREFIX  - Flower URL prefix for reverse proxy"
         exit 1
         ;;
 esac
