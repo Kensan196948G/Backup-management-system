@@ -219,7 +219,6 @@ def check_backup_status(self) -> Dict[str, Any]:
     Returns:
         チェック結果
     """
-    import os
     from pathlib import Path
 
     from app.tasks.notification_tasks import send_multi_channel_notification

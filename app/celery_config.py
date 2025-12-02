@@ -8,6 +8,7 @@ using Redis as both message broker and result backend.
 import os
 from datetime import timedelta
 
+from celery.schedules import crontab
 from kombu import Exchange, Queue
 
 

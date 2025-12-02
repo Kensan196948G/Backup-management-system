@@ -6,8 +6,8 @@ Phase 13: PostgreSQL最適化・バックアップ・監視
 監視ダッシュボードとアラート機能に情報を提供します。
 """
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List
 
 from flask import current_app
 from sqlalchemy import text

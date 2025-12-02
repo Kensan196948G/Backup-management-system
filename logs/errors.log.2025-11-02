@@ -1,0 +1,290 @@
+[2025-11-02 11:12:06,845] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 11:43:35,464] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 11:43:39,975] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 11:44:28,190] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 11:58:30,815] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:08:37,013] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:08:55,632] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:09:25,417] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:09:45,309] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:10:00,289] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:10:10,826] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:10:32,561] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:33:36,100] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:33:43,294] ERROR [app.handle_exception:312] Unhandled exception: 'User' object has no attribute 'has_any_role'
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 52, in decorated_function
+    if not current_user.has_any_role(*roles):
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'User' object has no attribute 'has_any_role'
+[2025-11-02 12:49:42,018] ERROR [app.handle_exception:312] Unhandled exception: verification/execute.html
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 67, in decorated_function
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/views/verification.py", line 146, in execute
+    return render_template("verification/execute.html", jobs=jobs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/templating.py", line 151, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/jinja2/loaders.py", line 126, in load
+    source, filename, uptodate = self.get_source(environment, name)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/templating.py", line 65, in get_source
+    return self._get_source_fast(environment, template)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/templating.py", line 99, in _get_source_fast
+    raise TemplateNotFound(template)
+jinja2.exceptions.TemplateNotFound: verification/execute.html
+[2025-11-02 12:50:13,411] ERROR [app.handle_exception:312] Unhandled exception: verification/execute.html
+Traceback (most recent call last):
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 867, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/app.py", line 852, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask_login/utils.py", line 290, in decorated_view
+    return current_app.ensure_sync(func)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/auth/decorators.py", line 67, in decorated_function
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/app/views/verification.py", line 146, in execute
+    return render_template("verification/execute.html", jobs=jobs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/templating.py", line 151, in render_template
+    template = app.jinja_env.get_or_select_template(template_name_or_list)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/jinja2/environment.py", line 1087, in get_or_select_template
+    return self.get_template(template_name_or_list, parent, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/jinja2/environment.py", line 1016, in get_template
+    return self._load_template(name, globals)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/jinja2/environment.py", line 975, in _load_template
+    template = self.loader.load(self, name, self.make_globals(globals))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/jinja2/loaders.py", line 126, in load
+    source, filename, uptodate = self.get_source(environment, name)
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/templating.py", line 65, in get_source
+    return self._get_source_fast(environment, template)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/Linux-ExHDD/backup-management-system/venv/lib/python3.12/site-packages/flask/templating.py", line 99, in _get_source_fast
+    raise TemplateNotFound(template)
+jinja2.exceptions.TemplateNotFound: verification/execute.html
+[2025-11-02 13:57:12,605] ERROR [app.index:55] Error loading dashboard: Could not build url for endpoint 'settings.index'. Did you mean 'index' instead?
+[2025-11-02 14:04:33,118] ERROR [app.index:55] Error loading dashboard: Could not build url for endpoint 'settings.index'. Did you mean 'index' instead?
+[2025-11-02 14:04:37,937] ERROR [app.index:55] Error loading dashboard: Could not build url for endpoint 'settings.index'. Did you mean 'index' instead?
+[2025-11-02 14:04:39,049] ERROR [app.index:55] Error loading dashboard: Could not build url for endpoint 'settings.index'. Did you mean 'index' instead?
