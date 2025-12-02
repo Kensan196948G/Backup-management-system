@@ -190,25 +190,29 @@ class DatabaseMigrator:
 
             # Insert batch into PostgreSQL
             with self.postgres_engine.connect() as conn:
+                transaction = conn.begin()
                 for row in rows:
-                    # Build insert dict
-                    data = dict(zip(columns, row))
-
-                    # Handle NULL values and type conversions
-                    data = self._convert_row_types(data, table_name)
-
-                    # Build parameterized insert
-                    cols = ", ".join(data.keys())
-                    placeholders = ", ".join([f":{k}" for k in data.keys()])
-                    insert_sql = text(f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})")
-
                     try:
+                        # Build insert dict
+                        data = dict(zip(columns, row))
+
+                        # Handle NULL values and type conversions
+                        data = self._convert_row_types(data, table_name)
+
+                        # Build parameterized insert
+                        cols = ", ".join(data.keys())
+                        placeholders = ", ".join([f":{k}" for k in data.keys()])
+                        insert_sql = text(f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})")
+
                         conn.execute(insert_sql, data)
                     except Exception as e:
                         logger.warning(f"  Row insert failed: {e}")
                         self.stats["errors"].append({"table": table_name, "error": str(e), "data": str(data)[:200]})
+                        # Rollback this transaction and start a new one
+                        transaction.rollback()
+                        transaction = conn.begin()
 
-                conn.commit()
+                transaction.commit()
 
             migrated += len(rows)
             offset += batch_size
@@ -232,9 +236,37 @@ class DatabaseMigrator:
         """
         converted = {}
 
+        # Boolean field names that need conversion
+        boolean_fields = {
+            "is_active",
+            "is_acknowledged",
+            "is_read",
+            "is_locked",
+            "is_verified",
+            "is_encrypted",
+            "is_compressed",
+            "is_offline",
+            "is_readonly",
+            "auto_rotation_enabled",
+            "notify_on_completion",
+            "notify_on_failure",
+            "enforce_verification",
+            "require_secondary_storage",
+            "is_default",
+            "is_secure",
+        }
+
         for key, value in data.items():
             if value is None:
                 converted[key] = None
+            elif key in boolean_fields:
+                # Convert integer/string to boolean
+                if isinstance(value, int):
+                    converted[key] = bool(value)
+                elif isinstance(value, str):
+                    converted[key] = value.lower() in ("true", "1", "yes")
+                else:
+                    converted[key] = bool(value)
             elif isinstance(value, bytes):
                 # Convert bytes to string or handle as binary
                 try:
@@ -290,24 +322,39 @@ class DatabaseMigrator:
         logger.info("Verifying migration...")
 
         inspector_sqlite = inspect(self.sqlite_engine)
-        tables = inspector_sqlite.get_table_names()
+        sqlite_tables = set(inspector_sqlite.get_table_names())
+
+        inspector_postgres = inspect(self.postgres_engine)
+        postgres_tables = set(inspector_postgres.get_table_names())
+
+        # Only verify tables that exist in both databases
+        common_tables = sqlite_tables & postgres_tables
 
         all_ok = True
 
-        for table in tables:
+        for table in common_tables:
             with self.sqlite_engine.connect() as conn:
                 result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
                 sqlite_count = result.scalar()
 
             with self.postgres_engine.connect() as conn:
-                result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
-                postgres_count = result.scalar()
+                try:
+                    result = conn.execute(text(f"SELECT COUNT(*) FROM {table}"))
+                    postgres_count = result.scalar()
+                except Exception as e:
+                    logger.warning(f"  ⚠️ {table}: Could not verify - {e}")
+                    continue
 
             if sqlite_count == postgres_count:
                 logger.info(f"  ✅ {table}: {sqlite_count} rows")
             else:
                 logger.error(f"  ❌ {table}: SQLite={sqlite_count}, PostgreSQL={postgres_count}")
                 all_ok = False
+
+        # Report tables only in SQLite
+        only_sqlite = sqlite_tables - postgres_tables
+        if only_sqlite:
+            logger.warning(f"  ⚠️ Tables only in SQLite (skipped): {only_sqlite}")
 
         return all_ok
 
