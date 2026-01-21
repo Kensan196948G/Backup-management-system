@@ -220,3 +220,5 @@ data/*.db-shm
 *.bak
 backups/
 logs/*.log.*
+.env.development
+.env.production

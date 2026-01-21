@@ -2,6 +2,7 @@
 Backup Jobs Management API
 CRUD operations for backup jobs
 """
+
 import logging
 from datetime import datetime
 
@@ -153,12 +154,14 @@ def list_jobs():
                     "description": job.description,
                     "is_active": job.is_active,
                     "copies_count": job.copies.count(),
-                    "last_execution": {
-                        "date": last_execution.execution_date.isoformat() + "Z",
-                        "result": last_execution.execution_result,
-                    }
-                    if last_execution
-                    else None,
+                    "last_execution": (
+                        {
+                            "date": last_execution.execution_date.isoformat() + "Z",
+                            "result": last_execution.execution_result,
+                        }
+                        if last_execution
+                        else None
+                    ),
                     "compliance_status": compliance.overall_status if compliance else "unknown",
                     "created_at": job.created_at.isoformat() + "Z",
                     "updated_at": job.updated_at.isoformat() + "Z",
@@ -253,29 +256,33 @@ def get_job(job_id):
                     "schedule_type": job.schedule_type,
                     "retention_days": job.retention_days,
                     "owner_id": job.owner_id,
-                    "owner": {
-                        "id": job.owner.id,
-                        "username": job.owner.username,
-                        "full_name": job.owner.full_name,
-                        "email": job.owner.email,
-                    }
-                    if job.owner
-                    else None,
+                    "owner": (
+                        {
+                            "id": job.owner.id,
+                            "username": job.owner.username,
+                            "full_name": job.owner.full_name,
+                            "email": job.owner.email,
+                        }
+                        if job.owner
+                        else None
+                    ),
                     "description": job.description,
                     "is_active": job.is_active,
                     "copies": copies,
                     "recent_executions": recent_executions,
-                    "compliance_status": {
-                        "status": compliance.overall_status,
-                        "check_date": compliance.check_date.isoformat() + "Z",
-                        "copies_count": compliance.copies_count,
-                        "media_types_count": compliance.media_types_count,
-                        "has_offsite": compliance.has_offsite,
-                        "has_offline": compliance.has_offline,
-                        "has_errors": compliance.has_errors,
-                    }
-                    if compliance
-                    else None,
+                    "compliance_status": (
+                        {
+                            "status": compliance.overall_status,
+                            "check_date": compliance.check_date.isoformat() + "Z",
+                            "copies_count": compliance.copies_count,
+                            "media_types_count": compliance.media_types_count,
+                            "has_offsite": compliance.has_offsite,
+                            "has_offline": compliance.has_offline,
+                            "has_errors": compliance.has_errors,
+                        }
+                        if compliance
+                        else None
+                    ),
                     "created_at": job.created_at.isoformat() + "Z",
                     "updated_at": job.updated_at.isoformat() + "Z",
                 }

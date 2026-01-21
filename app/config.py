@@ -2,6 +2,7 @@
 Configuration module for Backup Management System
 Supports cross-platform (Linux development / Windows production)
 """
+
 import os
 from datetime import timedelta
 from pathlib import Path

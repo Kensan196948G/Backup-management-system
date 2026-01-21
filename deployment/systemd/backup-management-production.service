@@ -1,0 +1,62 @@
+[Unit]
+Description=Backup Management System - Production Environment
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+Requires=celery-worker-prod.service celery-beat-prod.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/mnt/LinuxHDD/Backup-Management-System
+EnvironmentFile=/mnt/LinuxHDD/Backup-Management-System/.env.production
+
+# Python仮想環境のパス（必要に応じて変更）
+Environment="PATH=/mnt/LinuxHDD/Backup-Management-System/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# Gunicornを使用した本番環境起動（HTTPS対応）
+# ポート8443を使用（非特権ポート、root権限不要）
+ExecStart=/mnt/LinuxHDD/Backup-Management-System/venv/bin/python -m gunicorn \
+    --bind 0.0.0.0:8443 \
+    --workers 4 \
+    --threads 2 \
+    --timeout 120 \
+    --certfile=/etc/ssl/certs/backup-system-selfsigned.crt \
+    --keyfile=/etc/ssl/private/backup-system-selfsigned.key \
+    --access-logfile /mnt/LinuxHDD/Backup-Management-System/logs/access_prod.log \
+    --error-logfile /mnt/LinuxHDD/Backup-Management-System/logs/error_prod.log \
+    --log-level info \
+    "app:create_app()"
+
+# HTTP使用する場合は以下に置き換え
+# ExecStart=/mnt/LinuxHDD/Backup-Management-System/venv/bin/gunicorn \
+#     --bind 0.0.0.0:5000 \
+#     --workers 4 \
+#     --threads 2 \
+#     --timeout 120 \
+#     --access-logfile /mnt/LinuxHDD/Backup-Management-System/logs/access_prod.log \
+#     --error-logfile /mnt/LinuxHDD/Backup-Management-System/logs/error_prod.log \
+#     --log-level info \
+#     "app:create_app()"
+
+# 再起動設定
+Restart=always
+RestartSec=10s
+
+# ログ設定
+StandardOutput=append:/mnt/LinuxHDD/Backup-Management-System/logs/systemd_prod.log
+StandardError=append:/mnt/LinuxHDD/Backup-Management-System/logs/systemd_prod_error.log
+
+# セキュリティ設定
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/mnt/LinuxHDD/Backup-Management-System/logs /mnt/LinuxHDD/Backup-Management-System/data /mnt/LinuxHDD/Backup-Management-System/reports
+
+# リソース制限
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

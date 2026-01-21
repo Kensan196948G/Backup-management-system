@@ -5,6 +5,7 @@ Phase 13: 監視・アラート
 定期的にPostgreSQLのパフォーマンスを監視し、
 問題があればアラートを発行します。
 """
+
 import logging
 from datetime import datetime
 from typing import Any, Dict
@@ -181,7 +182,9 @@ def generate_slow_query_report(self) -> Dict[str, Any]:
 
             for i, query in enumerate(slow_queries[:5], 1):
                 report_lines.append(
-                    f"{i}. 平均実行時間: {query['mean_time_ms']:.0f}ms " f"(呼び出し: {query['calls']}回)\n" f"   クエリ: {query['query']}\n"
+                    f"{i}. 平均実行時間: {query['mean_time_ms']:.0f}ms "
+                    f"(呼び出し: {query['calls']}回)\n"
+                    f"   クエリ: {query['query']}\n"
                 )
 
             send_multi_channel_notification.apply_async(
@@ -272,7 +275,8 @@ def check_backup_status(self) -> Dict[str, Any]:
                 kwargs={
                     "channels": ["email", "teams", "dashboard"],
                     "title": "⚠️ PostgreSQLバックアップが古い",
-                    "message": f"最新バックアップ: {latest_time.strftime('%Y-%m-%d %H:%M')}\n" f"経過時間: {age_hours:.1f}時間",
+                    "message": f"最新バックアップ: {latest_time.strftime('%Y-%m-%d %H:%M')}\n"
+                    f"経過時間: {age_hours:.1f}時間",
                     "severity": "warning",
                 }
             )

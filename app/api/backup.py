@@ -2,6 +2,7 @@
 Backup Status Update API
 Endpoint for PowerShell scripts to update backup status
 """
+
 import logging
 from datetime import datetime
 

@@ -8,6 +8,7 @@ Supports:
 - Role-based access control (RBAC) integration
 - Token refresh mechanism
 """
+
 import logging
 import secrets
 from datetime import datetime, timedelta

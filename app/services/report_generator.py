@@ -13,6 +13,7 @@ Report types:
 - Compliance: 3-2-1-1-0 rule compliance analysis
 - Audit: Audit log report for compliance
 """
+
 import csv
 import logging
 import os

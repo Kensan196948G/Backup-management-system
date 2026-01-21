@@ -5,6 +5,7 @@ Phase 11: Asynchronous Task Processing
 These tests verify the Celery cleanup task functionality with proper mocking
 to isolate task behavior from actual system state.
 """
+
 import os
 import tempfile
 from datetime import datetime, timedelta

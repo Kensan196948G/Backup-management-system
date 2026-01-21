@@ -8,6 +8,7 @@ Tests all 14 models with focus on:
 - Field validations
 - Default values
 """
+
 from datetime import datetime, timedelta
 
 import pytest

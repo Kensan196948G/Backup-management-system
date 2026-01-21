@@ -9,6 +9,7 @@ Features:
 - Backup execution tracking
 - Database synchronization
 """
+
 import logging
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
@@ -333,15 +334,17 @@ class AOMEIService:
                 "job_name": job.job_name,
                 "job_type": job.job_type,
                 "is_active": job.is_active,
-                "latest_execution": {
-                    "date": latest_execution.execution_date if latest_execution else None,
-                    "result": latest_execution.execution_result if latest_execution else None,
-                    "size": latest_execution.backup_size_bytes if latest_execution else None,
-                    "duration": latest_execution.duration_seconds if latest_execution else None,
-                    "error": latest_execution.error_message if latest_execution else None,
-                }
-                if latest_execution
-                else None,
+                "latest_execution": (
+                    {
+                        "date": latest_execution.execution_date if latest_execution else None,
+                        "result": latest_execution.execution_result if latest_execution else None,
+                        "size": latest_execution.backup_size_bytes if latest_execution else None,
+                        "duration": latest_execution.duration_seconds if latest_execution else None,
+                        "error": latest_execution.error_message if latest_execution else None,
+                    }
+                    if latest_execution
+                    else None
+                ),
                 "copies": [
                     {
                         "type": copy.copy_type,

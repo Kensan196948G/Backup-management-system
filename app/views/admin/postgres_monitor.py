@@ -5,6 +5,7 @@ Phase 13: 監視・アラート
 PostgreSQLのパフォーマンス指標を可視化し、
 リアルタイムでデータベースの健全性を監視します。
 """
+
 from flask import Blueprint, jsonify, render_template
 from flask_login import login_required
 

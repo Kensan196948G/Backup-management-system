@@ -6,6 +6,7 @@ This module provides asynchronous email sending capabilities,
 allowing emails to be sent in the background without blocking
 the main application thread.
 """
+
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional

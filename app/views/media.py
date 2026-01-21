@@ -2,6 +2,7 @@
 Offline Media Management Views
 Media inventory, rotation, and lending management
 """
+
 from datetime import datetime, timedelta
 
 from flask import (
@@ -273,9 +274,11 @@ def lend(media_id):
                 media_id=media_id,
                 borrower_id=current_user.id,
                 purpose=request.form.get("purpose"),
-                expected_return_date=datetime.strptime(request.form.get("expected_return_date"), "%Y-%m-%d")
-                if request.form.get("expected_return_date")
-                else None,
+                expected_return_date=(
+                    datetime.strptime(request.form.get("expected_return_date"), "%Y-%m-%d")
+                    if request.form.get("expected_return_date")
+                    else None
+                ),
             )
 
             # Update media status

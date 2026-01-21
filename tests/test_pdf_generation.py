@@ -3,6 +3,7 @@ Test PDF Generation Functionality
 
 Tests for WeasyPrint-based PDF report generation
 """
+
 import os
 import tempfile
 from datetime import datetime, timedelta

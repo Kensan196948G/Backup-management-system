@@ -2,6 +2,7 @@
 Unit tests for notification tasks.
 Phase 11: Asynchronous Task Processing
 """
+
 from unittest.mock import Mock, patch
 
 import pytest

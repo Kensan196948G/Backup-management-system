@@ -10,6 +10,7 @@ Generates professional PDF reports with:
 - Table of contents
 - Cover pages
 """
+
 import base64
 import logging
 import os

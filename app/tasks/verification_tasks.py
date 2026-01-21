@@ -5,6 +5,7 @@ Phase 11: Asynchronous Verification Processing
 This module provides asynchronous backup verification tasks
 for integrity checking and restore testing.
 """
+
 import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -273,7 +274,10 @@ def check_verification_reminders(self) -> Dict[str, Any]:
             from app.models import Alert
 
             job_names = [job.name for job in overdue_jobs[:10]]  # Limit to first 10
-            message = f"{len(overdue_jobs)}件のバックアップジョブが30日以上検証されていません。\n" f"対象ジョブ: {', '.join(job_names)}"
+            message = (
+                f"{len(overdue_jobs)}件のバックアップジョブが30日以上検証されていません。\n"
+                f"対象ジョブ: {', '.join(job_names)}"
+            )
 
             alert = Alert(
                 title="検証リマインダー",
@@ -352,7 +356,8 @@ def _send_verification_notification(
         kwargs={
             "channels": ["dashboard"] if success else ["dashboard", "email"],
             "title": title,
-            "message": f"バックアップジョブ '{job_name}' の{verification_type}検証が" f"{'成功' if success else '失敗'}しました。",
+            "message": f"バックアップジョブ '{job_name}' の{verification_type}検証が"
+            f"{'成功' if success else '失敗'}しました。",
             "severity": severity,
             "job_name": job_name,
             "details": {"verification_type": verification_type, "success": success},

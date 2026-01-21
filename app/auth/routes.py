@@ -2,6 +2,7 @@
 Authentication Routes
 Login, logout, password management, and user profile routes
 """
+
 from datetime import datetime, timedelta
 
 import jwt

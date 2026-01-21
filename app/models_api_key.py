@@ -2,6 +2,7 @@
 API Key Management Model
 Provides persistent storage for API keys with hashing and expiration
 """
+
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional

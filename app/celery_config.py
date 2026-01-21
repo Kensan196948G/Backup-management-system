@@ -5,6 +5,7 @@ Phase 11: Asynchronous Task Processing
 This module configures Celery for background task processing,
 using Redis as both message broker and result backend.
 """
+
 import os
 from datetime import timedelta
 

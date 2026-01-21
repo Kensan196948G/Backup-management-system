@@ -5,6 +5,7 @@ Phase 13: PostgreSQL最適化・バックアップ・監視
 このサービスはPostgreSQLのパフォーマンス指標を収集し、
 監視ダッシュボードとアラート機能に情報を提供します。
 """
+
 import logging
 from datetime import datetime
 from typing import Any, Dict, List

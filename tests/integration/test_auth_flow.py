@@ -7,6 +7,7 @@ Tests end-to-end authentication flows including:
 - Role-based access
 - Password management
 """
+
 import pytest
 from flask import session
 

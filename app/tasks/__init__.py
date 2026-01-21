@@ -5,6 +5,7 @@ Phase 11: Asynchronous Task Processing
 This module initializes the Celery application and provides
 a factory function for Flask-Celery integration.
 """
+
 import os
 
 from celery import Celery

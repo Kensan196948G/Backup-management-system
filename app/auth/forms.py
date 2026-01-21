@@ -2,6 +2,7 @@
 Authentication Forms
 WTForms for login, password change, and user management
 """
+
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, PasswordField, SelectField, StringField, SubmitField
 from wtforms.validators import (

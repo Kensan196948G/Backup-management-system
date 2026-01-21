@@ -4,6 +4,7 @@ Unit tests for authentication system.
 Tests authentication, authorization, session management,
 and role-based access control.
 """
+
 import pytest
 from flask import session
 from flask_login import current_user
