@@ -25,7 +25,7 @@ def check_compliance_status(app):
         app: Flask application instance
     """
     with app.app_context():
-        from app.models import BackupJob, ComplianceStatus, db
+        from app.models import BackupJob, db
         from app.services.alert_manager import AlertManager
         from app.services.compliance_checker import ComplianceChecker
 
@@ -64,7 +64,7 @@ def check_offline_media_updates(app):
         app: Flask application instance
     """
     with app.app_context():
-        from app.models import OfflineMedia, db
+        from app.models import OfflineMedia
         from app.services.alert_manager import AlertManager
 
         try:
@@ -98,7 +98,7 @@ def check_verification_reminders(app):
         app: Flask application instance
     """
     with app.app_context():
-        from app.models import VerificationSchedule, db
+        from app.models import VerificationSchedule
         from app.services.alert_manager import AlertManager
 
         try:
@@ -132,7 +132,7 @@ def execute_scheduled_verification_tests(app):
         app: Flask application instance
     """
     with app.app_context():
-        from app.models import BackupJob, User, VerificationSchedule, db
+        from app.models import BackupJob, VerificationSchedule
         from app.services.verification_service import (
             VerificationType,
             get_verification_service,
@@ -285,7 +285,6 @@ def generate_daily_report(app):
             BackupJob,
             ComplianceStatus,
             User,
-            db,
         )
         from app.services.notification_service import get_notification_service
 

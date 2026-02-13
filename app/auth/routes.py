@@ -16,7 +16,6 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
-from sqlalchemy import func
 
 from app.auth import auth_bp
 from app.auth.decorators import check_account_locked

@@ -5,11 +5,10 @@ Handles schedule CRUD operations and storage provider configuration
 
 from datetime import datetime, timedelta
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
-from flask_login import current_user, login_required
-from sqlalchemy import func
+from flask import Blueprint, flash, jsonify, render_template, request
+from flask_login import login_required
 
-from app.models import BackupJob, SystemSetting, db
+from app.models import BackupJob, db
 from app.utils.decorators import role_required
 
 bp = Blueprint("backup_schedule", __name__, url_prefix="/backup")
@@ -179,9 +178,9 @@ def create_schedule():
 
         job_id = data.get("job_id")
         cron_expression = data.get("cron_expression")
-        priority = data.get("priority", "medium")
-        description = data.get("description", "")
-        is_active = data.get("is_active", True)
+        data.get("priority", "medium")
+        data.get("description", "")
+        data.get("is_active", True)
 
         if not job_id or not cron_expression:
             return jsonify({"success": False, "message": "Job ID and cron expression are required"}), 400

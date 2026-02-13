@@ -3,7 +3,7 @@ Offline Media Management API
 CRUD operations for offline media (tapes, external HDDs, USB drives)
 """
 import logging
-from datetime import date, datetime
+from datetime import datetime
 
 from flask import jsonify, request
 from flask_login import current_user
@@ -11,7 +11,7 @@ from flask_login import current_user
 from app.api import api_bp
 from app.api.errors import error_response, validation_error_response
 from app.auth.decorators import api_token_required, role_required
-from app.models import MediaLending, MediaRotationSchedule, OfflineMedia, User, db
+from app.models import MediaLending, OfflineMedia, db
 
 logger = logging.getLogger(__name__)
 

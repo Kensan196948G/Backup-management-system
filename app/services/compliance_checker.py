@@ -10,16 +10,13 @@ Implements 3-2-1-1-0 backup rule validation:
 """
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 from app.config import Config
 from app.models import (
-    Alert,
     BackupCopy,
-    BackupExecution,
     BackupJob,
     ComplianceStatus,
-    OfflineMedia,
     db,
 )
 

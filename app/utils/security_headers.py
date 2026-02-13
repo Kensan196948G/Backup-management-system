@@ -10,7 +10,7 @@ Implements security headers and Flask-Talisman integration:
 - Permissions-Policy
 """
 import logging
-from typing import Dict, Optional
+from typing import Dict
 
 from flask import Flask
 

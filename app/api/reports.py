@@ -4,14 +4,14 @@ Generate and retrieve backup reports
 """
 import logging
 import os
-from datetime import date, datetime
+from datetime import datetime
 
 from flask import jsonify, request, send_file
 
 from app.api import api_bp
 from app.api.errors import error_response, validation_error_response
 from app.auth.decorators import api_token_required, role_required
-from app.models import Report, User, db
+from app.models import Report, db
 from app.services.report_generator import ReportGenerator
 
 logger = logging.getLogger(__name__)

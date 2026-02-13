@@ -8,7 +8,7 @@ import smtplib
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from app.config import Config
 from app.models import Alert, NotificationLog, db

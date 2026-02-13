@@ -3,10 +3,8 @@ API v1 Authentication Endpoints
 Provides JWT and API key authentication for REST API
 """
 import logging
-from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from werkzeug.security import check_password_hash
 
 from app.api.auth import (
     authenticate_user,
@@ -14,10 +12,8 @@ from app.api.auth import (
     generate_refresh_token,
     jwt_required,
     refresh_access_token,
-    role_required,
-    verify_jwt_token,
 )
-from app.models import User, db
+from app.models import db
 from app.models_api_key import ApiKey, RefreshToken
 
 logger = logging.getLogger(__name__)

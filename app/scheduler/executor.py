@@ -15,13 +15,12 @@ Features:
 
 import logging
 import os
-import signal
 import threading
 import time
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -472,7 +471,6 @@ class JobExecutor:
         Returns:
             Dictionary of job_id -> ExecutionResult
         """
-        results = {}
 
         # Submit all jobs
         for job_id, callback, job_data, limits in jobs:

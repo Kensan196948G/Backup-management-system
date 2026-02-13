@@ -10,7 +10,6 @@ api_bp = Blueprint("api", __name__, url_prefix="/api")
 
 # Import routes after blueprint creation to avoid circular imports
 # Import v1 API routes
-from app.api import alerts, backup, dashboard, jobs, media, reports, verification
 
 # Register error handlers
 from app.api.errors import register_error_handlers

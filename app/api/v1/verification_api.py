@@ -21,7 +21,6 @@ from app.api.errors import error_response, validation_error_response
 from app.api.schemas import (
     APIResponse,
     PaginatedResponse,
-    VerificationResultResponse,
     VerificationStartRequest,
     VerificationStatusResponse,
 )

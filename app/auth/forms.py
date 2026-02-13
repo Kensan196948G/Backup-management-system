@@ -75,7 +75,6 @@ class ChangePasswordForm(FlaskForm):
     def validate_new_password(self, field):
         """Custom validator to ensure new password is different from current"""
         # This will be checked in the route using check_password
-        pass
 
 
 class ResetPasswordRequestForm(FlaskForm):

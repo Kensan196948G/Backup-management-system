@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from app.models import BackupCopy, BackupJob, OfflineMedia, db
+from app.models import BackupCopy, OfflineMedia, db
 
 logger = logging.getLogger(__name__)
 

@@ -18,7 +18,6 @@ from app.models import (
     BackupJob,
     ComplianceStatus,
     OfflineMedia,
-    VerificationTest,
     db,
 )
 
