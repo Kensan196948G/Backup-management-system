@@ -1,0 +1,344 @@
+name: Claude Auto Repair Loop
+
+on:
+  # PR作成時・更新時に実行
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main, develop]
+
+  # mainブランチへのpush時に実行
+  push:
+    branches: [main]
+
+  # 手動実行
+  workflow_dispatch:
+    inputs:
+      max_repairs:
+        description: '最大修復回数（デフォルト: 3）'
+        required: false
+        default: '3'
+        type: string
+
+jobs:
+  claude-review-and-repair:
+    name: Claude Review & Auto Repair
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      # ========================================
+      # 1. チェックアウト
+      # ========================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 完全な履歴を取得（差分比較用）
+
+      # ========================================
+      # 2. Python環境セットアップ
+      # ========================================
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jq
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # ========================================
+      # 3. 状態管理の初期化
+      # ========================================
+      - name: Initialize repair state
+        id: init
+        run: |
+          MAX_REPAIRS=${{ github.event.inputs.max_repairs || '3' }}
+          echo "max_repairs=$MAX_REPAIRS" >> $GITHUB_OUTPUT
+          
+          if [ ! -f state.json ]; then
+            cat > state.json <<EOF
+          {
+            "repair_count": 0,
+            "last_hash": "",
+            "last_error": "",
+            "last_review_time": "$(date -Iseconds)",
+            "total_issues_found": 0,
+            "total_issues_fixed": 0
+          }
+          EOF
+          fi
+          
+          echo "State initialized"
+          cat state.json
+
+      # ========================================
+      # 4. 差分確認
+      # ========================================
+      - name: Check diff
+        id: diff
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PRの場合はbase branchとの差分
+            git diff origin/${{ github.base_ref }}...HEAD > current.diff
+          else
+            # pushの場合は前回のコミットとの差分
+            git diff HEAD^ HEAD > current.diff
+          fi
+          
+          # 差分ハッシュを計算
+          DIFF_HASH=$(sha256sum current.diff | cut -d ' ' -f1)
+          echo "diff_hash=$DIFF_HASH" >> $GITHUB_OUTPUT
+          echo "Diff hash: $DIFF_HASH"
+          
+          # 差分サイズ確認
+          DIFF_SIZE=$(wc -l < current.diff)
+          echo "diff_lines=$DIFF_SIZE" >> $GITHUB_OUTPUT
+          echo "Diff size: $DIFF_SIZE lines"
+
+      # ========================================
+      # 5. 簡易レビュー実行（Claude CLI不要版）
+      # ========================================
+      - name: Run code review
+        id: review
+        continue-on-error: true
+        run: |
+          echo "🔍 コードレビューを実行中..."
+          
+          # Pythonコード品質チェック
+          REVIEW_RESULT="OK"
+          
+          # Flake8でコード品質チェック
+          if [ -d "app" ]; then
+            if ! flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics; then
+              REVIEW_RESULT="NG"
+              echo "❌ Flake8で重大なエラーが検出されました"
+            fi
+          fi
+          
+          # Banditでセキュリティチェック
+          if [ -d "app" ]; then
+            if ! bandit -r app/ -ll -f json -o bandit-report.json; then
+              REVIEW_RESULT="NG"
+              echo "❌ セキュリティ問題が検出されました"
+            fi
+          fi
+          
+          # レビュー結果を保存
+          cat > review-output.txt <<EOF
+          ## 総合判定
+          $REVIEW_RESULT
+          
+          ## レビュー概要
+          - Flake8チェック: 実行完了
+          - Banditセキュリティスキャン: 実行完了
+          
+          ## 詳細
+          詳細なレビュー結果は各ツールの出力を参照してください。
+          EOF
+          
+          echo "review_result=$REVIEW_RESULT" >> $GITHUB_OUTPUT
+          cat review-output.txt
+
+      # ========================================
+      # 6. 自動修復実行
+      # ========================================
+      - name: Auto fix issues
+        id: auto_fix
+        if: steps.review.outputs.review_result == 'NG'
+        run: |
+          echo "🛠 自動修復を実行中..."
+          
+          REPAIR_COUNT=$(jq -r '.repair_count' state.json)
+          MAX_REPAIRS=${{ steps.init.outputs.max_repairs }}
+          
+          if [ "$REPAIR_COUNT" -ge "$MAX_REPAIRS" ]; then
+            echo "❌ 修復回数上限到達: $REPAIR_COUNT / $MAX_REPAIRS"
+            echo "fixed=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # 自動修復可能な項目の修正
+          # 1. Black でコードフォーマット
+          if [ -d "app" ]; then
+            black app/ --line-length=127 || true
+          fi
+          
+          # 2. isort でimport整理
+          if [ -d "app" ]; then
+            isort app/ --profile black || true
+          fi
+          
+          # 3. 未使用importの削除（autoflake）
+          if [ -d "app" ]; then
+            pip install autoflake
+            autoflake --in-place --remove-all-unused-imports --remove-unused-variables -r app/ || true
+          fi
+          
+          # 修復後の差分確認
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "✅ 自動修復により変更が発生しました"
+            git diff --stat
+            echo "fixed=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ 修復による変更はありませんでした"
+            echo "fixed=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # 状態更新
+          NEW_COUNT=$((REPAIR_COUNT + 1))
+          jq ".repair_count = $NEW_COUNT" state.json > tmp.json && mv tmp.json state.json
+
+      # ========================================
+      # 7. 差分変化チェック
+      # ========================================
+      - name: Check diff changes
+        id: diff_check
+        if: steps.auto_fix.outputs.fixed == 'true'
+        run: |
+          # 新しい差分ハッシュを計算
+          git diff > new.diff
+          NEW_HASH=$(sha256sum new.diff | cut -d ' ' -f1)
+          
+          # 前回のハッシュと比較
+          LAST_HASH=$(jq -r '.last_hash' state.json)
+          
+          if [ "$NEW_HASH" = "$LAST_HASH" ] && [ -n "$LAST_HASH" ]; then
+            echo "❌ 差分が変化していません"
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "✅ 差分が変化しました"
+            echo "changed=true" >> $GITHUB_OUTPUT
+            
+            # ハッシュを更新
+            jq --arg hash "$NEW_HASH" '.last_hash = $hash' state.json > tmp.json && mv tmp.json state.json
+          fi
+
+      # ========================================
+      # 8. 修復結果をコミット
+      # ========================================
+      - name: Commit auto-repair changes
+        if: steps.auto_fix.outputs.fixed == 'true' && steps.diff_check.outputs.changed == 'true'
+        run: |
+          git config user.name "claude-auto-repair[bot]"
+          git config user.email "claude-auto-repair[bot]@users.noreply.github.com"
+          
+          git add .
+          
+          REPAIR_COUNT=$(jq -r '.repair_count' state.json)
+          git commit -m "🤖 自動修復 (試行 $REPAIR_COUNT/${{ steps.init.outputs.max_repairs }})" \
+            -m "自動的にコード品質とフォーマットを修正しました" \
+            -m "" \
+            -m "- Black: コードフォーマット" \
+            -m "- isort: import文の整理" \
+            -m "- autoflake: 未使用import削除" \
+            -m "" \
+            -m "Co-Authored-By: Claude Auto Repair <noreply@anthropic.com>"
+          
+          git push
+
+      # ========================================
+      # 9. 再レビュー実行
+      # ========================================
+      - name: Re-run review
+        id: re_review
+        if: steps.auto_fix.outputs.fixed == 'true'
+        continue-on-error: true
+        run: |
+          echo "🔍 再レビューを実行中..."
+          
+          REVIEW_RESULT="OK"
+          
+          if [ -d "app" ]; then
+            if ! flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics; then
+              REVIEW_RESULT="NG"
+            fi
+          fi
+          
+          echo "re_review_result=$REVIEW_RESULT" >> $GITHUB_OUTPUT
+          echo "再レビュー結果: $REVIEW_RESULT"
+
+      # ========================================
+      # 10. 結果レポート（PRコメント）
+      # ========================================
+      - name: Post PR comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const repairCount = ${{ steps.init.outputs.max_repairs }};
+            const currentCount = JSON.parse(require('fs').readFileSync('state.json', 'utf8')).repair_count;
+            const reviewResult = '${{ steps.review.outputs.review_result }}';
+            const fixed = '${{ steps.auto_fix.outputs.fixed }}' === 'true';
+            const reReviewResult = '${{ steps.re_review.outputs.re_review_result }}';
+            
+            let body = '## 🤖 Claude Auto Repair レポート\n\n';
+            body += `### 📊 修復統計\n`;
+            body += `- 修復試行回数: ${currentCount} / ${repairCount}\n`;
+            body += `- 初回レビュー: ${reviewResult}\n`;
+            
+            if (fixed) {
+              body += `- 自動修復: ✅ 実行済み\n`;
+              body += `- 再レビュー: ${reReviewResult}\n\n`;
+              
+              if (reReviewResult === 'OK') {
+                body += '### ✅ 自動修復成功\n\n';
+                body += 'すべての自動修復可能な問題が解決されました。\n';
+              } else {
+                body += '### ⚠️ 追加の修復が必要\n\n';
+                body += 'いくつかの問題が残っています。次回のpushで再度修復を試みます。\n';
+              }
+            } else {
+              body += `- 自動修復: ${reviewResult === 'OK' ? '不要' : '❌ 失敗または変更なし'}\n\n`;
+            }
+            
+            if (currentCount >= repairCount) {
+              body += '\n### 🚨 修復回数上限到達\n\n';
+              body += '自動修復が規定回数に達しました。手動での対応が必要です。\n';
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      # ========================================
+      # 11. 状態リセット（成功時）
+      # ========================================
+      - name: Reset state on success
+        if: steps.re_review.outputs.re_review_result == 'OK' || steps.review.outputs.review_result == 'OK'
+        run: |
+          cat > state.json <<EOF
+          {
+            "repair_count": 0,
+            "last_hash": "",
+            "last_error": "",
+            "last_review_time": "$(date -Iseconds)",
+            "total_issues_found": 0,
+            "total_issues_fixed": 0
+          }
+          EOF
+          echo "✅ 状態をリセットしました"
+
+      # ========================================
+      # 12. アーティファクトのアップロード
+      # ========================================
+      - name: Upload review artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-auto-repair-logs
+          path: |
+            review-output.txt
+            state.json
+            current.diff
+            bandit-report.json
+          retention-days: 7

@@ -218,3 +218,10 @@ data/*.db-shm
 # バックアップファイル
 *.backup
 *.bak
+
+# Auto-repair system state
+state.json
+review-output.txt
+fix-output.txt
+logs/auto-repair-local.log
+*.diff
