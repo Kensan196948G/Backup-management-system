@@ -7,6 +7,7 @@ Supports multiple notification channels:
 - Email notifications
 - Microsoft Teams webhooks
 """
+
 import json
 import logging
 from datetime import datetime, timedelta

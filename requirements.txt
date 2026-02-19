@@ -9,6 +9,7 @@ Flask-Cors==4.0.0
 # Database
 SQLAlchemy==2.0.36
 alembic==1.14.0
+psycopg2-binary==2.9.9
 
 # Authentication & Security
 bcrypt==4.1.2
@@ -61,6 +62,11 @@ Flask-Caching==2.1.0
 redis==5.0.1
 prometheus-client==0.19.0
 prometheus-flask-exporter==0.23.0
+
+# Async Task Processing (Phase 11)
+celery==5.3.6
+kombu==5.3.4
+flower==2.0.1
 
 # Security (Phase 10)
 Flask-Talisman==1.1.0

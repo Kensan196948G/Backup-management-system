@@ -2,6 +2,7 @@
 Dashboard Summary API
 Provides summary data for dashboard display
 """
+
 import logging
 from datetime import datetime, timedelta
 

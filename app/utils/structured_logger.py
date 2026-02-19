@@ -7,6 +7,7 @@ Provides JSON-formatted structured logging:
 - Log aggregation support
 - Integration with Flask request context
 """
+
 import logging
 import uuid
 from datetime import datetime

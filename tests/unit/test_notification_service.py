@@ -8,6 +8,7 @@ Tests cover:
 - SMTP sending (mocked)
 - Various notification types
 """
+
 import unittest
 from datetime import datetime, timedelta
 from pathlib import Path

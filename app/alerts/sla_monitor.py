@@ -312,9 +312,9 @@ class SLAMonitor:
                     "success_rate": f"{metrics.success_rate:.1f}%",
                     "average_duration": f"{metrics.average_duration_seconds}s" if metrics.average_duration_seconds else "N/A",
                     "executions": metrics.executions_count,
-                    "last_execution": metrics.last_execution_date.strftime("%Y-%m-%d %H:%M:%S")
-                    if metrics.last_execution_date
-                    else "Never",
+                    "last_execution": (
+                        metrics.last_execution_date.strftime("%Y-%m-%d %H:%M:%S") if metrics.last_execution_date else "Never"
+                    ),
                     "is_compliant": metrics.is_compliant,
                     "violations": metrics.violations,
                 }

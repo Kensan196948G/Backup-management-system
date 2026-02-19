@@ -8,6 +8,7 @@ Endpoints:
 - GET    /api/v1/verify/{backup_id}/result - Get verification result
 - GET    /api/v1/verify                    - List recent verifications
 """
+
 import logging
 from datetime import datetime
 

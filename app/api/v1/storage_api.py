@@ -9,6 +9,7 @@ Endpoints:
 - GET    /api/v1/storage/{id}/space      - Get storage space information
 - GET    /api/v1/storage/{id}/backups    - List backups on storage
 """
+
 import logging
 import os
 from datetime import datetime

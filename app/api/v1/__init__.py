@@ -10,6 +10,7 @@ Endpoints:
 - /api/v1/compliance - Compliance status
 - /api/v1/aomei - AOMEI Backupper integration
 """
+
 from flask import Blueprint
 
 # Note: v1 modules are imported when needed to avoid circular dependencies

@@ -3,6 +3,7 @@ REST API Blueprint
 Provides RESTful API endpoints for external integrations
 API Version: v1
 """
+
 from flask import Blueprint
 
 # Create API blueprint with /api prefix

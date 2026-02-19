@@ -2,6 +2,7 @@
 Verification Test Management Views
 Test execution, scheduling, and history
 """
+
 from datetime import datetime, timedelta
 
 from flask import (
@@ -216,9 +217,11 @@ def create_schedule():
                 "job_id": request.form.get("job_id"),
                 "test_type": request.form.get("test_type"),
                 "frequency_days": int(request.form.get("frequency_days", 30)),
-                "next_test_date": datetime.strptime(request.form.get("next_test_date"), "%Y-%m-%d")
-                if request.form.get("next_test_date")
-                else datetime.utcnow(),
+                "next_test_date": (
+                    datetime.strptime(request.form.get("next_test_date"), "%Y-%m-%d")
+                    if request.form.get("next_test_date")
+                    else datetime.utcnow()
+                ),
                 "assigned_to_id": request.form.get("assigned_to_id") or current_user.id,
                 "is_active": request.form.get("is_active") == "on",
             }

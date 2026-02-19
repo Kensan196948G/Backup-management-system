@@ -2,6 +2,7 @@
 System Settings Views
 System configuration and settings management
 """
+
 from flask import (
     current_app,
     flash,

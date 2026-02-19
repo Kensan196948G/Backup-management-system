@@ -6,6 +6,7 @@ Tests for:
 - AlertManager: Alert generation and management
 - ReportGenerator: Report generation (HTML/CSV)
 """
+
 from datetime import datetime, timedelta
 
 import pytest

@@ -2,6 +2,7 @@
 Report Management Views
 Report viewing, generation, and export
 """
+
 import os
 from datetime import datetime, timedelta
 
@@ -83,7 +84,11 @@ def generate():
     report_type_param = request.args.get("type", "")
 
     # Set page title based on type
-    page_titles = {"periodic": "定期レポート生成", "compliance": "コンプライアンスレポート生成", "custom": "カスタムレポート生成"}
+    page_titles = {
+        "periodic": "定期レポート生成",
+        "compliance": "コンプライアンスレポート生成",
+        "custom": "カスタムレポート生成",
+    }
     page_title = page_titles.get(report_type_param, "レポート生成")
 
     if request.method == "POST":

@@ -17,6 +17,7 @@ Features:
 - Retry on failure
 - Support for multiple notification types
 """
+
 import logging
 import smtplib
 from datetime import datetime, timedelta

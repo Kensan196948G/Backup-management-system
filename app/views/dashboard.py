@@ -2,6 +2,7 @@
 Dashboard Views
 Main dashboard showing system overview and statistics
 """
+
 from datetime import datetime, timedelta
 
 from flask import current_app, jsonify, render_template

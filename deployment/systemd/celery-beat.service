@@ -1,0 +1,44 @@
+[Unit]
+Description=Celery Beat Scheduler for Backup Management System
+After=network.target redis-server.service celery-worker.service
+Requires=redis-server.service
+
+[Service]
+Type=forking
+User=backupmgmt
+Group=backupmgmt
+WorkingDirectory=/opt/backup-management-system
+Environment="PATH=/opt/backup-management-system/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="FLASK_ENV=production"
+Environment="CELERY_BROKER_URL=redis://localhost:6379/0"
+Environment="CELERY_RESULT_BACKEND=redis://localhost:6379/1"
+
+ExecStart=/opt/backup-management-system/venv/bin/celery \
+    -A celery_worker.celery_app beat \
+    --loglevel=WARNING \
+    --pidfile=/var/run/celery/celery-beat.pid \
+    --logfile=/var/log/backup-management/celery-beat.log \
+    --schedule=/opt/backup-management-system/data/celerybeat-schedule \
+    --detach
+
+ExecStop=/bin/kill -TERM $MAINPID
+ExecReload=/bin/kill -HUP $MAINPID
+
+PIDFile=/var/run/celery/celery-beat.pid
+RuntimeDirectory=celery
+RuntimeDirectoryMode=0755
+
+Restart=on-failure
+RestartSec=10
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/backup-management-system/data
+ReadWritePaths=/var/log/backup-management
+ReadWritePaths=/var/run/celery
+
+[Install]
+WantedBy=multi-user.target

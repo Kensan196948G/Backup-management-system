@@ -1,0 +1,42 @@
+[Unit]
+Description=Celery Worker - Production (Backup Management System)
+After=network.target redis-server.service postgresql.service
+Wants=redis-server.service postgresql.service
+
+[Service]
+Type=forking
+User=www-data
+Group=www-data
+WorkingDirectory=/mnt/LinuxHDD/Backup-Management-System
+EnvironmentFile=/mnt/LinuxHDD/Backup-Management-System/.env.production
+
+# Python仮想環境のパス
+Environment="PATH=/mnt/LinuxHDD/Backup-Management-System/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# Celery Workerの起動
+ExecStart=/mnt/LinuxHDD/Backup-Management-System/venv/bin/python -m celery \
+    -A celery_worker.celery_app worker \
+    --loglevel=info \
+    --logfile=/mnt/LinuxHDD/Backup-Management-System/logs/celery_worker_prod.log \
+    --pidfile=/var/run/celery/celery_worker_prod.pid \
+    --detach
+
+# Celery Workerの停止
+ExecStop=/bin/kill -TERM $MAINPID
+
+# PIDファイルの場所
+PIDFile=/var/run/celery/celery_worker_prod.pid
+
+# 再起動設定
+Restart=always
+RestartSec=10s
+
+# セキュリティ設定
+NoNewPrivileges=true
+PrivateTmp=true
+
+# リソース制限
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

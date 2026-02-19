@@ -2,6 +2,7 @@
 Verification Test Management API
 CRUD operations for verification tests and schedules
 """
+
 import logging
 from datetime import datetime, timedelta
 
@@ -209,20 +210,24 @@ def get_test(test_id):
                 {
                     "id": test.id,
                     "job_id": test.job_id,
-                    "job": {
-                        "id": test.job.id,
-                        "job_name": test.job.job_name,
-                        "job_type": test.job.job_type,
-                        "target_server": test.job.target_server,
-                    }
-                    if test.job
-                    else None,
+                    "job": (
+                        {
+                            "id": test.job.id,
+                            "job_name": test.job.job_name,
+                            "job_type": test.job.job_type,
+                            "target_server": test.job.target_server,
+                        }
+                        if test.job
+                        else None
+                    ),
                     "test_type": test.test_type,
                     "test_date": test.test_date.isoformat() + "Z",
                     "tester_id": test.tester_id,
-                    "tester": {"id": test.tester.id, "username": test.tester.username, "full_name": test.tester.full_name}
-                    if test.tester
-                    else None,
+                    "tester": (
+                        {"id": test.tester.id, "username": test.tester.username, "full_name": test.tester.full_name}
+                        if test.tester
+                        else None
+                    ),
                     "restore_target": test.restore_target,
                     "test_result": test.test_result,
                     "duration_seconds": test.duration_seconds,

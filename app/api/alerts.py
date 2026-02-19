@@ -2,6 +2,7 @@
 Alerts Management API
 Retrieve and acknowledge alerts
 """
+
 import logging
 from datetime import datetime
 
@@ -125,25 +126,29 @@ def get_alert(alert_id):
                     "alert_type": alert.alert_type,
                     "severity": alert.severity,
                     "job_id": alert.job_id,
-                    "job": {
-                        "id": alert.job.id,
-                        "job_name": alert.job.job_name,
-                        "job_type": alert.job.job_type,
-                        "target_server": alert.job.target_server,
-                    }
-                    if alert.job
-                    else None,
+                    "job": (
+                        {
+                            "id": alert.job.id,
+                            "job_name": alert.job.job_name,
+                            "job_type": alert.job.job_type,
+                            "target_server": alert.job.target_server,
+                        }
+                        if alert.job
+                        else None
+                    ),
                     "title": alert.title,
                     "message": alert.message,
                     "is_acknowledged": alert.is_acknowledged,
                     "acknowledged_by": alert.acknowledged_by,
-                    "acknowledger": {
-                        "id": alert.acknowledger.id,
-                        "username": alert.acknowledger.username,
-                        "full_name": alert.acknowledger.full_name,
-                    }
-                    if alert.acknowledger
-                    else None,
+                    "acknowledger": (
+                        {
+                            "id": alert.acknowledger.id,
+                            "username": alert.acknowledger.username,
+                            "full_name": alert.acknowledger.full_name,
+                        }
+                        if alert.acknowledger
+                        else None
+                    ),
                     "acknowledged_at": alert.acknowledged_at.isoformat() + "Z" if alert.acknowledged_at else None,
                     "created_at": alert.created_at.isoformat() + "Z",
                 }

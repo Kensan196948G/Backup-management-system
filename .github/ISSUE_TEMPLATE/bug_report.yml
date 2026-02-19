@@ -1,0 +1,70 @@
+name: 🐛 Bug Report
+description: Report a bug to help us improve
+title: "[Bug] "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## バグ報告
+
+        バグの報告ありがとうございます。できるだけ詳しく情報を入力してください。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: バグの説明
+      description: バグの内容を簡潔に説明してください
+      placeholder: 何が起こったか説明してください
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待される動作
+      description: 本来どのように動作すべきか説明してください
+      placeholder: 期待される動作を説明してください
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      description: バグを再現するための手順を記載してください
+      placeholder: |
+        1. '...' に移動
+        2. '...' をクリック
+        3. '...' までスクロール
+        4. エラーが発生
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: エラーログ
+      description: 関連するエラーログがあれば貼り付けてください
+      render: shell
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 重要度
+      options:
+        - 🔴 Critical (システムダウン)
+        - 🟠 High (主要機能に影響)
+        - 🟡 Medium (一部機能に影響)
+        - 🟢 Low (軽微な問題)
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: auto_repair
+    attributes:
+      label: 自動修復
+      options:
+        - label: このバグを自動修復システムで修復することを許可する

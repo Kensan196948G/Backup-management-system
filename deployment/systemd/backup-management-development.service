@@ -1,0 +1,32 @@
+[Unit]
+Description=Backup Management System - Development Environment
+After=network.target postgresql.service redis-server.service
+Wants=postgresql.service redis-server.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/mnt/LinuxHDD/Backup-Management-System
+EnvironmentFile=/mnt/LinuxHDD/Backup-Management-System/.env.development
+
+# Python仮想環境のパス（必要に応じて変更）
+Environment="PATH=/mnt/LinuxHDD/Backup-Management-System/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# Flaskアプリケーションの起動
+ExecStart=/mnt/LinuxHDD/Backup-Management-System/venv/bin/python /mnt/LinuxHDD/Backup-Management-System/run.py
+
+# 再起動設定
+Restart=on-failure
+RestartSec=10s
+
+# ログ設定
+StandardOutput=append:/mnt/LinuxHDD/Backup-Management-System/logs/systemd_dev.log
+StandardError=append:/mnt/LinuxHDD/Backup-Management-System/logs/systemd_dev_error.log
+
+# セキュリティ設定
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

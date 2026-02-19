@@ -2,6 +2,7 @@
 API v1 Authentication Endpoints
 Provides JWT and API key authentication for REST API
 """
+
 import logging
 from datetime import datetime
 

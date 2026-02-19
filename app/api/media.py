@@ -2,6 +2,7 @@
 Offline Media Management API
 CRUD operations for offline media (tapes, external HDDs, USB drives)
 """
+
 import logging
 from datetime import date, datetime
 
@@ -224,9 +225,11 @@ def get_media(media_id):
                     "storage_location": media.storage_location,
                     "current_status": media.current_status,
                     "owner_id": media.owner_id,
-                    "owner": {"id": media.owner.id, "username": media.owner.username, "full_name": media.owner.full_name}
-                    if media.owner
-                    else None,
+                    "owner": (
+                        {"id": media.owner.id, "username": media.owner.username, "full_name": media.owner.full_name}
+                        if media.owner
+                        else None
+                    ),
                     "qr_code": media.qr_code,
                     "notes": media.notes,
                     "backup_copies": copies,

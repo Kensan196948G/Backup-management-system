@@ -2,6 +2,7 @@
 Reports API
 Generate and retrieve backup reports
 """
+
 import logging
 import os
 from datetime import date, datetime
@@ -151,13 +152,15 @@ def get_report(report_id):
                     "file_path": report.file_path,
                     "file_format": report.file_format,
                     "generated_by": report.generated_by,
-                    "generator": {
-                        "id": report.generator.id,
-                        "username": report.generator.username,
-                        "full_name": report.generator.full_name,
-                    }
-                    if report.generator
-                    else None,
+                    "generator": (
+                        {
+                            "id": report.generator.id,
+                            "username": report.generator.username,
+                            "full_name": report.generator.full_name,
+                        }
+                        if report.generator
+                        else None
+                    ),
                     "created_at": report.created_at.isoformat() + "Z",
                     "has_file": bool(report.file_path and os.path.exists(report.file_path)),
                 }

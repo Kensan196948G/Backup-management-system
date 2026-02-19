@@ -175,7 +175,9 @@ class Rule321110Validator:
 
         if not result["different_media"]:
             current = result["details"]["media_count"]
-            recommendations.append(f"現在{current}種類のメディアのみ使用。別の種類のメディア（テープ、クラウド等）にもバックアップしてください")
+            recommendations.append(
+                f"現在{current}種類のメディアのみ使用。別の種類のメディア（テープ、クラウド等）にもバックアップしてください"
+            )
 
         if not result["offsite_copy"]:
             recommendations.append("オフサイト（別の物理的場所）にバックアップコピーを作成してください")

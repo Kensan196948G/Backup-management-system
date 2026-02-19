@@ -10,6 +10,7 @@ Blueprints:
 - reports: Report viewing and generation
 - settings: System settings and configuration
 """
+
 from flask import Blueprint
 
 # Create blueprints

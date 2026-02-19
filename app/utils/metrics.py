@@ -7,6 +7,7 @@ Provides application metrics for monitoring:
 - Custom metrics (alerts, compliance)
 - System metrics (database connections, cache hits)
 """
+
 import logging
 from functools import wraps
 from typing import Callable

@@ -8,6 +8,7 @@ Implements 3-2-1-1-0 backup rule validation:
 - 1 copy offline
 - 0 (zero) copies on the original source
 """
+
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple

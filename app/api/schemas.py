@@ -2,6 +2,7 @@
 Pydantic schemas for API request/response validation
 Provides type-safe data validation for REST API endpoints
 """
+
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 

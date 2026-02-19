@@ -218,3 +218,7 @@ data/*.db-shm
 # バックアップファイル
 *.backup
 *.bak
+backups/
+logs/*.log.*
+.env.development
+.env.production

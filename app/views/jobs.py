@@ -2,6 +2,7 @@
 Backup Job Views
 Job list, detail, create, edit, and delete views
 """
+
 from datetime import datetime
 
 from flask import (
@@ -332,7 +333,9 @@ def check_compliance(job_id):
         compliance = checker.check_job_compliance(job_id)
 
         status = (
-            "準拠" if compliance.overall_status == "compliant" else ("警告" if compliance.overall_status == "warning" else "非準拠")
+            "準拠"
+            if compliance.overall_status == "compliant"
+            else ("警告" if compliance.overall_status == "warning" else "非準拠")
         )
         flash(f"コンプライアンスチェックを実行しました: {status}", "success")
 

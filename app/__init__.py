@@ -9,6 +9,7 @@ Features:
 - Scheduled backup monitoring
 - Compliance checking and alerting
 """
+
 import logging
 import os
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
@@ -218,6 +219,15 @@ def _register_blueprints(app):
         app.logger.info("Views blueprints registered")
     except ImportError as e:
         app.logger.warning(f"Views blueprints not found: {e}")
+
+    # Admin blueprints (Phase 13)
+    try:
+        from app.views.admin.postgres_monitor import bp as postgres_monitor_bp
+
+        app.register_blueprint(postgres_monitor_bp)
+        app.logger.info("Admin blueprints registered")
+    except ImportError as e:
+        app.logger.warning(f"Admin blueprints not found: {e}")
 
     # API blueprint (REST API)
     try:
