@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 
 from flask import jsonify, request
+from flask_login import current_user
 from sqlalchemy import or_
 
 from app.api import api_bp
@@ -336,7 +337,7 @@ def create_job():
             backup_tool=data["backup_tool"],
             schedule_type=data["schedule_type"],
             retention_days=data["retention_days"],
-            owner_id=data.get("owner_id"),
+            owner_id=data.get("owner_id") or current_user.id,
             description=data.get("description"),
             is_active=data.get("is_active", True),
         )
