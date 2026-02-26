@@ -222,3 +222,6 @@ backups/
 logs/*.log.*
 .env.development
 .env.production
+
+# ビルド成果物
+reports/*.html
