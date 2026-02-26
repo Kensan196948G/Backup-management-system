@@ -377,13 +377,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Auto-merge PR
+      - name: Request Manual Review (Auto-merge disabled)
         run: |
-          echo "Attempting to merge PR..."
-          gh pr merge "${{ steps.create-pr.outputs.pr_url }}" \
-            --merge \
-            --auto \
-            --delete-branch || echo "Auto-merge may require manual approval"
+          echo "⚠️  Auto-merge is DISABLED per governance policy."
+          echo "Please manually review and merge the following PR:"
+          echo "${{ steps.create-pr.outputs.pr_url }}"
+          echo ""
+          echo "Reason: Automatic merges to main require human approval (CLAUDE.md governance rule)"
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## ⚠️ Manual Merge Required" >> $GITHUB_STEP_SUMMARY
+          echo "PR URL: ${{ steps.create-pr.outputs.pr_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "Please review and merge manually after verifying CI passes." >> $GITHUB_STEP_SUMMARY
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
