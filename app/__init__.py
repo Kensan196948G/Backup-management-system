@@ -167,9 +167,9 @@ def _init_extensions(app):
     @login_manager.user_loader
     def load_user(user_id):
         """Load user by ID"""
-        from app.models import User
+        from app.models import User, db
 
-        return User.query.get(int(user_id))
+        return db.session.get(User, int(user_id))
 
     @login_manager.unauthorized_handler
     def unauthorized():

@@ -289,7 +289,7 @@ def reset_password(token):
         flash("Invalid or expired reset token", "danger")
         return redirect(url_for("auth.login"))
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if user is None:
         flash("User not found", "danger")
         return redirect(url_for("auth.login"))
@@ -400,7 +400,7 @@ def api_refresh_token():
     if user_id is None:
         return jsonify({"error": {"code": "INVALID_TOKEN", "message": "Invalid or expired refresh token"}}), 401
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if user is None or not user.is_active:
         return jsonify({"error": {"code": "USER_NOT_FOUND", "message": "User not found or inactive"}}), 401
 

@@ -105,7 +105,7 @@ class SLAMonitor:
         metrics_list = []
 
         if job_id:
-            jobs = [BackupJob.query.get(job_id)]
+            jobs = [db.session.get(BackupJob, job_id)]
             if not jobs[0]:
                 logger.warning(f"Job {job_id} not found")
                 return []
@@ -343,7 +343,7 @@ class SLAMonitor:
             List of trend data points
         """
         trend_data = []
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
 
         if not job:
             logger.warning(f"Job {job_id} not found")

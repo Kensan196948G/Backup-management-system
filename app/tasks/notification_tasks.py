@@ -298,7 +298,7 @@ def send_backup_status_update(
         from app.models import BackupJob, db
 
         # Fetch job details
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             logger.warning(f"[Task {task_id}] Job {job_id} not found")
             result["error"] = "Job not found"

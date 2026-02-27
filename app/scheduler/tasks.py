@@ -160,7 +160,7 @@ def execute_scheduled_verification_tests(app):
             for schedule in due_schedules:
                 try:
                     # Get job and tester
-                    job = BackupJob.query.get(schedule.job_id)
+                    job = db.session.get(BackupJob, schedule.job_id)
                     if not job or not job.is_active:
                         logger.warning(f"Job {schedule.job_id} not found or inactive, skipping verification")
                         continue

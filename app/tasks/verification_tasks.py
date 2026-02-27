@@ -62,7 +62,7 @@ def verify_backup(
         from app.models import BackupJob, VerificationResult, db
 
         # Fetch job
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             logger.warning(f"[Task {task_id}] Job {job_id} not found")
             result["status"] = "failed"

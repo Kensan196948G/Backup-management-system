@@ -199,8 +199,8 @@ class TestSendBackupStatusUpdateTask:
         """Test status update when job not found."""
         from app.tasks.notification_tasks import send_backup_status_update
 
-        with patch("app.models.BackupJob") as mock_job_class:
-            mock_job_class.query.get.return_value = None
+        with patch("app.models.db") as mock_db:
+            mock_db.session.get.return_value = None
 
             with app.app_context():
                 result = send_backup_status_update(
@@ -215,11 +215,12 @@ class TestSendBackupStatusUpdateTask:
         """Test successful status update notification."""
         from app.tasks.notification_tasks import send_backup_status_update
 
-        with patch("app.models.BackupJob") as mock_job_class:
-            mock_job = Mock()
-            mock_job.name = "Test Backup Job"
-            mock_job.job_type = "full"
-            mock_job_class.query.get.return_value = mock_job
+        mock_job = Mock()
+        mock_job.name = "Test Backup Job"
+        mock_job.job_type = "full"
+
+        with patch("app.models.db") as mock_db:
+            mock_db.session.get.return_value = mock_job
 
             with patch("app.tasks.notification_tasks.send_multi_channel_notification") as mock_notify:
                 mock_notify.apply_async.return_value = Mock(id="notify-123")

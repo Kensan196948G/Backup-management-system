@@ -67,7 +67,7 @@ def validate_job_data(data, is_update=False):
 
     # Validate owner_id if provided
     if "owner_id" in data:
-        owner = User.query.get(data["owner_id"])
+        owner = db.session.get(User, data["owner_id"])
         if not owner:
             errors["owner_id"] = "Owner user not found"
 
@@ -205,7 +205,7 @@ def get_job(job_id):
         404: Job not found
     """
     try:
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -373,7 +373,7 @@ def update_job(job_id):
         404: Job not found
     """
     try:
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -434,7 +434,7 @@ def delete_job(job_id):
         404: Job not found
     """
     try:
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -480,7 +480,7 @@ def add_copy(job_id):
         404: Job not found
     """
     try:
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 

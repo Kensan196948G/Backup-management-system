@@ -187,7 +187,7 @@ def create_schedule():
             return jsonify({"success": False, "message": "Job ID and cron expression are required"}), 400
 
         # Verify job exists
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return jsonify({"success": False, "message": "Backup job not found"}), 404
 
@@ -218,7 +218,7 @@ def get_schedule(schedule_id):
     """Get schedule details"""
     try:
         # In production, fetch from Schedule model
-        job = BackupJob.query.get(schedule_id)
+        job = db.session.get(BackupJob, schedule_id)
         if not job:
             return jsonify({"success": False, "message": "Schedule not found"}), 404
 
@@ -294,7 +294,7 @@ def test_schedule(schedule_id):
     """Test schedule execution"""
     try:
         # In production, trigger test execution
-        job = BackupJob.query.get(schedule_id)
+        job = db.session.get(BackupJob, schedule_id)
         if not job:
             return jsonify({"success": False, "message": "Schedule not found"}), 404
 

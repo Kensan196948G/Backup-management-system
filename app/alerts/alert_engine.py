@@ -466,7 +466,7 @@ class AlertEngine:
     def acknowledge_alert(self, alert_id: int, user_id: int) -> bool:
         """Acknowledge an alert"""
         try:
-            alert = Alert.query.get(alert_id)
+            alert = db.session.get(Alert, alert_id)
             if not alert:
                 logger.warning(f"Alert {alert_id} not found")
                 return False

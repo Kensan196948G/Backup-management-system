@@ -716,7 +716,7 @@ def update_user(user_id):
 
         from app.models import User
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 
@@ -825,7 +825,7 @@ def delete_user(user_id):
                 403,
             )
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 
@@ -874,7 +874,7 @@ def toggle_user_status(user_id):
                 403,
             )
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 
@@ -920,7 +920,7 @@ def reset_user_password(user_id):
 
         from app.models import User
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 
@@ -968,7 +968,7 @@ def unlock_user_account(user_id):
     try:
         from app.models import User
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 
