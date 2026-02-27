@@ -31,6 +31,10 @@ from app.config import get_config
 # Import extensions (initialized here, configured in create_app)
 from app.models import db
 
+# Import security utilities
+from app.utils.security_headers import init_security_headers
+from app.utils.rate_limiter import init_rate_limiting, register_rate_limit_handlers
+
 # Initialize Flask extensions
 login_manager = LoginManager()
 migrate = Migrate()
@@ -187,6 +191,16 @@ def _init_extensions(app):
 
     # Exempt API endpoints from CSRF (they use JWT)
     csrf.exempt("api")
+
+    # Security Headers
+    init_security_headers(app)
+    app.logger.info("Security headers initialized")
+
+    # Rate Limiting
+    rate_limiter = init_rate_limiting(app)
+    app.extensions["rate_limiter"] = rate_limiter
+    register_rate_limit_handlers(app)
+    app.logger.info("Rate limiting initialized")
 
     app.logger.info("Extensions initialized successfully")
 
