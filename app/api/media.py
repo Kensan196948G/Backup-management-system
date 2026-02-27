@@ -166,7 +166,7 @@ def get_media(media_id):
         404: Media not found
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 
@@ -338,7 +338,7 @@ def update_media(media_id):
         404: Media not found
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 
@@ -404,7 +404,7 @@ def delete_media(media_id):
         409: Media is in use (has active backups)
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 
@@ -457,7 +457,7 @@ def borrow_media(media_id):
         409: Media already borrowed
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 
@@ -537,7 +537,7 @@ def return_media(media_id):
         404: Media not found or not borrowed
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 

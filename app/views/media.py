@@ -124,7 +124,7 @@ def detail(media_id):
     # Get associated backup job
     job = None
     if media.job_id:
-        job = BackupJob.query.get(media.job_id)
+        job = db.session.get(BackupJob, media.job_id)
 
     return render_template("media/detail.html", media=media, rotation=rotation, lending_history=lending_history, job=job)
 

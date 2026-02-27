@@ -201,7 +201,7 @@ def get_test(test_id):
         404: Test not found
     """
     try:
-        test = VerificationTest.query.get(test_id)
+        test = db.session.get(VerificationTest, test_id)
         if not test:
             return error_response(404, "Verification test not found", "TEST_NOT_FOUND")
 
@@ -277,7 +277,7 @@ def create_test():
             return validation_error_response(errors)
 
         # Validate job exists
-        job = BackupJob.query.get(data["job_id"])
+        job = db.session.get(BackupJob, data["job_id"])
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -365,7 +365,7 @@ def update_test(test_id):
         404: Test not found
     """
     try:
-        test = VerificationTest.query.get(test_id)
+        test = db.session.get(VerificationTest, test_id)
         if not test:
             return error_response(404, "Verification test not found", "TEST_NOT_FOUND")
 
@@ -519,7 +519,7 @@ def create_schedule():
             return validation_error_response(errors)
 
         # Validate job exists
-        job = BackupJob.query.get(data["job_id"])
+        job = db.session.get(BackupJob, data["job_id"])
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -581,7 +581,7 @@ def update_schedule(schedule_id):
         404: Schedule not found
     """
     try:
-        schedule = VerificationSchedule.query.get(schedule_id)
+        schedule = db.session.get(VerificationSchedule, schedule_id)
         if not schedule:
             return error_response(404, "Verification schedule not found", "SCHEDULE_NOT_FOUND")
 
@@ -635,7 +635,7 @@ def delete_schedule(schedule_id):
         404: Schedule not found
     """
     try:
-        schedule = VerificationSchedule.query.get(schedule_id)
+        schedule = db.session.get(VerificationSchedule, schedule_id)
         if not schedule:
             return error_response(404, "Verification schedule not found", "SCHEDULE_NOT_FOUND")
 

@@ -83,7 +83,7 @@ class AOMEIService:
                 return True, f"Job registered successfully with ID {job.id}", job
             else:
                 # Update existing job
-                job = BackupJob.query.get(job_id)
+                job = db.session.get(BackupJob, job_id)
                 if not job:
                     return False, f"Job ID {job_id} not found", None
 
@@ -146,7 +146,7 @@ class AOMEIService:
         """
         try:
             # Validate job exists
-            job = BackupJob.query.get(job_id)
+            job = db.session.get(BackupJob, job_id)
             if not job:
                 return False, f"Job ID {job_id} not found"
 
@@ -317,7 +317,7 @@ class AOMEIService:
             Dictionary with job status or None if not found
         """
         try:
-            job = BackupJob.query.get(job_id)
+            job = db.session.get(BackupJob, job_id)
             if not job or job.backup_tool != AOMEIService.BACKUP_TOOL:
                 return None
 

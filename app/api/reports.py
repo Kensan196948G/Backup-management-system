@@ -137,7 +137,7 @@ def get_report(report_id):
         404: Report not found
     """
     try:
-        report = Report.query.get(report_id)
+        report = db.session.get(Report, report_id)
         if not report:
             return error_response(404, "Report not found", "REPORT_NOT_FOUND")
 
@@ -187,7 +187,7 @@ def download_report(report_id):
         404: Report or file not found
     """
     try:
-        report = Report.query.get(report_id)
+        report = db.session.get(Report, report_id)
         if not report:
             return error_response(404, "Report not found", "REPORT_NOT_FOUND")
 
@@ -331,7 +331,7 @@ def delete_report(report_id):
         404: Report not found
     """
     try:
-        report = Report.query.get(report_id)
+        report = db.session.get(Report, report_id)
         if not report:
             return error_response(404, "Report not found", "REPORT_NOT_FOUND")
 

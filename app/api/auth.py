@@ -178,7 +178,7 @@ def jwt_required(f):
             return jsonify({"success": False, "error": "INVALID_TOKEN_TYPE", "message": "Invalid token type"}), 401
 
         # Get user from database
-        user = User.query.get(payload["user_id"])
+        user = db.session.get(User, payload["user_id"])
         if not user or not user.is_active:
             return (
                 jsonify({"success": False, "error": "USER_INACTIVE", "message": "User account is inactive or not found"}),
@@ -246,7 +246,7 @@ def auth_required(f):
             token = auth_header.split(" ")[1]
             payload = verify_jwt_token(token)
             if payload and payload.get("type") == "access":
-                user = User.query.get(payload["user_id"])
+                user = db.session.get(User, payload["user_id"])
 
         # Try API key authentication if JWT failed
         if not user:
@@ -383,7 +383,7 @@ def refresh_access_token(refresh_token: str) -> Tuple[Optional[str], Optional[st
     if payload.get("type") != "refresh":
         return None, "Invalid token type"
 
-    user = User.query.get(payload["user_id"])
+    user = db.session.get(User, payload["user_id"])
     if not user or not user.is_active:
         return None, "User account is inactive or not found"
 

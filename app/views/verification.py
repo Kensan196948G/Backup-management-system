@@ -99,7 +99,7 @@ def detail(test_id):
     test = VerificationTest.query.get_or_404(test_id)
 
     # Get related backup job
-    job = BackupJob.query.get(test.job_id) if test.job_id else None
+    job = db.session.get(BackupJob, test.job_id) if test.job_id else None
 
     return render_template("verification/detail.html", test=test, job=job)
 
@@ -179,7 +179,7 @@ def update(test_id):
             flash(f"検証テストの更新に失敗しました: {str(e)}", "danger")
 
     # Get job for display
-    job = BackupJob.query.get(test.job_id) if test.job_id else None
+    job = db.session.get(BackupJob, test.job_id) if test.job_id else None
 
     return render_template("verification/update.html", test=test, job=job)
 
