@@ -8,7 +8,7 @@ the main application thread.
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
 from celery import shared_task
@@ -81,7 +81,7 @@ def send_email(
         "subject": subject,
         "attempt": attempt,
         "status": "pending",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -126,7 +126,7 @@ def send_email(
         if success:
             logger.info(f"[Task {task_id}] Email sent successfully to {to}")
             result["status"] = "sent"
-            result["sent_at"] = datetime.utcnow().isoformat()
+            result["sent_at"] = datetime.now(UTC).isoformat()
 
             # Record notification in database
             _record_notification(
@@ -217,7 +217,7 @@ def send_bulk_emails(
         "batch_size": batch_size,
         "queued_tasks": [],
         "status": "processing",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -317,7 +317,7 @@ def send_backup_notification(
         "recipient": recipient,
         "job_name": job_name,
         "status": "pending",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -327,7 +327,7 @@ def send_backup_notification(
         template_context = {
             "job_name": job_name,
             "status": status,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(UTC),
             **(details or {}),
         }
 
@@ -397,7 +397,7 @@ def _record_notification(
             status=status,
             task_id=task_id,
             error_message=error,
-            sent_at=datetime.utcnow() if status == "sent" else None,
+            sent_at=datetime.now(UTC) if status == "sent" else None,
         )
 
         db.session.add(notification)
@@ -442,7 +442,7 @@ def _generate_fallback_html(
                 <h2>{job_name}</h2>
                 <p><strong>ステータス:</strong> {status}</p>
                 <p><strong>種類:</strong> {notification_type}</p>
-                <p><strong>時刻:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+                <p><strong>時刻:</strong> {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
     """
 
     if details:
@@ -476,7 +476,7 @@ def _generate_plain_text(
         "=" * 40,
         f"ジョブ名: {job_name}",
         f"ステータス: {status}",
-        f"時刻: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC",
+        f"時刻: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')} UTC",
         "",
     ]
 
