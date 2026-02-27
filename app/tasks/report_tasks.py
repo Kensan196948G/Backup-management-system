@@ -7,7 +7,7 @@ and scheduled report delivery.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -56,7 +56,7 @@ def generate_pdf_report(
         "task_id": task_id,
         "report_type": report_type,
         "status": "processing",
-        "started_at": datetime.utcnow().isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -84,7 +84,7 @@ def generate_pdf_report(
             result["status"] = "completed"
             result["file_path"] = str(report_path)
             result["file_size"] = Path(report_path).stat().st_size
-            result["completed_at"] = datetime.utcnow().isoformat()
+            result["completed_at"] = datetime.now(UTC).isoformat()
 
             logger.info(f"[Task {task_id}] Report generated: {report_path}")
 
@@ -114,7 +114,7 @@ def generate_pdf_report(
         logger.exception(f"[Task {task_id}] Error generating report: {e}")
         result["status"] = "error"
         result["error"] = str(e)
-        result["completed_at"] = datetime.utcnow().isoformat()
+        result["completed_at"] = datetime.now(UTC).isoformat()
 
         if self.request.retries < self.max_retries:
             raise self.retry(exc=e, countdown=120)
@@ -138,7 +138,7 @@ def generate_daily_report(self) -> Dict[str, Any]:
         Dict with daily report status
     """
     task_id = self.request.id
-    today = datetime.utcnow().date()
+    today = datetime.now(UTC).date()
 
     logger.info(f"[Task {task_id}] Generating daily report for {today}")
 
@@ -146,7 +146,7 @@ def generate_daily_report(self) -> Dict[str, Any]:
         "task_id": task_id,
         "report_date": str(today),
         "status": "processing",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -251,7 +251,7 @@ def generate_monthly_report(
     task_id = self.request.id
 
     # Default to previous month
-    now = datetime.utcnow()
+    now = datetime.now(UTC)
     if year is None or month is None:
         if now.month == 1:
             year = now.year - 1
@@ -267,7 +267,7 @@ def generate_monthly_report(
         "year": year,
         "month": month,
         "status": "processing",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -333,7 +333,7 @@ def schedule_report(
         "schedule_type": schedule_type,
         "recipients": recipients,
         "status": "processing",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -346,7 +346,7 @@ def schedule_report(
             recipients=",".join(recipients),
             parameters=str(params or {}),
             is_active=True,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
 
         db.session.add(scheduled)
@@ -381,7 +381,7 @@ def _record_report(
             file_path=file_path,
             task_id=task_id,
             status=status,
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(UTC),
         )
 
         db.session.add(report)
@@ -411,7 +411,7 @@ def _send_report_notification(
         <h2>レポート生成完了</h2>
         <p>リクエストされた<strong>{report_type}</strong>レポートが生成されました。</p>
         <p><strong>ファイル:</strong> {Path(file_path).name}</p>
-        <p><strong>生成日時:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+        <p><strong>生成日時:</strong> {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
         <hr>
         <p>3-2-1-1-0 Backup Management System</p>
     </body>

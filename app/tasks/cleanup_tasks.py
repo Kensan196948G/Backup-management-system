@@ -7,7 +7,7 @@ log cleanup, database optimization, and system health checks.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict
 
@@ -49,7 +49,7 @@ def cleanup_old_logs(
         "status": "processing",
         "deleted_files": [],
         "total_size_freed": 0,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -61,7 +61,7 @@ def cleanup_old_logs(
             result["message"] = "Logs directory does not exist"
             return result
 
-        cutoff = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff = datetime.now(UTC) - timedelta(days=retention_days)
 
         # Find and delete old log files
         for log_file in logs_dir.glob("**/*.log*"):
@@ -131,7 +131,7 @@ def cleanup_old_reports(
         "status": "processing",
         "deleted_files": [],
         "total_size_freed": 0,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -142,7 +142,7 @@ def cleanup_old_reports(
             result["message"] = "Reports directory does not exist"
             return result
 
-        cutoff = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff = datetime.now(UTC) - timedelta(days=retention_days)
 
         # Find and delete old reports
         for report_file in reports_dir.glob("**/*.pdf"):
@@ -200,13 +200,13 @@ def cleanup_old_notifications(
         "retention_days": retention_days,
         "status": "processing",
         "deleted_count": 0,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
         from app.models import NotificationLog, db
 
-        cutoff = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff = datetime.now(UTC) - timedelta(days=retention_days)
 
         # Delete old notifications (using sent_at field)
         deleted = NotificationLog.query.filter(NotificationLog.sent_at < cutoff).delete()
@@ -259,13 +259,13 @@ def cleanup_old_alerts(
         "only_read": only_read,
         "status": "processing",
         "deleted_count": 0,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
         from app.models import Alert, db
 
-        cutoff = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff = datetime.now(UTC) - timedelta(days=retention_days)
 
         query = Alert.query.filter(Alert.created_at < cutoff)
 
@@ -314,7 +314,7 @@ def vacuum_database(self) -> Dict[str, Any]:
     result = {
         "task_id": task_id,
         "status": "processing",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -386,7 +386,7 @@ def run_all_maintenance(self) -> Dict[str, Any]:
         "task_id": task_id,
         "status": "processing",
         "subtasks": {},
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -455,7 +455,7 @@ def check_disk_space(
     result = {
         "task_id": task_id,
         "status": "processing",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -508,7 +508,7 @@ def _create_disk_space_alert(free_gb: float, severity: str):
             level=level,
             source="disk_space_check",
             is_read=False,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
 
         db.session.add(alert)
