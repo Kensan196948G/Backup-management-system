@@ -149,6 +149,13 @@ class TestingConfig(Config):
     # Fast password hashing for tests
     BCRYPT_LOG_ROUNDS = 4
 
+    # Disable rate limiting in tests
+    RATELIMIT_ENABLED = False
+
+    # Security headers enabled in tests for header tests
+    ENABLE_HSTS = False  # HSTS disabled in test (not HTTPS)
+    ENABLE_CSP = True
+
 
 # Configuration dictionary
 config = {
