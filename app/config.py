@@ -131,9 +131,7 @@ class ProductionConfig(Config):
     def __init__(self):
         """Validate production configuration on instantiation"""
         if os.environ.get("FLASK_ENV") == "production" and not os.environ.get("SECRET_KEY"):
-            import warnings
-
-            warnings.warn("SECRET_KEY環境変数が設定されていません。本番環境では必ず設定してください。", RuntimeWarning)
+            raise RuntimeError("SECRET_KEY環境変数が設定されていません。本番環境では必ず設定してください。")
 
 
 class TestingConfig(Config):

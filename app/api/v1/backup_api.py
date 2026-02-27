@@ -355,8 +355,11 @@ def trigger_backup(current_user, backup_id):
         data = request.get_json() or {}
         trigger_data = BackupTrigger(**data)
 
-        # TODO: Implement actual backup trigger using BackupService
-        # For now, just log the trigger
+        from app.tasks.notification_tasks import send_backup_status_update
+
+        send_backup_status_update.apply_async(
+            kwargs={"job_id": backup_id, "status": "running"},
+        )
         logger.info(
             f"Manual backup triggered: {backup_job.name} (ID: {backup_id}) "
             f"by {current_user.username}, type: {trigger_data.backup_type}"
