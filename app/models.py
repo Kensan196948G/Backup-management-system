@@ -506,3 +506,48 @@ class NotificationLog(db.Model):
 
     def __repr__(self):
         return f"<NotificationLog {self.notification_type} to {self.recipient} - {self.status}>"
+
+
+class VerificationResult(db.Model):
+    """
+    Automated verification result records
+    Stores results from Celery-based automatic verification tasks
+    """
+
+    __tablename__ = "verification_results"
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey("backup_jobs.id"), nullable=False, index=True)
+    verification_type = db.Column(db.String(50), nullable=False)  # checksum/restore_test/full
+    success = db.Column(db.Boolean, nullable=False, index=True)
+    details = db.Column(db.Text)
+    task_id = db.Column(db.String(100), index=True)
+    verified_at = db.Column(db.DateTime, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    job = db.relationship("BackupJob", backref=db.backref("verification_results", lazy="dynamic"))
+
+    def __repr__(self):
+        return f"<VerificationResult job_id={self.job_id} type={self.verification_type} success={self.success}>"
+
+
+class ScheduledReport(db.Model):
+    """
+    Scheduled report configuration
+    Stores report scheduling definitions for automated report generation
+    """
+
+    __tablename__ = "scheduled_reports"
+
+    id = db.Column(db.Integer, primary_key=True)
+    report_type = db.Column(db.String(50), nullable=False)  # daily/weekly/monthly/compliance
+    schedule_type = db.Column(db.String(20), nullable=False)  # daily/weekly/monthly
+    recipients = db.Column(db.Text)  # comma-separated email list
+    parameters = db.Column(db.Text)  # JSON parameters string
+    is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    def __repr__(self):
+        return f"<ScheduledReport type={self.report_type} schedule={self.schedule_type} active={self.is_active}>"

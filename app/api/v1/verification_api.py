@@ -97,7 +97,14 @@ def start_verification(current_user, backup_id):
             f"By: {current_user.username}"
         )
 
-        # TODO: Trigger actual verification process (async task)
+        from app.tasks.verification_tasks import verify_backup
+
+        verify_backup.apply_async(
+            kwargs={
+                "job_id": backup_copy.job_id,
+                "verification_type": verification_data.test_type,
+            },
+        )
 
         response = APIResponse(
             success=True,

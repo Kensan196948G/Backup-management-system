@@ -126,11 +126,11 @@ def verify_api_key(api_key: str) -> Optional[User]:
     Returns:
         User object if valid, None otherwise
     """
-    # TODO: Implement proper API key table and verification
-    # For now, check against user-associated API keys in environment/config
+    from app.models_api_key import ApiKey
 
-    # Placeholder implementation - returns None
-    logger.warning("API key verification not fully implemented")
+    api_key_obj = ApiKey.verify_key(api_key)
+    if api_key_obj is not None:
+        return api_key_obj.user
     return None
 
 
