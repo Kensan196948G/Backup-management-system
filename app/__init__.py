@@ -89,6 +89,16 @@ def create_app(config_name=None):
         except Exception as e:
             app.logger.warning(f"Scheduler initialization skipped: {str(e)}")
 
+    # Initialize Prometheus metrics (Phase 17)
+    if app.config.get("PROMETHEUS_ENABLED", False):
+        try:
+            from app.utils.metrics import init_metrics
+
+            init_metrics(app)
+            app.logger.info("Prometheus metrics initialized")
+        except Exception as e:
+            app.logger.warning(f"Prometheus metrics initialization skipped: {str(e)}")
+
     # Register template context processors
     _register_context_processors(app)
 
