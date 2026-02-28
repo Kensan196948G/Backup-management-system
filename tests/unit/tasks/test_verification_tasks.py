@@ -60,16 +60,17 @@ class TestVerifyBackupTask:
         """存在しないジョブIDを指定した場合に failed を返すことを確認。"""
         from app.tasks.verification_tasks import verify_backup
 
-        with patch("app.models.BackupJob") as mock_job_class:
-            mock_job_class.query.get.return_value = None
+        with patch("app.models.BackupJob"):
+            with patch("app.models.db") as mock_db:
+                mock_db.session.get.return_value = None
 
-            with patch("app.services.verification_service.VerificationService"):
-                with app.app_context():
-                    result = verify_backup(job_id=99999, verification_type="checksum")
+                with patch("app.services.verification_service.VerificationService"):
+                    with app.app_context():
+                        result = verify_backup(job_id=99999, verification_type="checksum")
 
-                    assert result["status"] == "failed"
-                    assert "not found" in result["error"].lower()
-                    assert result["job_id"] == 99999
+                        assert result["status"] == "failed"
+                        assert "not found" in result["error"].lower()
+                        assert result["job_id"] == 99999
 
     def test_verify_backup_checksum_success(self, app, celery_app):
         """checksum 検証が成功するケース。"""
@@ -232,18 +233,19 @@ class TestVerifyBackupTask:
         mock_job.id = 1
         mock_job.name = "Test Job"
 
-        with patch("app.models.BackupJob") as mock_job_class:
-            mock_job_class.query.get.return_value = mock_job
+        with patch("app.models.BackupJob"):
+            with patch("app.models.db") as mock_db:
+                mock_db.session.get.return_value = mock_job
 
-            with patch("app.services.verification_service.VerificationService"):
-                with app.app_context():
-                    result = verify_backup(
-                        job_id=1,
-                        verification_type="unknown_type",
-                    )
+                with patch("app.services.verification_service.VerificationService"):
+                    with app.app_context():
+                        result = verify_backup(
+                            job_id=1,
+                            verification_type="unknown_type",
+                        )
 
-                    assert result["status"] == "failed"
-                    assert "Unknown verification type" in result["error"]
+                        assert result["status"] == "failed"
+                        assert "Unknown verification type" in result["error"]
 
     def test_verify_backup_exception_on_query(self, app, celery_app):
         """クエリ実行時に例外が発生した場合に error ステータスを返すことを確認。
