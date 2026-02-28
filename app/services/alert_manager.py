@@ -221,7 +221,7 @@ class AlertManager:
     def _send_backup_success_email(self, alert: Alert, recipient: str) -> bool:
         """Send backup success notification email"""
         try:
-            job = BackupJob.query.get(alert.job_id) if alert.job_id else None
+            job = db.session.get(BackupJob, alert.job_id) if alert.job_id else None
             details = {}
 
             if job:
@@ -322,7 +322,7 @@ class AlertManager:
             created_at = alert.created_at
 
             if alert.job_id:
-                job = BackupJob.query.get(alert.job_id)
+                job = db.session.get(BackupJob, alert.job_id)
                 if job:
                     job_name = job.job_name
 
@@ -363,7 +363,7 @@ class AlertManager:
 
             # Add job owner if alert is job-related
             if alert.job_id:
-                job = BackupJob.query.get(alert.job_id)
+                job = db.session.get(BackupJob, alert.job_id)
                 if job and job.owner and job.owner.email:
                     recipients.append(job.owner.email)
 
@@ -396,7 +396,7 @@ class AlertManager:
 
         job_info = ""
         if alert.job_id:
-            job = BackupJob.query.get(alert.job_id)
+            job = db.session.get(BackupJob, alert.job_id)
             if job:
                 job_info = f"<p><strong>Job:</strong> {job.job_name}</p>"
 
@@ -434,7 +434,7 @@ class AlertManager:
             Updated Alert object
         """
         try:
-            alert = Alert.query.get(alert_id)
+            alert = db.session.get(Alert, alert_id)
             if not alert:
                 raise ValueError(f"Alert {alert_id} not found")
 
@@ -646,7 +646,7 @@ class AlertManager:
             Dictionary of notification results
         """
         try:
-            alert = Alert.query.get(alert_id)
+            alert = db.session.get(Alert, alert_id)
             if not alert:
                 return {}
 

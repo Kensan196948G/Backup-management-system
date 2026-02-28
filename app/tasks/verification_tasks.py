@@ -7,7 +7,7 @@ for integrity checking and restore testing.
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
 from app.tasks import celery_app
@@ -55,14 +55,14 @@ def verify_backup(
         "job_id": job_id,
         "verification_type": verification_type,
         "status": "processing",
-        "started_at": datetime.utcnow().isoformat(),
+        "started_at": datetime.now(UTC).isoformat(),
     }
 
     try:
         from app.models import BackupJob, VerificationResult, db
 
         # Fetch job
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             logger.warning(f"[Task {task_id}] Job {job_id} not found")
             result["status"] = "failed"
@@ -97,7 +97,7 @@ def verify_backup(
         result["status"] = "completed"
         result["success"] = success
         result["verification_result"] = verification_result
-        result["completed_at"] = datetime.utcnow().isoformat()
+        result["completed_at"] = datetime.now(UTC).isoformat()
 
         # Record verification result
         _record_verification(
@@ -109,7 +109,7 @@ def verify_backup(
         )
 
         # Update job verification status
-        job.last_verified_at = datetime.utcnow()
+        job.last_verified_at = datetime.now(UTC)
         job.verification_status = "verified" if success else "failed"
         db.session.commit()
 
@@ -129,7 +129,7 @@ def verify_backup(
         logger.exception(f"[Task {task_id}] Error verifying backup: {e}")
         result["status"] = "error"
         result["error"] = str(e)
-        result["completed_at"] = datetime.utcnow().isoformat()
+        result["completed_at"] = datetime.now(UTC).isoformat()
 
         if self.request.retries < self.max_retries:
             raise self.retry(exc=e, countdown=300)
@@ -171,7 +171,7 @@ def verify_all_pending(
         "verification_type": verification_type,
         "status": "processing",
         "queued_jobs": [],
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -181,7 +181,7 @@ def verify_all_pending(
 
         # Find jobs needing verification
         # Criteria: completed successfully, not verified in last 7 days
-        cutoff = datetime.utcnow() - timedelta(days=7)
+        cutoff = datetime.now(UTC) - timedelta(days=7)
 
         pending_jobs = (
             BackupJob.query.filter(
@@ -249,7 +249,7 @@ def check_verification_reminders(self) -> Dict[str, Any]:
         "task_id": task_id,
         "status": "processing",
         "reminders_sent": 0,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -258,7 +258,7 @@ def check_verification_reminders(self) -> Dict[str, Any]:
         from app.models import BackupJob, db
 
         # Find jobs not verified in 30 days
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = datetime.now(UTC) - timedelta(days=30)
 
         overdue_jobs = (
             BackupJob.query.filter(
@@ -285,7 +285,7 @@ def check_verification_reminders(self) -> Dict[str, Any]:
                 level="warning",
                 source="verification_reminder",
                 is_read=False,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(UTC),
             )
 
             db.session.add(alert)
@@ -324,7 +324,7 @@ def _record_verification(
             success=success,
             details=str(details),
             task_id=task_id,
-            verified_at=datetime.utcnow(),
+            verified_at=datetime.now(UTC),
         )
 
         db.session.add(verification)

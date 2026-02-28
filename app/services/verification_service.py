@@ -117,7 +117,7 @@ class VerificationService:
 
         try:
             # Get backup job
-            job = BackupJob.query.get(job_id)
+            job = db.session.get(BackupJob, job_id)
             if not job:
                 raise ValueError(f"Backup job {job_id} not found")
 
@@ -643,7 +643,7 @@ class VerificationService:
             schedule_id: Schedule ID
             next_test_date: New next test date
         """
-        schedule = VerificationSchedule.query.get(schedule_id)
+        schedule = db.session.get(VerificationSchedule, schedule_id)
         if schedule:
             schedule.last_test_date = datetime.utcnow().date()
             schedule.next_test_date = next_test_date.date()

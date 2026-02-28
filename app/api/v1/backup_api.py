@@ -196,7 +196,7 @@ def get_backup_job(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
@@ -236,7 +236,7 @@ def update_backup_job(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
@@ -293,7 +293,7 @@ def delete_backup_job(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
@@ -342,7 +342,7 @@ def trigger_backup(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
@@ -355,8 +355,11 @@ def trigger_backup(current_user, backup_id):
         data = request.get_json() or {}
         trigger_data = BackupTrigger(**data)
 
-        # TODO: Implement actual backup trigger using BackupService
-        # For now, just log the trigger
+        from app.tasks.notification_tasks import send_backup_status_update
+
+        send_backup_status_update.apply_async(
+            kwargs={"job_id": backup_id, "status": "running"},
+        )
         logger.info(
             f"Manual backup triggered: {backup_job.name} (ID: {backup_id}) "
             f"by {current_user.username}, type: {trigger_data.backup_type}"
@@ -407,7 +410,7 @@ def get_backup_executions(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")

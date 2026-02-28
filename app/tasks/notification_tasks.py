@@ -7,7 +7,7 @@ for Microsoft Teams and multi-channel orchestration.
 """
 
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
 from app.tasks import celery_app
@@ -68,7 +68,7 @@ def send_teams_notification(
         "severity": severity,
         "attempt": attempt,
         "status": "pending",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -111,7 +111,7 @@ def send_teams_notification(
         if success:
             logger.info(f"[Task {task_id}] Teams notification sent successfully")
             result["status"] = "sent"
-            result["sent_at"] = datetime.utcnow().isoformat()
+            result["sent_at"] = datetime.now(UTC).isoformat()
 
             # Record in database
             _record_teams_notification(
@@ -187,7 +187,7 @@ def send_multi_channel_notification(
         "severity": severity,
         "status": "processing",
         "channel_results": {},
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
@@ -291,14 +291,14 @@ def send_backup_status_update(
         "task_id": task_id,
         "job_id": job_id,
         "status": status,
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
     }
 
     try:
         from app.models import BackupJob, db
 
         # Fetch job details
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             logger.warning(f"[Task {task_id}] Job {job_id} not found")
             result["error"] = "Job not found"
@@ -327,7 +327,7 @@ def send_backup_status_update(
             "ジョブ名": job.name,
             "ステータス": status,
             "タイプ": job.job_type if hasattr(job, "job_type") else "N/A",
-            "更新時刻": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "更新時刻": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
         }
 
         # Determine channels
@@ -400,7 +400,7 @@ def _record_teams_notification(
             status=status,
             task_id=task_id,
             error_message=error,
-            sent_at=datetime.utcnow() if status == "sent" else None,
+            sent_at=datetime.now(UTC) if status == "sent" else None,
         )
 
         db.session.add(notification)
@@ -436,7 +436,7 @@ def _create_dashboard_alert(
             level=level_map.get(severity, "info"),
             source="notification_task",
             is_read=False,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
 
         db.session.add(alert)

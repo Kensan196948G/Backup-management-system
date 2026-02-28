@@ -61,13 +61,13 @@ def start_verification(current_user, backup_id):
     """
     try:
         # Get backup copy
-        backup_copy = BackupCopy.query.get(backup_id)
+        backup_copy = db.session.get(BackupCopy, backup_id)
 
         if not backup_copy:
             return error_response(404, "Backup not found", "NOT_FOUND")
 
         # Check if user has access to this backup's job
-        backup_job = BackupJob.query.get(backup_copy.job_id)
+        backup_job = db.session.get(BackupJob, backup_copy.job_id)
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
 
@@ -97,7 +97,14 @@ def start_verification(current_user, backup_id):
             f"By: {current_user.username}"
         )
 
-        # TODO: Trigger actual verification process (async task)
+        from app.tasks.verification_tasks import verify_backup
+
+        verify_backup.apply_async(
+            kwargs={
+                "job_id": backup_copy.job_id,
+                "verification_type": verification_data.test_type,
+            },
+        )
 
         response = APIResponse(
             success=True,
@@ -137,13 +144,13 @@ def get_verification_status(current_user, backup_id):
     """
     try:
         # Get backup copy
-        backup_copy = BackupCopy.query.get(backup_id)
+        backup_copy = db.session.get(BackupCopy, backup_id)
 
         if not backup_copy:
             return error_response(404, "Backup not found", "NOT_FOUND")
 
         # Check if user has access to this backup's job
-        backup_job = BackupJob.query.get(backup_copy.job_id)
+        backup_job = db.session.get(BackupJob, backup_copy.job_id)
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
 
@@ -185,13 +192,13 @@ def get_verification_result(current_user, backup_id):
     """
     try:
         # Get backup copy
-        backup_copy = BackupCopy.query.get(backup_id)
+        backup_copy = db.session.get(BackupCopy, backup_id)
 
         if not backup_copy:
             return error_response(404, "Backup not found", "NOT_FOUND")
 
         # Check if user has access to this backup's job
-        backup_job = BackupJob.query.get(backup_copy.job_id)
+        backup_job = db.session.get(BackupJob, backup_copy.job_id)
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
 
@@ -320,15 +327,15 @@ def cancel_verification(current_user, verification_id):
     """
     try:
         # Get verification test
-        verification = VerificationTest.query.get(verification_id)
+        verification = db.session.get(VerificationTest, verification_id)
 
         if not verification:
             return error_response(404, "Verification test not found", "NOT_FOUND")
 
         # Check if user has access
-        backup_copy = BackupCopy.query.get(verification.backup_id)
+        backup_copy = db.session.get(BackupCopy, verification.backup_id)
         if backup_copy:
-            backup_job = BackupJob.query.get(backup_copy.job_id)
+            backup_job = db.session.get(BackupJob, backup_copy.job_id)
             if backup_job and not current_user.is_admin() and backup_job.owner_id != current_user.id:
                 return error_response(403, "Access denied", "FORBIDDEN")
 

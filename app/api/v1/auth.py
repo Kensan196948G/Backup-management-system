@@ -20,6 +20,7 @@ from app.api.auth import (
 )
 from app.models import User, db
 from app.models_api_key import ApiKey, RefreshToken
+from app.utils.rate_limiter import limit_login_attempts
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +34,7 @@ auth_bp = Blueprint("auth_api", __name__, url_prefix="/api/v1/auth")
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limit_login_attempts("5 per minute")
 def login():
     """
     User login endpoint - returns JWT access and refresh tokens.

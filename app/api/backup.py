@@ -55,7 +55,7 @@ def update_backup_status():
             return validation_error_response(errors)
 
         # Validate job exists
-        job = BackupJob.query.get(data["job_id"])
+        job = db.session.get(BackupJob, data["job_id"])
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -143,7 +143,7 @@ def update_copy_status():
             return validation_error_response({"copy_id": "copy_id is required"})
 
         # Find the copy
-        copy = BackupCopy.query.get(data["copy_id"])
+        copy = db.session.get(BackupCopy, data["copy_id"])
         if not copy:
             return error_response(404, "Backup copy not found", "COPY_NOT_FOUND")
 
@@ -193,7 +193,7 @@ def get_last_execution(job_id):
     """
     try:
         # Validate job exists
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 

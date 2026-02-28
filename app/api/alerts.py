@@ -115,7 +115,7 @@ def get_alert(alert_id):
         404: Alert not found
     """
     try:
-        alert = Alert.query.get(alert_id)
+        alert = db.session.get(Alert, alert_id)
         if not alert:
             return error_response(404, "Alert not found", "ALERT_NOT_FOUND")
 
@@ -181,7 +181,7 @@ def acknowledge_alert(alert_id):
         409: Alert already acknowledged
     """
     try:
-        alert = Alert.query.get(alert_id)
+        alert = db.session.get(Alert, alert_id)
         if not alert:
             return error_response(404, "Alert not found", "ALERT_NOT_FOUND")
 
@@ -233,7 +233,7 @@ def unacknowledge_alert(alert_id):
         404: Alert not found
     """
     try:
-        alert = Alert.query.get(alert_id)
+        alert = db.session.get(Alert, alert_id)
         if not alert:
             return error_response(404, "Alert not found", "ALERT_NOT_FOUND")
 

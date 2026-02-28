@@ -74,6 +74,7 @@ def register_tasks():
         cleanup_tasks,
         email_tasks,
         notification_tasks,
+        postgres_monitoring_tasks,
         report_tasks,
         verification_tasks,
     )
@@ -81,6 +82,7 @@ def register_tasks():
     return {
         "email_tasks": email_tasks,
         "notification_tasks": notification_tasks,
+        "postgres_monitoring_tasks": postgres_monitoring_tasks,
         "report_tasks": report_tasks,
         "verification_tasks": verification_tasks,
         "cleanup_tasks": cleanup_tasks,

@@ -263,7 +263,7 @@ def get_storage_space(current_user, storage_id):
     """
     try:
         # Get storage location from BackupCopy
-        backup_copy = BackupCopy.query.get(storage_id)
+        backup_copy = db.session.get(BackupCopy, storage_id)
 
         if not backup_copy:
             return error_response(404, "Storage not found", "NOT_FOUND")
@@ -331,7 +331,7 @@ def list_storage_backups(current_user, storage_id):
     """
     try:
         # Get storage location from BackupCopy
-        storage_ref = BackupCopy.query.get(storage_id)
+        storage_ref = db.session.get(BackupCopy, storage_id)
 
         if not storage_ref:
             return error_response(404, "Storage not found", "NOT_FOUND")

@@ -69,7 +69,7 @@ class ComplianceChecker:
             }
         """
         try:
-            job = BackupJob.query.get(job_id)
+            job = db.session.get(BackupJob, job_id)
             if not job:
                 logger.warning(f"Backup job {job_id} not found")
                 return self._create_not_found_result()

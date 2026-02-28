@@ -54,9 +54,9 @@ class Rule321110Validator:
         }
 
         # バックアップジョブ取得
-        from app.models import BackupExecution, BackupJob
+        from app.models import BackupExecution, BackupJob, db
 
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             logger.error(f"Job not found", extra={"job_id": job_id})
             return result
