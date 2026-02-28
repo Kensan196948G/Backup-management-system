@@ -14,7 +14,7 @@ declare -a PATTERNS=(
     "sk-[A-Za-z0-9]{48}"                            # OpenAI API Key
     "sk-proj-[A-Za-z0-9\-_]{48,}"                   # OpenAI Project API Key
     "AKIA[0-9A-Z]{16}"                              # AWS Access Key ID
-    "(?<![0-9a-fA-F-])[0-9]{4}[- ][0-9]{4}[- ][0-9]{4}[- ][0-9]{4}(?![0-9a-fA-F-])" # Credit Card (UUID除外)
+    "[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}[- ]?[0-9]{4}" # Credit Card (簡易検出)
     "-----BEGIN (RSA|DSA|EC|OPENSSH) PRIVATE KEY-----" # SSH秘密鍵
     "AIza[0-9A-Za-z\-_]{35}"                        # Google API Key
     "sq0csp-[0-9A-Za-z\-_]{43}"                     # Square Access Token
@@ -37,8 +37,8 @@ declare -a PATTERN_NAMES=(
 FOUND_SECRETS=false
 FOUND_COUNT=0
 
-# ステージングされたファイルを取得（null区切りで特殊文字・日本語ファイル名対応）
-STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM -z 2>/dev/null | tr '\0' '\n' || echo "")
+# ステージングされたファイルを取得
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null || echo "")
 
 if [ -z "$STAGED_FILES" ]; then
     echo "  ℹ️  ステージングされたファイルがありません"
@@ -50,21 +50,20 @@ for i in "${!PATTERNS[@]}"; do
     pattern="${PATTERNS[$i]}"
     pattern_name="${PATTERN_NAMES[$i]}"
 
-    # ステージングされた差分から検索（PCRE: lookbehind/lookahead対応）
-    if git diff --cached | grep -P "$pattern" >/dev/null 2>&1; then
+    # ステージングされた差分から検索
+    if git diff --cached | grep -E "$pattern" >/dev/null 2>&1; then
         echo "  ❌ 機密情報が検出されました: $pattern_name"
         echo "     パターン: $pattern"
 
-        # 具体的なファイル名を特定（while readで特殊文字・日本語ファイル名対応）
-        while IFS= read -r file; do
-            [ -z "$file" ] && continue
-            if git diff --cached -- "$file" | grep -P "$pattern" >/dev/null 2>&1; then
+        # 具体的なファイル名を特定（可能であれば）
+        for file in $STAGED_FILES; do
+            if git diff --cached "$file" | grep -E "$pattern" >/dev/null 2>&1; then
                 echo "     ファイル: $file"
             fi
-        done <<< "$STAGED_FILES"
+        done
 
         FOUND_SECRETS=true
-        FOUND_COUNT=$((FOUND_COUNT + 1))
+        ((FOUND_COUNT++))
     fi
 done
 
