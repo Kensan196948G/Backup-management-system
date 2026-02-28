@@ -1,0 +1,17 @@
+# Prometheus configuration for 3-2-1-1-0 Backup Management System
+# Phase 17 - Monitoring Infrastructure
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "alert_rules.yml"
+
+scrape_configs:
+  - job_name: 'backup-management-system'
+    static_configs:
+      - targets: ['localhost:5000']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
