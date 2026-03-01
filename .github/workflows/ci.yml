@@ -173,12 +173,66 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
-          playwright install chromium
+          pip install playwright pytest-playwright
+          playwright install chromium --with-deps
+
+      - name: Initialize database
+        run: |
+          python -c "
+          from app import create_app
+          from app.models import db, User
+          app = create_app('testing')
+          with app.app_context():
+              db.create_all()
+              if not User.query.filter_by(username='admin').first():
+                  admin = User(username='admin', email='admin@example.com', role='admin')
+                  admin.set_password('Admin123!')
+                  db.session.add(admin)
+                  db.session.commit()
+          print('Database initialized')
+          " 2>&1 || echo "DB init skipped"
+
+      - name: Start Flask server
+        run: |
+          python run.py --config testing &
+          echo $! > /tmp/flask_pid.txt
+          # Wait for server to start (up to 30 seconds)
+          for i in $(seq 1 30); do
+            if curl -s http://127.0.0.1:5000/auth/login > /dev/null 2>&1; then
+              echo "Flask server is ready (attempt $i)"
+              break
+            fi
+            echo "Waiting for Flask server... attempt $i"
+            sleep 1
+          done
+        env:
+          FLASK_ENV: testing
+          TESTING: "1"
 
       - name: Run E2E tests
         run: |
-          if [ -d "tests/e2e" ]; then
-            pytest tests/e2e/ -v --tb=short || echo "E2E tests failed (not blocking)"
+          if [ -d "tests/e2e" ] && ls tests/e2e/test_*.py 1>/dev/null 2>&1; then
+            pytest tests/e2e/ -v --tb=short --base-url=http://127.0.0.1:5000 || echo "E2E tests failed (not blocking)"
           else
             echo "No E2E tests found, skipping"
           fi
+        env:
+          BASE_URL: "http://127.0.0.1:5000"
+
+      - name: Stop Flask server
+        if: always()
+        run: |
+          if [ -f /tmp/flask_pid.txt ]; then
+            kill $(cat /tmp/flask_pid.txt) 2>/dev/null || true
+          fi
+          pkill -f "python run.py" 2>/dev/null || true
+
+      - name: Upload E2E test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-test-results
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
