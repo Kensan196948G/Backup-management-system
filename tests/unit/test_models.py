@@ -9,7 +9,7 @@ Tests all 14 models with focus on:
 - Default values
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from werkzeug.security import check_password_hash

@@ -415,6 +415,11 @@ class AuditLog(db.Model):
     # Relationships
     user = db.relationship("User", back_populates="audit_logs")
 
+    @property
+    def description(self):
+        """Alias for details field for template compatibility."""
+        return self.details
+
     def __repr__(self):
         return f"<AuditLog user_id={self.user_id} action={self.action_type} result={self.action_result}>"
 

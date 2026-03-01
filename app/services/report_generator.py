@@ -794,6 +794,23 @@ class ReportGenerator:
                 "generated_date": datetime.now(timezone.utc),
                 "data": {
                     **data,
+                    "compliance_rate": data.get("compliance_rate", 0),
+                    "three_copies_rate": data.get("three_copies_rate", 0),
+                    "three_copies_count": data.get("three_copies_count", 0),
+                    "two_media_rate": data.get("two_media_rate", 0),
+                    "two_media_count": data.get("two_media_count", 0),
+                    "one_offsite_rate": data.get("one_offsite_rate", 0),
+                    "one_offsite_count": data.get("one_offsite_count", 0),
+                    "one_offline_rate": data.get("one_offline_rate", 0),
+                    "one_offline_count": data.get("one_offline_count", 0),
+                    "zero_errors_rate": data.get("zero_errors_rate", 0),
+                    "zero_errors_count": data.get("zero_errors_count", 0),
+                    "compliant_jobs": data.get("compliant_jobs", 0),
+                    "non_compliant_jobs": data.get("non_compliant_jobs", 0),
+                    "warning_jobs": data.get("warning_jobs", 0),
+                    "non_compliant_list": data.get("non_compliant_list", []),
+                    "compliance_statuses": data.get("compliance_statuses", []),
+                    "previous_compliance_rate": data.get("previous_compliance_rate", 0),
                     "success_rate": (
                         (data.get("success_count", 0) / len(data.get("executions", [])) * 100) if data.get("executions") else 0
                     ),
@@ -944,12 +961,12 @@ class ReportGenerator:
             compliance_statuses = data.get("compliance_statuses", [])
             total_jobs = data.get("total_jobs", 0)
 
-            # Calculate per-requirement compliance rates
-            three_copies_count = sum(1 for c in compliance_statuses if c.three_copies)
-            two_media_count = sum(1 for c in compliance_statuses if c.two_media_types)
-            one_offsite_count = sum(1 for c in compliance_statuses if c.one_offsite)
-            one_offline_count = sum(1 for c in compliance_statuses if c.one_offline)
-            zero_errors_count = sum(1 for c in compliance_statuses if c.zero_errors)
+            # Calculate per-requirement compliance rates (using actual model field names)
+            three_copies_count = sum(1 for c in compliance_statuses if (c.copies_count or 0) >= 3)
+            two_media_count = sum(1 for c in compliance_statuses if (c.media_types_count or 0) >= 2)
+            one_offsite_count = sum(1 for c in compliance_statuses if c.has_offsite)
+            one_offline_count = sum(1 for c in compliance_statuses if c.has_offline)
+            zero_errors_count = sum(1 for c in compliance_statuses if not c.has_errors)
 
             context = {
                 "report_title": "3-2-1-1-0 Compliance Report",
