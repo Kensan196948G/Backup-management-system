@@ -11,6 +11,8 @@ Endpoints:
 - /api/v1/aomei - AOMEI Backupper integration
 """
 
+from flask import Blueprint
+
 # Note: v1 modules are imported when needed to avoid circular dependencies
 # and blueprint registration issues.
 # Auth blueprint is registered separately in app/__init__.py to preserve URL prefix.

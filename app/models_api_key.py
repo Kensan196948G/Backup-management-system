@@ -2,8 +2,9 @@
 API Key Management Model
 Provides persistent storage for API keys with hashing and expiration
 """
+
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -85,7 +86,7 @@ class ApiKey(db.Model):
         # Calculate expiration
         expires_at = None
         if expires_in_days:
-            expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+            expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
 
         # Create database record
         api_key = ApiKey(key_hash=key_hash, key_prefix=key_prefix, name=name, user_id=user_id, expires_at=expires_at)
@@ -118,13 +119,13 @@ class ApiKey(db.Model):
 
         for api_key in candidates:
             # Check if expired
-            if api_key.expires_at and api_key.expires_at < datetime.utcnow():
+            if api_key.expires_at and api_key.expires_at < datetime.now(timezone.utc):
                 continue
 
             # Verify hash
             if check_password_hash(api_key.key_hash, plaintext_key):
                 # Update last used timestamp
-                api_key.last_used_at = datetime.utcnow()
+                api_key.last_used_at = datetime.now(timezone.utc)
                 db.session.commit()
                 return api_key
 
@@ -139,7 +140,7 @@ class ApiKey(db.Model):
         """Check if the API key has expired."""
         if self.expires_at is None:
             return False
-        return self.expires_at < datetime.utcnow()
+        return self.expires_at < datetime.now(timezone.utc)
 
     def to_dict(self, include_key: bool = False) -> dict:
         """
@@ -213,7 +214,7 @@ class RefreshToken(db.Model):
         token_hash = generate_password_hash(token, method="pbkdf2:sha256")
 
         # Calculate expiration
-        expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+        expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
 
         # Create record
         refresh_token = RefreshToken(token_hash=token_hash, user_id=user_id, expires_at=expires_at)
@@ -235,7 +236,7 @@ class RefreshToken(db.Model):
             RefreshToken object if valid, None otherwise
         """
         # Find all non-revoked, non-expired tokens
-        candidates = RefreshToken.query.filter_by(is_revoked=False).filter(RefreshToken.expires_at > datetime.utcnow()).all()
+        candidates = RefreshToken.query.filter_by(is_revoked=False).filter(RefreshToken.expires_at > datetime.now(timezone.utc)).all()
 
         for refresh_token in candidates:
             if check_password_hash(refresh_token.token_hash, token):
@@ -250,4 +251,4 @@ class RefreshToken(db.Model):
 
     def is_expired(self) -> bool:
         """Check if the refresh token has expired."""
-        return self.expires_at < datetime.utcnow()
+        return self.expires_at < datetime.now(timezone.utc)

@@ -7,6 +7,7 @@ Provides utilities for optimizing database queries:
 - Query performance monitoring
 - Index recommendations
 """
+
 import logging
 import time
 from contextlib import contextmanager

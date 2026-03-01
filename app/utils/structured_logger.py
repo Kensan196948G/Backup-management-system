@@ -7,9 +7,10 @@ Provides JSON-formatted structured logging:
 - Log aggregation support
 - Integration with Flask request context
 """
+
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Any, Callable, Dict, Optional
 
@@ -45,7 +46,7 @@ class StructuredLogger:
             Dictionary with context information
         """
         context = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Add Flask request context if available
@@ -162,7 +163,7 @@ class CustomJsonFormatter(jsonlogger.JsonFormatter):
 
         # Add timestamp
         if not log_record.get("timestamp"):
-            log_record["timestamp"] = datetime.utcnow().isoformat()
+            log_record["timestamp"] = datetime.now(timezone.utc).isoformat()
 
         # Add log level
         if log_record.get("level"):

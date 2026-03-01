@@ -2,6 +2,7 @@
 Authentication and Authorization Module
 Implements Flask-Login and role-based access control (RBAC)
 """
+
 from flask import Blueprint
 
 # Create authentication blueprint

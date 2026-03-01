@@ -8,7 +8,8 @@ Tests all 14 models with focus on:
 - Field validations
 - Default values
 """
-from datetime import datetime, timedelta
+
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from werkzeug.security import check_password_hash
@@ -280,7 +281,7 @@ class TestMediaRotationScheduleModel:
                 offline_media_id=offline_media[0].id,
                 rotation_type="gfs",
                 rotation_cycle="weekly",
-                next_rotation_date=(datetime.utcnow() + timedelta(days=7)).date(),
+                next_rotation_date=(datetime.now(timezone.utc) + timedelta(days=7)).date(),
             )
             db.session.add(schedule)
             db.session.commit()
@@ -296,7 +297,7 @@ class TestMediaRotationScheduleModel:
                 offline_media_id=offline_media[0].id,
                 rotation_type="gfs",
                 rotation_cycle="weekly",
-                next_rotation_date=(datetime.utcnow() + timedelta(days=1)).date(),
+                next_rotation_date=(datetime.now(timezone.utc) + timedelta(days=1)).date(),
             )
             db.session.add(schedule)
             db.session.commit()
@@ -314,9 +315,9 @@ class TestMediaLendingModel:
             lending = MediaLending(
                 offline_media_id=offline_media[0].id,
                 borrower_id=admin_user.id,
-                borrow_date=datetime.utcnow(),
+                borrow_date=datetime.now(timezone.utc),
                 borrow_purpose="Backup verification",
-                expected_return=(datetime.utcnow() + timedelta(days=7)).date(),
+                expected_return=(datetime.now(timezone.utc) + timedelta(days=7)).date(),
             )
             db.session.add(lending)
             db.session.commit()
@@ -331,15 +332,15 @@ class TestMediaLendingModel:
             lending = MediaLending(
                 offline_media_id=offline_media[0].id,
                 borrower_id=admin_user.id,
-                borrow_date=datetime.utcnow(),
+                borrow_date=datetime.now(timezone.utc),
                 borrow_purpose="Testing",
-                expected_return=(datetime.utcnow() + timedelta(days=1)).date(),
+                expected_return=(datetime.now(timezone.utc) + timedelta(days=1)).date(),
             )
             db.session.add(lending)
             db.session.commit()
 
             # Return the media
-            lending.actual_return = datetime.utcnow()
+            lending.actual_return = datetime.now(timezone.utc)
             db.session.commit()
 
             assert lending.actual_return is not None
@@ -357,7 +358,7 @@ class TestVerificationTestModel:
             test = VerificationTest(
                 job_id=job.id,
                 test_type="integrity",
-                test_date=datetime.utcnow(),
+                test_date=datetime.now(timezone.utc),
                 tester_id=user.id,
                 test_result="success",
             )
@@ -377,7 +378,7 @@ class TestVerificationTestModel:
             test = VerificationTest(
                 job_id=job.id,
                 test_type="full_restore",
-                test_date=datetime.utcnow(),
+                test_date=datetime.now(timezone.utc),
                 tester_id=user.id,
                 test_result="failed",
                 issues_found="Checksum mismatch detected",
@@ -396,7 +397,7 @@ class TestVerificationScheduleModel:
         """Test creating a verification schedule."""
         with app.app_context():
             schedule = VerificationSchedule(
-                job_id=backup_job.id, test_frequency="weekly", next_test_date=(datetime.utcnow() + timedelta(days=7)).date()
+                job_id=backup_job.id, test_frequency="weekly", next_test_date=(datetime.now(timezone.utc) + timedelta(days=7)).date()
             )
             db.session.add(schedule)
             db.session.commit()
@@ -415,7 +416,7 @@ class TestBackupExecutionModel:
             execution = BackupExecution(
                 job_id=backup_job.id,
                 execution_result="success",
-                execution_date=datetime.utcnow(),
+                execution_date=datetime.now(timezone.utc),
                 backup_size_bytes=1024000,
                 duration_seconds=3600,
             )
@@ -430,7 +431,7 @@ class TestBackupExecutionModel:
         """Test backup execution with error."""
         with app.app_context():
             execution = BackupExecution(
-                job_id=backup_job.id, execution_result="failed", execution_date=datetime.utcnow(), error_message="Disk full"
+                job_id=backup_job.id, execution_result="failed", execution_date=datetime.now(timezone.utc), error_message="Disk full"
             )
             db.session.add(execution)
             db.session.commit()
@@ -447,7 +448,7 @@ class TestComplianceStatusModel:
         with app.app_context():
             status = ComplianceStatus(
                 job_id=backup_job.id,
-                check_date=datetime.utcnow(),
+                check_date=datetime.now(timezone.utc),
                 copies_count=4,
                 media_types_count=3,
                 has_offsite=True,
@@ -467,7 +468,7 @@ class TestComplianceStatusModel:
         with app.app_context():
             status = ComplianceStatus(
                 job_id=backup_job.id,
-                check_date=datetime.utcnow(),
+                check_date=datetime.now(timezone.utc),
                 copies_count=2,
                 media_types_count=1,
                 has_offsite=False,
@@ -517,7 +518,7 @@ class TestAlertModel:
 
             # Acknowledge the alert
             alert.is_acknowledged = True
-            alert.acknowledged_at = datetime.utcnow()
+            alert.acknowledged_at = datetime.now(timezone.utc)
             alert.acknowledged_by = 1
             db.session.commit()
 
@@ -568,8 +569,8 @@ class TestReportModel:
             report = Report(
                 report_type="daily",
                 report_title="Daily Backup Report",
-                date_from=(datetime.utcnow() - timedelta(days=1)).date(),
-                date_to=datetime.utcnow().date(),
+                date_from=(datetime.now(timezone.utc) - timedelta(days=1)).date(),
+                date_to=datetime.now(timezone.utc).date(),
                 file_path="/reports/daily_2025.pdf",
                 file_format="pdf",
                 generated_by=admin_user.id,
@@ -587,8 +588,8 @@ class TestReportModel:
             report = Report(
                 report_type="weekly",
                 report_title="Weekly Report",
-                date_from=datetime.utcnow().date(),
-                date_to=datetime.utcnow().date(),
+                date_from=datetime.now(timezone.utc).date(),
+                date_to=datetime.now(timezone.utc).date(),
                 file_format="html",
                 generated_by=admin_user.id,
             )

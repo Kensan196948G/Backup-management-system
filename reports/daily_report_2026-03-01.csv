@@ -1,0 +1,9 @@
+Daily Backup Report,2026-03-01
+
+Total Jobs,1
+Successful,1
+Failed,0
+Warnings,0
+
+Job ID,Execution Time,Result,Size (bytes),Duration (sec)
+1,2026-03-01 11:12:11.272521,success,1000000,3600

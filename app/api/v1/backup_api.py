@@ -11,8 +11,9 @@ Endpoints:
 - POST   /api/v1/backups/{id}/run - Trigger manual backup
 - GET    /api/v1/backups/{id}/executions - Get execution history
 """
+
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 from pydantic import ValidationError
@@ -194,7 +195,7 @@ def get_backup_job(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
@@ -234,7 +235,7 @@ def update_backup_job(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
@@ -254,7 +255,7 @@ def update_backup_job(current_user, backup_id):
         for field, value in update_data.model_dump(exclude_unset=True).items():
             setattr(backup_job, field, value)
 
-        backup_job.updated_at = datetime.utcnow()
+        backup_job.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Backup job updated: {backup_job.name} (ID: {backup_job.id}) by {current_user.username}")
@@ -291,7 +292,7 @@ def delete_backup_job(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
@@ -340,7 +341,7 @@ def trigger_backup(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")
@@ -353,8 +354,11 @@ def trigger_backup(current_user, backup_id):
         data = request.get_json() or {}
         trigger_data = BackupTrigger(**data)
 
-        # TODO: Implement actual backup trigger using BackupService
-        # For now, just log the trigger
+        from app.tasks.notification_tasks import send_backup_status_update
+
+        send_backup_status_update.apply_async(
+            kwargs={"job_id": backup_id, "status": "running"},
+        )
         logger.info(
             f"Manual backup triggered: {backup_job.name} (ID: {backup_id}) "
             f"by {current_user.username}, type: {trigger_data.backup_type}"
@@ -370,7 +374,7 @@ def trigger_backup(current_user, backup_id):
                         "job_name": backup_job.name,
                         "backup_type": trigger_data.backup_type,
                         "triggered_by": current_user.username,
-                        "triggered_at": datetime.utcnow().isoformat(),
+                        "triggered_at": datetime.now(timezone.utc).isoformat(),
                     },
                 ).model_dump()
             ),
@@ -405,7 +409,7 @@ def get_backup_executions(current_user, backup_id):
         404: Backup job not found
     """
     try:
-        backup_job = BackupJob.query.get(backup_id)
+        backup_job = db.session.get(BackupJob, backup_id)
 
         if not backup_job:
             return error_response(404, "Backup job not found", "NOT_FOUND")

@@ -78,9 +78,9 @@ class BackupEngine:
 
         try:
             # バックアップジョブ取得（Agent-01が現在app/modelsにアクセス可能）
-            from app.models import BackupJob
+            from app.models import BackupJob, db
 
-            job = BackupJob.query.get(job_id)
+            job = db.session.get(BackupJob, job_id)
             if not job:
                 raise BackupJobNotFoundError(job_id)
 

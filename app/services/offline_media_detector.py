@@ -2,8 +2,9 @@
 Offline Media Detector Service
 Automatically detects and manages offline backup media
 """
+
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from app.models import BackupCopy, OfflineMedia, db
@@ -99,7 +100,7 @@ class OfflineMediaDetector:
             List of stale media with alert information
         """
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=self.warning_days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=self.warning_days)
 
             # Find media with old backup dates
             stale_media = OfflineMedia.query.filter(
@@ -112,7 +113,7 @@ class OfflineMediaDetector:
             for media in stale_media:
                 age_days = None
                 if media.last_used_date:
-                    age_days = (datetime.utcnow() - media.last_used_date).days
+                    age_days = (datetime.now(timezone.utc) - media.last_used_date).days
 
                 alert = {
                     "media_id": media.media_id,
@@ -156,7 +157,7 @@ class OfflineMediaDetector:
             stats["new_media"] = len([m for m in detected if m])
 
             # Mark media as retired if no recent copies
-            cutoff_date = datetime.utcnow() - timedelta(days=90)  # 90 days
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=90)  # 90 days
 
             for media in all_media:
                 # Find related copies
@@ -299,10 +300,10 @@ class OfflineMediaDetector:
             media_type=copy.media_type or "external_hdd",
             storage_location=copy.storage_path,
             current_status="in_use" if copy.status == "active" else "available",
-            last_used_date=copy.last_backup_date or datetime.utcnow(),
+            last_used_date=copy.last_backup_date or datetime.now(timezone.utc),
             capacity_bytes=None,  # Unknown initially
             used_bytes=copy.backup_size_bytes or 0,
-            purchase_date=datetime.utcnow(),
+            purchase_date=datetime.now(timezone.utc),
         )
 
         db.session.add(media)

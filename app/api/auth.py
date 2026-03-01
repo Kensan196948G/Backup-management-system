@@ -8,9 +8,10 @@ Supports:
 - Role-based access control (RBAC) integration
 - Token refresh mechanism
 """
+
 import logging
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 from typing import Optional, Tuple
 
@@ -42,8 +43,8 @@ def generate_jwt_token(user: User, expires_in: int = 3600) -> str:
         "user_id": user.id,
         "username": user.username,
         "role": user.role,
-        "exp": datetime.utcnow() + timedelta(seconds=expires_in),
-        "iat": datetime.utcnow(),
+        "exp": datetime.now(timezone.utc) + timedelta(seconds=expires_in),
+        "iat": datetime.now(timezone.utc),
         "type": "access",
     }
 
@@ -65,8 +66,8 @@ def generate_refresh_token(user: User, expires_in: int = 2592000) -> str:
     """
     payload = {
         "user_id": user.id,
-        "exp": datetime.utcnow() + timedelta(seconds=expires_in),
-        "iat": datetime.utcnow(),
+        "exp": datetime.now(timezone.utc) + timedelta(seconds=expires_in),
+        "iat": datetime.now(timezone.utc),
         "type": "refresh",
     }
 
@@ -124,11 +125,11 @@ def verify_api_key(api_key: str) -> Optional[User]:
     Returns:
         User object if valid, None otherwise
     """
-    # TODO: Implement proper API key table and verification
-    # For now, check against user-associated API keys in environment/config
+    from app.models_api_key import ApiKey
 
-    # Placeholder implementation - returns None
-    logger.warning("API key verification not fully implemented")
+    api_key_obj = ApiKey.verify_key(api_key)
+    if api_key_obj is not None:
+        return api_key_obj.user
     return None
 
 
@@ -176,7 +177,7 @@ def jwt_required(f):
             return jsonify({"success": False, "error": "INVALID_TOKEN_TYPE", "message": "Invalid token type"}), 401
 
         # Get user from database
-        user = User.query.get(payload["user_id"])
+        user = db.session.get(User, payload["user_id"])
         if not user or not user.is_active:
             return (
                 jsonify({"success": False, "error": "USER_INACTIVE", "message": "User account is inactive or not found"}),
@@ -244,7 +245,7 @@ def auth_required(f):
             token = auth_header.split(" ")[1]
             payload = verify_jwt_token(token)
             if payload and payload.get("type") == "access":
-                user = User.query.get(payload["user_id"])
+                user = db.session.get(User, payload["user_id"])
 
         # Try API key authentication if JWT failed
         if not user:
@@ -336,11 +337,11 @@ def authenticate_user(username: str, password: str) -> Tuple[Optional[User], Opt
         logger.warning(f"Failed login attempt for user: {username}")
         # Increment failed login attempts
         user.failed_login_attempts += 1
-        user.last_failed_login = datetime.utcnow()
+        user.last_failed_login = datetime.now(timezone.utc)
 
         # Lock account after 5 failed attempts
         if user.failed_login_attempts >= 5:
-            user.account_locked_until = datetime.utcnow() + timedelta(minutes=30)
+            user.account_locked_until = datetime.now(timezone.utc) + timedelta(minutes=30)
             db.session.commit()
             logger.warning(f"User account locked due to failed login attempts: {username}")
             return None, "Account locked due to multiple failed login attempts"
@@ -349,13 +350,13 @@ def authenticate_user(username: str, password: str) -> Tuple[Optional[User], Opt
         return None, "Invalid username or password"
 
     # Check if account is locked
-    if user.account_locked_until and user.account_locked_until > datetime.utcnow():
-        remaining = (user.account_locked_until - datetime.utcnow()).total_seconds() / 60
+    if user.account_locked_until and user.account_locked_until > datetime.now(timezone.utc):
+        remaining = (user.account_locked_until - datetime.now(timezone.utc)).total_seconds() / 60
         return None, f"Account is locked. Try again in {int(remaining)} minutes"
 
     # Reset failed login attempts on successful login
     user.failed_login_attempts = 0
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     user.account_locked_until = None
     db.session.commit()
 
@@ -381,7 +382,7 @@ def refresh_access_token(refresh_token: str) -> Tuple[Optional[str], Optional[st
     if payload.get("type") != "refresh":
         return None, "Invalid token type"
 
-    user = User.query.get(payload["user_id"])
+    user = db.session.get(User, payload["user_id"])
     if not user or not user.is_active:
         return None, "User account is inactive or not found"
 

@@ -7,8 +7,10 @@ Supports multiple notification channels:
 - Email notifications
 - Microsoft Teams webhooks
 """
+
+import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -219,7 +221,7 @@ class AlertManager:
     def _send_backup_success_email(self, alert: Alert, recipient: str) -> bool:
         """Send backup success notification email"""
         try:
-            job = BackupJob.query.get(alert.job_id) if alert.job_id else None
+            job = db.session.get(BackupJob, alert.job_id) if alert.job_id else None
             details = {}
 
             if job:
@@ -320,7 +322,7 @@ class AlertManager:
             created_at = alert.created_at
 
             if alert.job_id:
-                job = BackupJob.query.get(alert.job_id)
+                job = db.session.get(BackupJob, alert.job_id)
                 if job:
                     job_name = job.job_name
 
@@ -361,7 +363,7 @@ class AlertManager:
 
             # Add job owner if alert is job-related
             if alert.job_id:
-                job = BackupJob.query.get(alert.job_id)
+                job = db.session.get(BackupJob, alert.job_id)
                 if job and job.owner and job.owner.email:
                     recipients.append(job.owner.email)
 
@@ -394,7 +396,7 @@ class AlertManager:
 
         job_info = ""
         if alert.job_id:
-            job = BackupJob.query.get(alert.job_id)
+            job = db.session.get(BackupJob, alert.job_id)
             if job:
                 job_info = f"<p><strong>Job:</strong> {job.job_name}</p>"
 
@@ -432,13 +434,13 @@ class AlertManager:
             Updated Alert object
         """
         try:
-            alert = Alert.query.get(alert_id)
+            alert = db.session.get(Alert, alert_id)
             if not alert:
                 raise ValueError(f"Alert {alert_id} not found")
 
             alert.is_acknowledged = True
             alert.acknowledged_by = user_id
-            alert.acknowledged_at = datetime.utcnow()
+            alert.acknowledged_at = datetime.now(timezone.utc)
 
             db.session.commit()
 
@@ -483,7 +485,7 @@ class AlertManager:
             List of Alert objects
         """
         try:
-            since_date = datetime.utcnow() - timedelta(days=days)
+            since_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             alerts = (
                 Alert.query.filter(Alert.job_id == job_id, Alert.created_at >= since_date)
@@ -511,7 +513,7 @@ class AlertManager:
             List of Alert objects
         """
         try:
-            since_date = datetime.utcnow() - timedelta(days=days)
+            since_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             alerts = (
                 Alert.query.filter(Alert.alert_type == alert_type, Alert.created_at >= since_date)
@@ -539,7 +541,7 @@ class AlertManager:
             List of Alert objects
         """
         try:
-            since_date = datetime.utcnow() - timedelta(days=days)
+            since_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             alerts = (
                 Alert.query.filter(Alert.severity == severity, Alert.created_at >= since_date)
@@ -644,7 +646,7 @@ class AlertManager:
             Dictionary of notification results
         """
         try:
-            alert = Alert.query.get(alert_id)
+            alert = db.session.get(Alert, alert_id)
             if not alert:
                 return {}
 
@@ -665,7 +667,7 @@ class AlertManager:
             Number of deleted alerts
         """
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             count = Alert.query.filter(Alert.is_acknowledged == True, Alert.acknowledged_at < cutoff_date).delete()
 

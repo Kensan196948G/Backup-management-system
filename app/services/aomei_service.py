@@ -9,8 +9,9 @@ Features:
 - Backup execution tracking
 - Database synchronization
 """
+
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 from app.models import BackupCopy, BackupExecution, BackupJob, db
@@ -82,7 +83,7 @@ class AOMEIService:
                 return True, f"Job registered successfully with ID {job.id}", job
             else:
                 # Update existing job
-                job = BackupJob.query.get(job_id)
+                job = db.session.get(BackupJob, job_id)
                 if not job:
                     return False, f"Job ID {job_id} not found", None
 
@@ -98,7 +99,7 @@ class AOMEIService:
                     job.target_path = target_path
                 if description:
                     job.description = description
-                job.updated_at = datetime.utcnow()
+                job.updated_at = datetime.now(timezone.utc)
 
                 db.session.commit()
 
@@ -145,7 +146,7 @@ class AOMEIService:
         """
         try:
             # Validate job exists
-            job = BackupJob.query.get(job_id)
+            job = db.session.get(BackupJob, job_id)
             if not job:
                 return False, f"Job ID {job_id} not found"
 
@@ -157,9 +158,9 @@ class AOMEIService:
 
             # Use current time if not provided
             if not start_time:
-                start_time = datetime.utcnow()
+                start_time = datetime.now(timezone.utc)
             if not end_time:
-                end_time = datetime.utcnow()
+                end_time = datetime.now(timezone.utc)
 
             # Create backup execution record
             execution = BackupExecution(
@@ -192,12 +193,12 @@ class AOMEIService:
             copy.last_backup_size = backup_size
             copy.status = mapped_status
             copy.storage_path = storage_path or copy.storage_path
-            copy.updated_at = datetime.utcnow()
+            copy.updated_at = datetime.now(timezone.utc)
 
             # Update job information
             if task_name:
                 job.job_name = task_name
-            job.updated_at = datetime.utcnow()
+            job.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
 
@@ -316,7 +317,7 @@ class AOMEIService:
             Dictionary with job status or None if not found
         """
         try:
-            job = BackupJob.query.get(job_id)
+            job = db.session.get(BackupJob, job_id)
             if not job or job.backup_tool != AOMEIService.BACKUP_TOOL:
                 return None
 
@@ -333,15 +334,17 @@ class AOMEIService:
                 "job_name": job.job_name,
                 "job_type": job.job_type,
                 "is_active": job.is_active,
-                "latest_execution": {
-                    "date": latest_execution.execution_date if latest_execution else None,
-                    "result": latest_execution.execution_result if latest_execution else None,
-                    "size": latest_execution.backup_size_bytes if latest_execution else None,
-                    "duration": latest_execution.duration_seconds if latest_execution else None,
-                    "error": latest_execution.error_message if latest_execution else None,
-                }
-                if latest_execution
-                else None,
+                "latest_execution": (
+                    {
+                        "date": latest_execution.execution_date if latest_execution else None,
+                        "result": latest_execution.execution_result if latest_execution else None,
+                        "size": latest_execution.backup_size_bytes if latest_execution else None,
+                        "duration": latest_execution.duration_seconds if latest_execution else None,
+                        "error": latest_execution.error_message if latest_execution else None,
+                    }
+                    if latest_execution
+                    else None
+                ),
                 "copies": [
                     {
                         "type": copy.copy_type,

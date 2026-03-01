@@ -218,10 +218,10 @@ data/*.db-shm
 # バックアップファイル
 *.backup
 *.bak
+backups/
+logs/*.log.*
+.env.development
+.env.production
 
-# Auto-repair system state
-state.json
-review-output.txt
-fix-output.txt
-logs/auto-repair-local.log
-*.diff
+# ビルド成果物
+reports/*.html

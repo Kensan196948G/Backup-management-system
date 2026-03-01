@@ -9,6 +9,7 @@ Features:
 - Scheduled backup monitoring
 - Compliance checking and alerting
 """
+
 import logging
 import os
 from logging.handlers import RotatingFileHandler, TimedRotatingFileHandler
@@ -28,6 +29,10 @@ from app.config import get_config
 
 # Import extensions (initialized here, configured in create_app)
 from app.models import db
+
+# Import security utilities
+from app.utils.security_headers import init_security_headers
+from app.utils.rate_limiter import init_rate_limiting, register_rate_limit_handlers
 
 # Initialize Flask extensions
 login_manager = LoginManager()
@@ -82,6 +87,16 @@ def create_app(config_name=None):
             _init_scheduler(app)
         except Exception as e:
             app.logger.warning(f"Scheduler initialization skipped: {str(e)}")
+
+    # Initialize Prometheus metrics (Phase 17)
+    if app.config.get("PROMETHEUS_ENABLED", False):
+        try:
+            from app.utils.metrics import init_metrics
+
+            init_metrics(app)
+            app.logger.info("Prometheus metrics initialized")
+        except Exception as e:
+            app.logger.warning(f"Prometheus metrics initialization skipped: {str(e)}")
 
     # Register template context processors
     _register_context_processors(app)
@@ -165,9 +180,9 @@ def _init_extensions(app):
     @login_manager.user_loader
     def load_user(user_id):
         """Load user by ID"""
-        from app.models import User
+        from app.models import User, db
 
-        return User.query.get(int(user_id))
+        return db.session.get(User, int(user_id))
 
     @login_manager.unauthorized_handler
     def unauthorized():
@@ -185,6 +200,16 @@ def _init_extensions(app):
 
     # Exempt API endpoints from CSRF (they use JWT)
     csrf.exempt("api")
+
+    # Security Headers
+    init_security_headers(app)
+    app.logger.info("Security headers initialized")
+
+    # Rate Limiting
+    rate_limiter = init_rate_limiting(app)
+    app.extensions["rate_limiter"] = rate_limiter
+    register_rate_limit_handlers(app)
+    app.logger.info("Rate limiting initialized")
 
     app.logger.info("Extensions initialized successfully")
 
@@ -217,6 +242,23 @@ def _register_blueprints(app):
         app.logger.info("Views blueprints registered")
     except ImportError as e:
         app.logger.warning(f"Views blueprints not found: {e}")
+
+    try:
+        from app.views.backup_schedule import bp as backup_schedule_bp
+
+        app.register_blueprint(backup_schedule_bp)
+        app.logger.info("Backup schedule blueprint registered")
+    except ImportError as e:
+        app.logger.warning(f"Backup schedule blueprint not found: {e}")
+
+    # Admin blueprints (Phase 13)
+    try:
+        from app.views.admin.postgres_monitor import bp as postgres_monitor_bp
+
+        app.register_blueprint(postgres_monitor_bp)
+        app.logger.info("Admin blueprints registered")
+    except ImportError as e:
+        app.logger.warning(f"Admin blueprints not found: {e}")
 
     # API blueprint (REST API)
     try:

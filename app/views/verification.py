@@ -2,7 +2,8 @@
 Verification Test Management Views
 Test execution, scheduling, and history
 """
-from datetime import datetime, timedelta
+
+from datetime import datetime, timedelta, timezone
 
 from flask import (
     current_app,
@@ -98,7 +99,7 @@ def detail(test_id):
     test = VerificationTest.query.get_or_404(test_id)
 
     # Get related backup job
-    job = BackupJob.query.get(test.job_id) if test.job_id else None
+    job = db.session.get(BackupJob, test.job_id) if test.job_id else None
 
     return render_template("verification/detail.html", test=test, job=job)
 
@@ -116,7 +117,7 @@ def execute():
             test_data = {
                 "job_id": request.form.get("job_id"),
                 "test_type": request.form.get("test_type"),
-                "test_date": datetime.utcnow(),
+                "test_date": datetime.now(timezone.utc),
                 "result": request.form.get("result", "pending"),
                 "notes": request.form.get("notes"),
                 "tested_by_id": current_user.id,
@@ -160,7 +161,7 @@ def update(test_id):
             # Update test data
             test.result = request.form.get("result")
             test.notes = request.form.get("notes")
-            test.updated_at = datetime.utcnow()
+            test.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
 
@@ -178,7 +179,7 @@ def update(test_id):
             flash(f"検証テストの更新に失敗しました: {str(e)}", "danger")
 
     # Get job for display
-    job = BackupJob.query.get(test.job_id) if test.job_id else None
+    job = db.session.get(BackupJob, test.job_id) if test.job_id else None
 
     return render_template("verification/update.html", test=test, job=job)
 
@@ -191,7 +192,7 @@ def schedule():
     Shows upcoming scheduled tests
     """
     # Get upcoming schedules (next 30 days)
-    end_date = datetime.utcnow() + timedelta(days=30)
+    end_date = datetime.now(timezone.utc) + timedelta(days=30)
 
     schedules = (
         VerificationSchedule.query.filter(VerificationSchedule.next_test_date <= end_date)
@@ -216,9 +217,11 @@ def create_schedule():
                 "job_id": request.form.get("job_id"),
                 "test_type": request.form.get("test_type"),
                 "frequency_days": int(request.form.get("frequency_days", 30)),
-                "next_test_date": datetime.strptime(request.form.get("next_test_date"), "%Y-%m-%d")
-                if request.form.get("next_test_date")
-                else datetime.utcnow(),
+                "next_test_date": (
+                    datetime.strptime(request.form.get("next_test_date"), "%Y-%m-%d")
+                    if request.form.get("next_test_date")
+                    else datetime.now(timezone.utc)
+                ),
                 "assigned_to_id": request.form.get("assigned_to_id") or current_user.id,
                 "is_active": request.form.get("is_active") == "on",
             }
@@ -272,7 +275,7 @@ def edit_schedule(schedule_id):
             )
             schedule.assigned_to_id = request.form.get("assigned_to_id") or current_user.id
             schedule.is_active = request.form.get("is_active") == "on"
-            schedule.updated_at = datetime.utcnow()
+            schedule.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
 

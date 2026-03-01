@@ -2,6 +2,7 @@
 System Settings Views
 System configuration and settings management
 """
+
 from flask import (
     current_app,
     flash,
@@ -132,7 +133,7 @@ def export():
                 "lockout_duration": 30,
                 "enable_audit_log": True,
                 "require_2fa": False,
-                "password_expiry_days": 90,
+                "password_expiry_days": 90,  # nosec B105 - not a password, days value
             }
 
         if include_users:
@@ -715,7 +716,7 @@ def update_user(user_id):
 
         from app.models import User
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 
@@ -824,7 +825,7 @@ def delete_user(user_id):
                 403,
             )
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 
@@ -873,7 +874,7 @@ def toggle_user_status(user_id):
                 403,
             )
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 
@@ -919,7 +920,7 @@ def reset_user_password(user_id):
 
         from app.models import User
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 
@@ -967,7 +968,7 @@ def unlock_user_account(user_id):
     try:
         from app.models import User
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": {"code": "NOT_FOUND", "message": "User not found"}}), 404
 

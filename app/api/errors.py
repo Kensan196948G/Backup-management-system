@@ -2,6 +2,7 @@
 API Error Handlers
 Standardized error response format for REST API
 """
+
 import logging
 
 from flask import jsonify

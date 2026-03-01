@@ -2,7 +2,8 @@
 Offline Media Management Views
 Media inventory, rotation, and lending management
 """
-from datetime import datetime, timedelta
+
+from datetime import datetime, timedelta, timezone
 
 from flask import (
     current_app,
@@ -123,7 +124,7 @@ def detail(media_id):
     # Get associated backup job
     job = None
     if media.job_id:
-        job = BackupJob.query.get(media.job_id)
+        job = db.session.get(BackupJob, media.job_id)
 
     return render_template("media/detail.html", media=media, rotation=rotation, lending_history=lending_history, job=job)
 
@@ -194,7 +195,7 @@ def edit(media_id):
             media.storage_location = request.form.get("storage_location")
             media.status = request.form.get("status")
             media.job_id = request.form.get("job_id") or None
-            media.updated_at = datetime.utcnow()
+            media.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
 
@@ -273,14 +274,16 @@ def lend(media_id):
                 media_id=media_id,
                 borrower_id=current_user.id,
                 purpose=request.form.get("purpose"),
-                expected_return_date=datetime.strptime(request.form.get("expected_return_date"), "%Y-%m-%d")
-                if request.form.get("expected_return_date")
-                else None,
+                expected_return_date=(
+                    datetime.strptime(request.form.get("expected_return_date"), "%Y-%m-%d")
+                    if request.form.get("expected_return_date")
+                    else None
+                ),
             )
 
             # Update media status
             media.status = "lent"
-            media.updated_at = datetime.utcnow()
+            media.updated_at = datetime.now(timezone.utc)
 
             db.session.add(lending)
             db.session.commit()
@@ -319,11 +322,11 @@ def return_media(media_id):
             return redirect(url_for("media.detail", media_id=media_id))
 
         # Update lending record
-        lending.returned_at = datetime.utcnow()
+        lending.returned_at = datetime.now(timezone.utc)
 
         # Update media status
         media.status = "available"
-        media.updated_at = datetime.utcnow()
+        media.updated_at = datetime.now(timezone.utc)
 
         db.session.commit()
 
@@ -350,7 +353,7 @@ def rotation_schedule():
     Shows upcoming media rotations
     """
     # Get upcoming rotations (next 30 days)
-    end_date = datetime.utcnow() + timedelta(days=30)
+    end_date = datetime.now(timezone.utc) + timedelta(days=30)
 
     schedules = (
         MediaRotationSchedule.query.filter(MediaRotationSchedule.next_rotation_date <= end_date)

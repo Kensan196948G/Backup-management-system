@@ -10,12 +10,14 @@ Generates professional PDF reports with:
 - Table of contents
 - Cover pages
 """
+
 import base64
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
+from io import BytesIO
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from flask import render_template
 from weasyprint import CSS, HTML
@@ -431,7 +433,7 @@ class PDFGenerator:
             "report_title": "ISO 27001 Information Security Management Report",
             "start_date": start_date,
             "end_date": end_date,
-            "generated_date": datetime.utcnow(),
+            "generated_date": datetime.now(timezone.utc),
             "data": data,
             "standard": "ISO/IEC 27001:2013",
             "clauses": self._get_iso27001_clauses(data),
@@ -455,7 +457,7 @@ class PDFGenerator:
             "report_title": "ISO 19650 Information Management Report",
             "start_date": start_date,
             "end_date": end_date,
-            "generated_date": datetime.utcnow(),
+            "generated_date": datetime.now(timezone.utc),
             "data": data,
             "standard": "ISO 19650:2018",
             "requirements": self._get_iso19650_requirements(data),
@@ -548,10 +550,8 @@ class ChartGenerator:
                 if os.path.exists(font_path):
                     fm.fontManager.addfont(font_path)
                     plt.rcParams["font.family"] = "Noto Sans CJK JP"
-            except Exception:
+            except Exception:  # nosec B110 - font loading is optional, ignore failures
                 pass
-
-            plt.figure(figsize=(10, 6))
 
             dates = data.get("dates", [])
             compliance_rates = data.get("compliance_rates", [])

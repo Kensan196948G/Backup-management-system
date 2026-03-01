@@ -5,7 +5,7 @@ Sends notifications via SMTP email with HTML templates
 
 import logging
 import smtplib
-from datetime import datetime
+from datetime import datetime, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import List, Optional
@@ -186,7 +186,7 @@ class EmailChannel:
             msg["Subject"] = subject
             msg["From"] = self.mail_sender
             msg["To"] = ", ".join(recipients)
-            msg["Date"] = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")
+            msg["Date"] = datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S +0000")
 
             # Attach text body
             msg.attach(MIMEText(text_body, "plain", "utf-8"))
@@ -313,7 +313,7 @@ This is an automated notification from Backup Management System.
 Backup Management System Alert Digest
 
 Total Alerts: {len(alerts)}
-Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}
+Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}
 
 ---
 
@@ -373,7 +373,7 @@ This is an automated notification from Backup Management System.
             <p>Total Alerts: {len(alerts)}</p>
         </div>
         <div class="content">
-            <p><strong>Generated:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            <p><strong>Generated:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}</p>
             <hr>
             {alert_items}
         </div>

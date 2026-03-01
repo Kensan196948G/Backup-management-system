@@ -2,10 +2,12 @@
 Backup Jobs Management API
 CRUD operations for backup jobs
 """
+
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
+from flask_login import current_user
 from sqlalchemy import or_
 
 from app.api import api_bp
@@ -65,7 +67,7 @@ def validate_job_data(data, is_update=False):
 
     # Validate owner_id if provided
     if "owner_id" in data:
-        owner = User.query.get(data["owner_id"])
+        owner = db.session.get(User, data["owner_id"])
         if not owner:
             errors["owner_id"] = "Owner user not found"
 
@@ -153,12 +155,14 @@ def list_jobs():
                     "description": job.description,
                     "is_active": job.is_active,
                     "copies_count": job.copies.count(),
-                    "last_execution": {
-                        "date": last_execution.execution_date.isoformat() + "Z",
-                        "result": last_execution.execution_result,
-                    }
-                    if last_execution
-                    else None,
+                    "last_execution": (
+                        {
+                            "date": last_execution.execution_date.isoformat() + "Z",
+                            "result": last_execution.execution_result,
+                        }
+                        if last_execution
+                        else None
+                    ),
                     "compliance_status": compliance.overall_status if compliance else "unknown",
                     "created_at": job.created_at.isoformat() + "Z",
                     "updated_at": job.updated_at.isoformat() + "Z",
@@ -201,7 +205,7 @@ def get_job(job_id):
         404: Job not found
     """
     try:
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -253,29 +257,33 @@ def get_job(job_id):
                     "schedule_type": job.schedule_type,
                     "retention_days": job.retention_days,
                     "owner_id": job.owner_id,
-                    "owner": {
-                        "id": job.owner.id,
-                        "username": job.owner.username,
-                        "full_name": job.owner.full_name,
-                        "email": job.owner.email,
-                    }
-                    if job.owner
-                    else None,
+                    "owner": (
+                        {
+                            "id": job.owner.id,
+                            "username": job.owner.username,
+                            "full_name": job.owner.full_name,
+                            "email": job.owner.email,
+                        }
+                        if job.owner
+                        else None
+                    ),
                     "description": job.description,
                     "is_active": job.is_active,
                     "copies": copies,
                     "recent_executions": recent_executions,
-                    "compliance_status": {
-                        "status": compliance.overall_status,
-                        "check_date": compliance.check_date.isoformat() + "Z",
-                        "copies_count": compliance.copies_count,
-                        "media_types_count": compliance.media_types_count,
-                        "has_offsite": compliance.has_offsite,
-                        "has_offline": compliance.has_offline,
-                        "has_errors": compliance.has_errors,
-                    }
-                    if compliance
-                    else None,
+                    "compliance_status": (
+                        {
+                            "status": compliance.overall_status,
+                            "check_date": compliance.check_date.isoformat() + "Z",
+                            "copies_count": compliance.copies_count,
+                            "media_types_count": compliance.media_types_count,
+                            "has_offsite": compliance.has_offsite,
+                            "has_offline": compliance.has_offline,
+                            "has_errors": compliance.has_errors,
+                        }
+                        if compliance
+                        else None
+                    ),
                     "created_at": job.created_at.isoformat() + "Z",
                     "updated_at": job.updated_at.isoformat() + "Z",
                 }
@@ -329,7 +337,7 @@ def create_job():
             backup_tool=data["backup_tool"],
             schedule_type=data["schedule_type"],
             retention_days=data["retention_days"],
-            owner_id=data.get("owner_id"),
+            owner_id=data.get("owner_id") or current_user.id,
             description=data.get("description"),
             is_active=data.get("is_active", True),
         )
@@ -365,7 +373,7 @@ def update_job(job_id):
         404: Job not found
     """
     try:
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -398,7 +406,7 @@ def update_job(job_id):
         if "is_active" in data:
             job.is_active = bool(data["is_active"])
 
-        job.updated_at = datetime.utcnow()
+        job.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Backup job updated: {job.job_name} (ID: {job.id})")
@@ -426,7 +434,7 @@ def delete_job(job_id):
         404: Job not found
     """
     try:
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -472,7 +480,7 @@ def add_copy(job_id):
         404: Job not found
     """
     try:
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 

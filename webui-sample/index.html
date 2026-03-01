@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3-2-1-1-0 Backup Management WebUI Sample</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">32110</div>
+        <div>
+          <h1>Backup Console</h1>
+          <p>WebUI Sample</p>
+        </div>
+      </div>
+      <nav class="nav-list" aria-label="主要ナビゲーション">
+        <button class="nav-item active" data-view="dashboard">ダッシュボード</button>
+        <button class="nav-item" data-view="jobs">ジョブ管理</button>
+        <button class="nav-item" data-view="media">オフラインメディア</button>
+        <button class="nav-item" data-view="verification">検証テスト</button>
+        <button class="nav-item" data-view="reports">レポート</button>
+        <button class="nav-item" data-view="notifications">通知</button>
+        <button class="nav-item" data-view="monitoring">監視・性能</button>
+        <button class="nav-item" data-view="audit">監査ログ</button>
+        <button class="nav-item" data-view="api">APIリファレンス</button>
+      </nav>
+      <section class="sidebar-card">
+        <h2>運用モード</h2>
+        <label class="field-label" for="roleSelect">ロール</label>
+        <select id="roleSelect">
+          <option value="admin">admin</option>
+          <option value="operator" selected>operator</option>
+          <option value="auditor">auditor</option>
+          <option value="viewer">viewer</option>
+        </select>
+        <label class="toggle"><input type="checkbox" id="liveMode" checked><span>ライブ更新</span></label>
+      </section>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">3-2-1-1-0 Backup Management System</p>
+          <h2 id="viewTitle">ダッシュボード</h2>
+        </div>
+        <div class="topbar-actions">
+          <button id="simulateTick" class="btn btn-secondary">状態更新をシミュレート</button>
+          <button id="alertBell" class="btn btn-primary">未確認アラート <span id="alertBadge" class="badge">0</span></button>
+          <button id="loginToggle" class="btn btn-ghost">再ログイン表示</button>
+        </div>
+      </header>
+
+      <section id="loginPanel" class="login-panel hidden" aria-label="ログインパネル">
+        <div class="login-card">
+          <div>
+            <p class="eyebrow">FR-071 ログイン認証 / JWT</p>
+            <h3>ログイン (モック)</h3>
+            <p class="muted">5回失敗ロック / セッション / JWT フローの画面表現</p>
+          </div>
+          <form id="loginForm" class="grid-form">
+            <label>ユーザーID<input type="text" id="loginUser" value="operator01" required></label>
+            <label>パスワード<input type="password" id="loginPass" value="Test123!" required></label>
+            <label>認証方式
+              <select id="loginAuthMode">
+                <option value="local">ローカル認証</option>
+                <option value="api">APIログイン (JWT)</option>
+              </select>
+            </label>
+            <button class="btn btn-primary" type="submit">ログイン</button>
+          </form>
+          <pre id="tokenPreview" class="code-block"></pre>
+        </div>
+      </section>
+
+      <section class="views">
+        <div class="view active" id="view-dashboard">
+          <div class="metrics-grid" id="dashboardMetrics"></div>
+          <div class="chart-grid">
+            <article class="panel"><div class="panel-head"><h3>3-2-1-1-0 準拠状況</h3><span class="pill">FR-010 / FR-040</span></div><canvas id="complianceDonut" width="360" height="220"></canvas></article>
+            <article class="panel"><div class="panel-head"><h3>直近7日 成功率推移</h3><span class="pill">5分更新</span></div><canvas id="successLine" width="360" height="220"></canvas></article>
+            <article class="panel"><div class="panel-head"><h3>ストレージ使用率</h3><span class="pill">オン/オフサイト/オフライン</span></div><canvas id="storageBars" width="360" height="220"></canvas></article>
+          </div>
+          <div class="two-col">
+            <article class="panel">
+              <div class="panel-head"><h3>未確認アラート</h3><button id="bulkAckBtn" class="btn btn-secondary btn-sm">一括確認</button></div>
+              <div class="table-wrap">
+                <table class="data-table" id="alertsTable">
+                  <thead><tr><th>重要度</th><th>種別</th><th>ジョブ</th><th>発生時刻</th><th>操作</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><h3>次回実行予定ジョブ</h3><span class="pill">Scheduler</span></div>
+              <div class="table-wrap">
+                <table class="data-table" id="upcomingTable">
+                  <thead><tr><th>ジョブ名</th><th>種別</th><th>次回実行</th><th>担当</th><th>状態</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+          <article class="panel">
+            <div class="panel-head"><h3>最近の実行履歴</h3><span class="pill">Veeam / AOMEI / PowerShell</span></div>
+            <div class="table-wrap">
+              <table class="data-table" id="executionsTable">
+                <thead><tr><th>時刻</th><th>ジョブ</th><th>結果</th><th>サイズ</th><th>時間</th><th>ソース</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+
+        <div class="view" id="view-jobs">
+          <div class="toolbar">
+            <div class="toolbar-fields">
+              <input id="jobSearch" type="search" placeholder="検索（ジョブ名 / サーバー）">
+              <select id="jobTypeFilter"><option value="">種別: すべて</option><option value="system_image">system_image</option><option value="file">file</option><option value="database">database</option><option value="vm">vm</option></select>
+              <select id="jobStatusFilter"><option value="">状態: すべて</option><option value="active">active</option><option value="inactive">inactive</option></select>
+              <select id="jobComplianceFilter"><option value="">準拠: すべて</option><option value="compliant">compliant</option><option value="warning">warning</option><option value="non_compliant">non_compliant</option></select>
+            </div>
+            <div class="toolbar-actions">
+              <button id="openJobFormBtn" class="btn btn-primary">ジョブ作成</button>
+              <button id="runComplianceCheckAll" class="btn btn-secondary">全件準拠チェック</button>
+            </div>
+          </div>
+          <div class="split-layout">
+            <article class="panel">
+              <div class="panel-head"><h3>ジョブ一覧</h3><span id="jobsCount" class="pill"></span></div>
+              <div class="table-wrap">
+                <table class="data-table selectable" id="jobsTable">
+                  <thead><tr><th>ジョブ名</th><th>種別</th><th>ツール</th><th>スケジュール</th><th>担当</th><th>準拠</th><th>状態</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </article>
+            <aside class="panel detail-panel">
+              <div class="panel-head">
+                <h3>ジョブ詳細</h3>
+                <div class="toolbar-actions"><button id="toggleJobActiveBtn" class="btn btn-secondary btn-sm">有効/無効切替</button><button id="editJobBtn" class="btn btn-secondary btn-sm">編集</button></div>
+              </div>
+              <div id="jobDetailContent" class="detail-content"></div>
+            </aside>
+          </div>
+          <section class="panel form-panel hidden" id="jobFormPanel">
+            <div class="panel-head"><h3 id="jobFormTitle">ジョブ作成</h3><button id="closeJobFormBtn" class="btn btn-ghost btn-sm">閉じる</button></div>
+            <form id="jobForm" class="grid-form dense">
+              <label>ジョブ名<input name="job_name" required></label>
+              <label>ジョブ種別<select name="job_type" required><option value="system_image">system_image</option><option value="file">file</option><option value="database">database</option><option value="vm">vm</option></select></label>
+              <label>対象サーバー<input name="target_server" required></label>
+              <label>対象パス<input name="target_path"></label>
+              <label>バックアップツール<select name="backup_tool"><option value="veeam">Veeam</option><option value="wsb">WSB</option><option value="aomei">AOMEI</option><option value="robocopy">Robocopy</option><option value="custom">Custom</option></select></label>
+              <label>スケジュール<select name="schedule_type"><option value="daily">日次</option><option value="weekly">週次</option><option value="monthly">月次</option><option value="manual">手動</option></select></label>
+              <label>実行時刻<input type="time" name="run_time" value="02:00"></label>
+              <label>保持期間(日)<input type="number" name="retention_days" min="1" value="30"></label>
+              <label>担当者<input name="owner" value="operator01"></label>
+              <label class="wide">説明<textarea name="description" rows="2"></textarea></label>
+              <label class="toggle"><input type="checkbox" name="is_active" checked><span>有効</span></label>
+              <div class="wide form-actions"><button class="btn btn-primary" type="submit">保存</button><button class="btn btn-secondary" type="button" id="fillSampleJobBtn">サンプル入力</button></div>
+            </form>
+            <div class="helper-card"><h4>3-2-1-1-0 ヘルプ</h4><ul><li>コピー3つ以上</li><li>メディア種別2種類以上</li><li>オフサイト1つ以上</li><li>オフライン1つ以上</li><li>検証エラー0</li></ul></div>
+          </section>
+        </div>
+
+        <div class="view" id="view-media">
+          <div class="split-layout media-layout">
+            <div class="panel">
+              <div class="panel-head"><h3>オフラインメディア一覧</h3><button id="addMediaBtn" class="btn btn-primary btn-sm">メディア登録</button></div>
+              <div class="table-wrap">
+                <table class="data-table selectable" id="mediaTable">
+                  <thead><tr><th>Media ID</th><th>種別</th><th>容量</th><th>場所</th><th>状態</th><th>最終更新</th></tr></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <div class="sub-panels">
+                <section class="sub-panel"><h4>ローテーションスケジュール (FR-021)</h4><div id="rotationScheduleList" class="stack-list"></div></section>
+                <section class="sub-panel"><h4>貸出/返却イベント (FR-022)</h4><div id="lendingHistoryList" class="stack-list"></div></section>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>メディア登録フォーム (UI Components Guide反映)</h3><span class="pill">QR / 容量 / Location / Wizard / Preview</span></div>
+              <div class="media-form-layout">
+                <form id="mediaForm" class="grid-form dense media-form">
+                  <label>Media ID<input id="media_id" name="media_id" placeholder="LTO-123456" required></label>
+                  <label>ラベル名<input id="label_name" name="label_name" placeholder="営業部バックアップ用"></label>
+                  <label>メディア種別<select id="media_type" name="media_type" required><option value="">選択してください</option><option value="tape">テープ (LTO)</option><option value="disk">ディスク (HDD/SSD)</option><option value="optical">光学メディア</option><option value="cloud">クラウドストレージ</option><option value="external_hdd">外付けHDD</option><option value="usb">USB</option></select></label>
+                  <label>状態<select id="media_status" name="current_status"><option value="stored">保管中</option><option value="in_use">使用中</option><option value="borrowed">貸出中</option><option value="retired">退役</option></select></label>
+                  <div class="wide card-block">
+                    <h4>容量 (Capacity Calculator)</h4>
+                    <div class="capacity-controls"><input type="number" id="capacity_value" min="0" step="1" value="12"><select id="capacity_unit"><option value="tb">TB</option><option value="gb">GB</option></select><input type="range" id="capacity_slider" min="0" max="20480" step="100" value="12288"></div>
+                    <div class="capacity-bar"><div id="capacity_indicator" class="capacity-indicator"></div></div>
+                    <div class="scale-labels"><span>0 GB</span><span>10 TB</span><span>20 TB</span></div>
+                    <p id="capacitySummary" class="muted"></p>
+                  </div>
+                  <div class="wide card-block">
+                    <h4>保管場所 (Location Picker)</h4>
+                    <div class="location-row"><select id="building_select"><option value="">ビル</option></select><select id="floor_select" disabled><option value="">フロア</option></select><select id="rack_select" disabled><option value="">ラック</option></select></div>
+                    <label>ロケーション文字列<input id="location_text" name="storage_location" readonly placeholder="本社ビル-1F-R1"></label>
+                    <div id="rack_grid" class="rack-grid"></div>
+                  </div>
+                  <div class="wide type-sections">
+                    <div id="tape_fields" class="type-specific-fields"><h4>テープ設定</h4><div class="inline-fields"><label>Tape Type<select><option>LTO</option></select></label><label>LTO世代<select><option>LTO-8 (12TB/30TB)</option><option>LTO-9 (18TB/45TB)</option></select></label><label>Write Count<input type="number" min="0" value="0"></label><label>Compression<select><option>Hardware</option><option>Software</option></select></label></div></div>
+                    <div id="disk_fields" class="type-specific-fields"><h4>ディスク設定</h4><div class="inline-fields"><label>Interface<select><option>SAS</option><option>SATA</option><option>NVMe</option></select></label><label>RPM<select><option>7200</option><option>10000</option><option>SSD/N/A</option></select></label><label>Form Factor<select><option>3.5"</option><option>2.5"</option></select></label><label>RAID Support<select><option>Yes</option><option>No</option></select></label></div></div>
+                    <div id="optical_fields" class="type-specific-fields"><h4>光学メディア設定</h4><div class="inline-fields"><label>規格<select><option>Blu-ray</option><option>DVD</option></select></label><label>書込速度<select><option>4x</option><option>8x</option><option>16x</option></select></label></div></div>
+                    <div id="cloud_fields" class="type-specific-fields"><h4>クラウド設定</h4><div class="inline-fields"><label>Provider<select><option>AWS S3</option><option>Azure Blob</option><option>GCS</option></select></label><label>Storage Class<select><option>Glacier</option><option>Standard-IA</option><option>Cool</option></select></label><label>Region<input value="ap-northeast-1"></label><label>Bucket<input value="backup-storage-prod"></label></div></div>
+                  </div>
+                  <label>購入日<input type="date" id="mediaPurchaseDate"></label>
+                  <label>担当者<input id="mediaOwner" value="operator01"></label>
+                  <label class="wide">備考<textarea id="mediaNotes" rows="2"></textarea></label>
+                  <div class="wide form-actions"><button class="btn btn-primary" type="submit">メディア登録</button><button class="btn btn-secondary" type="button" id="borrowMediaBtn">貸出登録</button><button class="btn btn-secondary" type="button" id="returnMediaBtn">返却登録</button></div>
+                </form>
+                <aside class="preview-column">
+                  <section class="card-block sticky"><h4>QR Code Preview</h4><div id="qr-preview" class="qr-preview"></div><div class="qr-actions"><button id="download-qr" class="btn btn-secondary btn-sm" type="button">Download</button><button id="print-qr" class="btn btn-secondary btn-sm" type="button">Print</button></div></section>
+                  <section class="media-preview-card sticky">
+                    <h4>Media Label Preview</h4>
+                    <div class="preview-label"><div id="preview-qr-small" class="preview-qr-small"></div><div><p id="label-preview-id" class="preview-id">---</p><p id="label-preview-name" class="preview-name">ラベル名</p><p id="label-preview-type" class="preview-line">種別</p><p id="label-preview-capacity" class="preview-line">容量</p></div></div>
+                    <div class="preview-footer"><span id="label-preview-location">場所未設定</span><span id="label-preview-date"></span></div>
+                  </section>
+                </aside>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="view" id="view-verification">
+          <div class="two-col">
+            <article class="panel">
+              <div class="panel-head"><h3>検証テスト履歴 (FR-030)</h3><button id="addVerificationBtn" class="btn btn-primary btn-sm">テスト記録</button></div>
+              <div class="table-wrap"><table class="data-table" id="verificationTable"><thead><tr><th>ジョブ</th><th>種別</th><th>結果</th><th>実施日</th><th>実施者</th><th>所要時間</th></tr></thead><tbody></tbody></table></div>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><h3>検証スケジュール (FR-031)</h3><button id="createScheduleBtn" class="btn btn-secondary btn-sm">スケジュール追加</button></div>
+              <div class="table-wrap"><table class="data-table" id="verificationScheduleTable"><thead><tr><th>ジョブ</th><th>頻度</th><th>次回予定</th><th>担当</th><th>状態</th></tr></thead><tbody></tbody></table></div>
+              <div class="helper-card"><h4>検証エラー追跡 (FR-032)</h4><div id="verificationIssues" class="stack-list"></div></div>
+            </article>
+          </div>
+        </div>
+
+        <div class="view" id="view-reports">
+          <div class="split-layout">
+            <article class="panel">
+              <div class="panel-head"><h3>レポート生成</h3><span class="pill">HTML / PDF / CSV / JSON</span></div>
+              <form id="reportForm" class="grid-form dense">
+                <label>レポート種別<select name="report_type"><option value="daily">daily</option><option value="weekly">weekly</option><option value="monthly">monthly</option><option value="compliance" selected>compliance</option><option value="audit">audit</option><option value="operational">operational</option></select></label>
+                <label>開始日<input type="date" name="date_from" required></label>
+                <label>終了日<input type="date" name="date_to" required></label>
+                <label>形式<select name="file_format"><option value="pdf">PDF</option><option value="html">HTML</option><option value="csv">CSV</option><option value="json">JSON</option></select></label>
+                <label class="toggle"><input type="checkbox" name="include_charts" checked><span>グラフを含める</span></label>
+                <label class="toggle"><input type="checkbox" name="include_details" checked><span>詳細を含める</span></label>
+                <div class="wide form-actions"><button class="btn btn-primary" type="submit">レポート生成</button><button class="btn btn-secondary" type="button" id="generateDailyReportBtn">日次サマリー即時生成</button></div>
+              </form>
+              <div class="sub-panels">
+                <section class="sub-panel"><h4>レポートタイプ (docs/PDFガイド反映)</h4><ul class="feature-list"><li>daily / weekly / monthly</li><li>compliance (3-2-1-1-0)</li><li>audit (ISO 27001 / 19650)</li><li>operational</li></ul></section>
+                <section class="sub-panel"><h4>PDF生成 / 配信</h4><ul class="feature-list"><li>WeasyPrint想定</li><li>メール配信</li><li>ダウンロード</li><li>スケジュール生成</li></ul></section>
+              </div>
+            </article>
+            <article class="panel detail-panel">
+              <div class="panel-head"><h3>生成済みレポート一覧</h3><span class="pill" id="reportCountPill"></span></div>
+              <div class="table-wrap"><table class="data-table selectable" id="reportsTable"><thead><tr><th>ID</th><th>種別</th><th>期間</th><th>形式</th><th>ステータス</th><th>作成者</th></tr></thead><tbody></tbody></table></div>
+              <div id="reportPreview" class="detail-content"></div>
+            </article>
+          </div>
+        </div>
+
+        <div class="view" id="view-notifications">
+          <div class="two-col">
+            <article class="panel">
+              <div class="panel-head"><h3>マルチチャネル通知オーケストレーター</h3><span class="pill">Dashboard / Email / Teams</span></div>
+              <div id="channelHealthCards" class="metrics-grid compact"></div>
+              <form id="notificationTestForm" class="grid-form dense">
+                <label>タイトル<input name="title" value="Backup Failure Detected"></label>
+                <label>重要度<select name="severity"><option value="critical">critical</option><option value="error">error</option><option value="warning">warning</option><option value="info">info</option></select></label>
+                <label class="wide">メッセージ<textarea name="message" rows="2">Daily SQL Backup failed due to disk full. Recommended action: cleanup repository and retry.</textarea></label>
+                <label class="toggle"><input type="checkbox" name="useEmail" checked><span>Email</span></label>
+                <label class="toggle"><input type="checkbox" name="useTeams" checked><span>Teams</span></label>
+                <label class="toggle"><input type="checkbox" name="useDashboard" checked><span>Dashboard</span></label>
+                <div class="wide form-actions"><button class="btn btn-primary" type="submit">通知送信テスト</button><button class="btn btn-secondary" type="button" id="testAllChannelsBtn">全チャネルテスト</button></div>
+              </form>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><h3>通知設定と履歴</h3><span class="pill">Email/Teams docs反映</span></div>
+              <div class="sub-panels">
+                <section class="sub-panel"><h4>Email設定</h4><ul class="feature-list"><li>SMTP / TLS / Sender</li><li>レート制限: 10通/受信者/時</li><li>リトライ送信</li><li>日次レポート配信</li></ul></section>
+                <section class="sub-panel"><h4>Teams設定</h4><ul class="feature-list"><li>Incoming Webhook</li><li>Adaptive Card 1.5</li><li>Alert/Backup/Daily/Weekly カード</li><li>指数バックオフ</li></ul></section>
+              </div>
+              <div id="notificationHistory" class="stack-list"></div>
+            </article>
+          </div>
+        </div>
+
+        <div class="view" id="view-monitoring">
+          <div class="metrics-grid" id="performanceMetrics"></div>
+          <div class="two-col">
+            <article class="panel">
+              <div class="panel-head"><h3>API性能 (Phase 10)</h3><span class="pill">p95 &lt; 200ms</span></div>
+              <div class="table-wrap"><table class="data-table" id="performanceTable"><thead><tr><th>Endpoint</th><th>p50</th><th>p95</th><th>p99</th><th>RPS</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+            </article>
+            <article class="panel">
+              <div class="panel-head"><h3>エラーハンドリング / 再試行統計</h3><span class="pill">PowerShell エラー分類</span></div>
+              <div id="errorStatsList" class="stack-list"></div>
+              <pre id="errorContextPreview" class="code-block"></pre>
+            </article>
+          </div>
+        </div>
+
+        <div class="view" id="view-audit">
+          <article class="panel">
+            <div class="panel-head">
+              <h3>監査ログ (FR-080)</h3>
+              <div class="toolbar-fields"><input type="search" id="auditSearch" placeholder="user / action / resource"><select id="auditResultFilter"><option value="">結果: すべて</option><option value="success">success</option><option value="failed">failed</option></select></div>
+            </div>
+            <div class="table-wrap"><table class="data-table" id="auditTable"><thead><tr><th>時刻</th><th>user</th><th>action</th><th>resource</th><th>IP</th><th>result</th><th>details</th></tr></thead><tbody></tbody></table></div>
+          </article>
+        </div>
+
+        <div class="view" id="view-api">
+          <div class="two-col">
+            <article class="panel"><div class="panel-head"><h3>主要API (docs抽出ベース)</h3><span class="pill">/api/v1</span></div><div id="apiEndpointList" class="stack-list"></div></article>
+            <article class="panel">
+              <div class="panel-head"><h3>リクエスト/レスポンス例</h3><button id="cycleApiExampleBtn" class="btn btn-secondary btn-sm">次の例</button></div>
+              <pre id="apiExampleViewer" class="code-block code-large"></pre>
+              <div class="sub-panels">
+                <section class="sub-panel"><h4>標準エラーフォーマット</h4><pre id="apiErrorViewer" class="code-block"></pre></section>
+                <section class="sub-panel"><h4>認証/JWT</h4><pre id="authFlowViewer" class="code-block"></pre></section>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toastRegion" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

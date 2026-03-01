@@ -13,6 +13,7 @@ Authentication:
 - All POST endpoints require API key authentication (X-API-Key header)
 - GET endpoints require JWT authentication
 """
+
 import logging
 from datetime import datetime
 from functools import wraps

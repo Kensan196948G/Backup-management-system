@@ -1,0 +1,178 @@
+# PostgreSQL 16 最適化設定
+# Phase 13: パフォーマンス最適化
+# システム構成: RAM 7.7GB, SSD
+#
+# 適用方法:
+# 1. このファイルの内容を /etc/postgresql/16/main/postgresql.conf にマージ
+# 2. sudo systemctl restart postgresql
+#
+# または:
+# sudo cp /etc/postgresql/16/main/postgresql.conf /etc/postgresql/16/main/postgresql.conf.backup
+# sudo bash -c "cat deployment/postgresql/postgresql.conf.optimized >> /etc/postgresql/16/main/postgresql.conf"
+
+# ============================================================
+# 接続設定
+# ============================================================
+listen_addresses = 'localhost'
+port = 5434
+max_connections = 100
+superuser_reserved_connections = 3
+
+# ============================================================
+# メモリ設定（RAM 7.7GB基準）
+# ============================================================
+
+# 共有メモリ（RAM の 25% = 約2GB）
+shared_buffers = 2GB
+
+# キャッシュサイズ（RAM の 75% = 約6GB）
+effective_cache_size = 6GB
+
+# ワークメモリ（複雑なソート・ハッシュ用）
+# max_connections * work_mem が shared_buffers を超えないように
+work_mem = 16MB
+
+# メンテナンス用メモリ（VACUUM, CREATE INDEX用）
+maintenance_work_mem = 512MB
+
+# ============================================================
+# WAL（Write-Ahead Logging）設定
+# ============================================================
+
+# WALバッファ
+wal_buffers = 16MB
+
+# チェックポイント
+checkpoint_completion_target = 0.9
+min_wal_size = 1GB
+max_wal_size = 4GB
+
+# WALアーカイブ（PITR用）
+wal_level = replica
+archive_mode = on
+archive_command = 'test ! -f /mnt/backups/postgres/wal_archive/%f && cp %p /mnt/backups/postgres/wal_archive/%f'
+archive_timeout = 300  # 5分
+
+# レプリケーション設定
+max_wal_senders = 3
+wal_keep_size = 1GB
+
+# ============================================================
+# クエリプランナー設定（SSD最適化）
+# ============================================================
+
+# SSD使用時はrandom_page_costを下げる
+random_page_cost = 1.1  # デフォルト4.0（HDD向け）
+
+# SSD使用時はI/O並列度を上げる
+effective_io_concurrency = 200  # デフォルト1
+
+# ============================================================
+# 並列クエリ設定
+# ============================================================
+
+max_parallel_workers_per_gather = 2
+max_parallel_workers = 4
+max_worker_processes = 4
+max_parallel_maintenance_workers = 2
+
+# ============================================================
+# ログ設定
+# ============================================================
+
+# ログ記録
+logging_collector = on
+log_directory = 'log'
+log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+log_file_mode = 0600
+log_rotation_age = 1d
+log_rotation_size = 100MB
+
+# ログ内容
+log_min_duration_statement = 1000  # 1秒以上のクエリをログ
+log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+log_timezone = 'Asia/Tokyo'
+
+# ログレベル
+log_connections = on
+log_disconnections = on
+log_duration = off
+log_statement = 'ddl'  # DDL（CREATE, ALTER, DROP）のみ
+
+# エラーログ
+log_lock_waits = on
+log_temp_files = 0  # 一時ファイル使用をログ
+deadlock_timeout = 1s
+
+# ============================================================
+# 統計情報
+# ============================================================
+
+# pg_stat_statements
+shared_preload_libraries = 'pg_stat_statements'
+pg_stat_statements.max = 10000
+pg_stat_statements.track = all
+pg_stat_statements.track_utility = on
+
+# 統計収集
+track_activities = on
+track_counts = on
+track_io_timing = on
+track_functions = all
+
+# ============================================================
+# オートバキューム設定
+# ============================================================
+
+autovacuum = on
+autovacuum_max_workers = 3
+autovacuum_naptime = 1min
+autovacuum_vacuum_threshold = 50
+autovacuum_analyze_threshold = 50
+autovacuum_vacuum_scale_factor = 0.1
+autovacuum_analyze_scale_factor = 0.05
+
+# ============================================================
+# ロック設定
+# ============================================================
+
+deadlock_timeout = 1s
+lock_timeout = 0  # 無制限（アプリ側で制御）
+statement_timeout = 0  # 無制限（アプリ側で制御）
+
+# ============================================================
+# その他のパフォーマンス設定
+# ============================================================
+
+# プランナー
+default_statistics_target = 100
+
+# コスト設定
+seq_page_cost = 1.0
+cpu_tuple_cost = 0.01
+cpu_index_tuple_cost = 0.005
+cpu_operator_cost = 0.0025
+
+# ============================================================
+# セキュリティ設定
+# ============================================================
+
+ssl = off  # ローカル接続のみの場合
+password_encryption = scrypt
+
+# ============================================================
+# ロケール設定
+# ============================================================
+
+lc_messages = 'ja_JP.UTF-8'
+lc_monetary = 'ja_JP.UTF-8'
+lc_numeric = 'ja_JP.UTF-8'
+lc_time = 'ja_JP.UTF-8'
+timezone = 'Asia/Tokyo'
+
+# ============================================================
+# エラー報告
+# ============================================================
+
+log_min_messages = warning
+log_min_error_statement = error

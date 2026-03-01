@@ -2,8 +2,9 @@
 Offline Media Management API
 CRUD operations for offline media (tapes, external HDDs, USB drives)
 """
+
 import logging
-from datetime import datetime
+from datetime import date, datetime, timezone
 
 from flask import jsonify, request
 from flask_login import current_user
@@ -11,7 +12,7 @@ from flask_login import current_user
 from app.api import api_bp
 from app.api.errors import error_response, validation_error_response
 from app.auth.decorators import api_token_required, role_required
-from app.models import MediaLending, OfflineMedia, db
+from app.models import MediaLending, MediaRotationSchedule, OfflineMedia, User, db
 
 logger = logging.getLogger(__name__)
 
@@ -165,7 +166,7 @@ def get_media(media_id):
         404: Media not found
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 
@@ -224,9 +225,11 @@ def get_media(media_id):
                     "storage_location": media.storage_location,
                     "current_status": media.current_status,
                     "owner_id": media.owner_id,
-                    "owner": {"id": media.owner.id, "username": media.owner.username, "full_name": media.owner.full_name}
-                    if media.owner
-                    else None,
+                    "owner": (
+                        {"id": media.owner.id, "username": media.owner.username, "full_name": media.owner.full_name}
+                        if media.owner
+                        else None
+                    ),
                     "qr_code": media.qr_code,
                     "notes": media.notes,
                     "backup_copies": copies,
@@ -335,7 +338,7 @@ def update_media(media_id):
         404: Media not found
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 
@@ -367,7 +370,7 @@ def update_media(media_id):
         if "notes" in data:
             media.notes = data["notes"]
 
-        media.updated_at = datetime.utcnow()
+        media.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Offline media updated: {media.media_id} (ID: {media.id})")
@@ -401,7 +404,7 @@ def delete_media(media_id):
         409: Media is in use (has active backups)
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 
@@ -454,7 +457,7 @@ def borrow_media(media_id):
         409: Media already borrowed
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 
@@ -493,7 +496,7 @@ def borrow_media(media_id):
             offline_media_id=media_id,
             borrower_id=borrower_id,
             borrow_purpose=data.get("borrow_purpose"),
-            borrow_date=datetime.utcnow(),
+            borrow_date=datetime.now(timezone.utc),
             expected_return=expected_return,
         )
 
@@ -534,7 +537,7 @@ def return_media(media_id):
         404: Media not found or not borrowed
     """
     try:
-        media = OfflineMedia.query.get(media_id)
+        media = db.session.get(OfflineMedia, media_id)
         if not media:
             return error_response(404, "Offline media not found", "MEDIA_NOT_FOUND")
 
@@ -546,7 +549,7 @@ def return_media(media_id):
         data = request.get_json() or {}
 
         # Update lending record
-        active_lending.actual_return = datetime.utcnow()
+        active_lending.actual_return = datetime.now(timezone.utc)
         active_lending.return_condition = data.get("return_condition", "normal")
 
         if "notes" in data:

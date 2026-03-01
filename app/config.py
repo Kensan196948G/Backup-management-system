@@ -2,6 +2,7 @@
 Configuration module for Backup Management System
 Supports cross-platform (Linux development / Windows production)
 """
+
 import os
 from datetime import timedelta
 from pathlib import Path
@@ -92,6 +93,13 @@ class Config:
     RATELIMIT_DEFAULT = "1000 per hour"
     RATELIMIT_STORAGE_URL = "memory://"
 
+    # Prometheus Metrics (Phase 17)
+    PROMETHEUS_ENABLED = os.environ.get("PROMETHEUS_ENABLED", "false").lower() == "true"
+
+    # Celery Configuration (Phase 11)
+    CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL") or "redis://localhost:6379/0"
+    CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND") or "redis://localhost:6379/1"
+
     # Cross-platform compatibility
     PLATFORM = os.name  # 'nt' for Windows, 'posix' for Linux/Unix
 
@@ -126,9 +134,7 @@ class ProductionConfig(Config):
     def __init__(self):
         """Validate production configuration on instantiation"""
         if os.environ.get("FLASK_ENV") == "production" and not os.environ.get("SECRET_KEY"):
-            import warnings
-
-            warnings.warn("SECRET_KEY環境変数が設定されていません。本番環境では必ず設定してください。", RuntimeWarning)
+            raise RuntimeError("SECRET_KEY環境変数が設定されていません。本番環境では必ず設定してください。")
 
 
 class TestingConfig(Config):
@@ -145,6 +151,13 @@ class TestingConfig(Config):
 
     # Fast password hashing for tests
     BCRYPT_LOG_ROUNDS = 4
+
+    # Disable rate limiting in tests
+    RATELIMIT_ENABLED = False
+
+    # Security headers enabled in tests for header tests
+    ENABLE_HSTS = False  # HSTS disabled in test (not HTTPS)
+    ENABLE_CSP = True
 
 
 # Configuration dictionary

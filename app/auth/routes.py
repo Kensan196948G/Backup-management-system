@@ -2,7 +2,8 @@
 Authentication Routes
 Login, logout, password management, and user profile routes
 """
-from datetime import datetime, timedelta
+
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from flask import (
@@ -105,14 +106,14 @@ def login():
         if not user.check_password(password):
             # Failed login attempt
             user.failed_login_attempts += 1
-            user.last_failed_login = datetime.utcnow()
+            user.last_failed_login = datetime.now(timezone.utc)
 
             # Lock account if too many failed attempts
             max_attempts = current_app.config.get("LOGIN_ATTEMPT_LIMIT", 5)
             lockout_duration = current_app.config.get("ACCOUNT_LOCKOUT_DURATION", 600)
 
             if user.failed_login_attempts >= max_attempts:
-                user.account_locked_until = datetime.utcnow() + timedelta(seconds=lockout_duration)
+                user.account_locked_until = datetime.now(timezone.utc) + timedelta(seconds=lockout_duration)
                 db.session.commit()
                 flash(f"Too many failed login attempts. Account locked for {lockout_duration // 60} minutes.", "danger")
                 log_audit("login", action_result="failed", details=f"Account locked after {max_attempts} attempts: {username}")
@@ -129,7 +130,7 @@ def login():
         user.failed_login_attempts = 0
         user.last_failed_login = None
         user.account_locked_until = None
-        user.last_login = datetime.utcnow()
+        user.last_login = datetime.now(timezone.utc)
         db.session.commit()
 
         # Login user
@@ -194,7 +195,7 @@ def change_password():
 
         # Update password
         current_user.set_password(new_password)
-        current_user.updated_at = datetime.utcnow()
+        current_user.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         # Log password change
@@ -219,7 +220,7 @@ def profile():
         current_user.email = form.email.data
         current_user.full_name = form.full_name.data
         current_user.department = form.department.data
-        current_user.updated_at = datetime.utcnow()
+        current_user.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         # Log profile update
@@ -287,7 +288,7 @@ def reset_password(token):
         flash("Invalid or expired reset token", "danger")
         return redirect(url_for("auth.login"))
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if user is None:
         flash("User not found", "danger")
         return redirect(url_for("auth.login"))
@@ -297,7 +298,7 @@ def reset_password(token):
     if form.validate_on_submit():
         # Set new password
         user.set_password(form.password.data)
-        user.updated_at = datetime.utcnow()
+        user.updated_at = datetime.now(timezone.utc)
 
         # Reset failed login attempts
         user.failed_login_attempts = 0
@@ -353,7 +354,7 @@ def api_login():
     refresh_token = generate_refresh_token(user)
 
     # Update last login
-    user.last_login = datetime.utcnow()
+    user.last_login = datetime.now(timezone.utc)
     user.failed_login_attempts = 0
     db.session.commit()
 
@@ -365,7 +366,7 @@ def api_login():
             {
                 "access_token": access_token,
                 "refresh_token": refresh_token,
-                "token_type": "Bearer",
+                "token_type": "Bearer",  # nosec B105
                 "expires_in": int(current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").total_seconds()),
                 "user": {
                     "id": user.id,
@@ -398,7 +399,7 @@ def api_refresh_token():
     if user_id is None:
         return jsonify({"error": {"code": "INVALID_TOKEN", "message": "Invalid or expired refresh token"}}), 401
 
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if user is None or not user.is_active:
         return jsonify({"error": {"code": "USER_NOT_FOUND", "message": "User not found or inactive"}}), 401
 
@@ -409,7 +410,7 @@ def api_refresh_token():
         jsonify(
             {
                 "access_token": access_token,
-                "token_type": "Bearer",
+                "token_type": "Bearer",  # nosec B105
                 "expires_in": int(current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").total_seconds()),
             }
         ),
@@ -430,8 +431,8 @@ def generate_access_token(user):
         "user_id": user.id,
         "username": user.username,
         "role": user.role,
-        "exp": datetime.utcnow() + expires_delta,
-        "iat": datetime.utcnow(),
+        "exp": datetime.now(timezone.utc) + expires_delta,
+        "iat": datetime.now(timezone.utc),
         "type": "access",
     }
 
@@ -446,7 +447,7 @@ def generate_refresh_token(user):
     if isinstance(expires_delta, int):
         expires_delta = timedelta(seconds=expires_delta)
 
-    payload = {"user_id": user.id, "exp": datetime.utcnow() + expires_delta, "iat": datetime.utcnow(), "type": "refresh"}
+    payload = {"user_id": user.id, "exp": datetime.now(timezone.utc) + expires_delta, "iat": datetime.now(timezone.utc), "type": "refresh"}
 
     token = jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm="HS256")
 
@@ -470,7 +471,7 @@ def verify_refresh_token(token):
 
 def generate_reset_token(user):
     """Generate password reset token"""
-    payload = {"user_id": user.id, "exp": datetime.utcnow() + timedelta(hours=1), "iat": datetime.utcnow(), "type": "reset"}
+    payload = {"user_id": user.id, "exp": datetime.now(timezone.utc) + timedelta(hours=1), "iat": datetime.now(timezone.utc), "type": "reset"}
 
     token = jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
 

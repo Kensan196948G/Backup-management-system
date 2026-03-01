@@ -5,11 +5,12 @@ Handles schedule CRUD operations and storage provider configuration
 
 from datetime import datetime, timedelta
 
-from flask import Blueprint, flash, jsonify, render_template, request
-from flask_login import login_required
+from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask_login import current_user, login_required
+from sqlalchemy import func
 
-from app.models import BackupJob, db
-from app.utils.decorators import role_required
+from app.models import BackupJob, SystemSetting, db
+from app.auth.decorators import role_required
 
 bp = Blueprint("backup_schedule", __name__, url_prefix="/backup")
 
@@ -21,7 +22,7 @@ bp = Blueprint("backup_schedule", __name__, url_prefix="/backup")
 
 @bp.route("/schedule")
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def schedule_list():
     """Display backup schedule management page"""
     # Fetch all backup jobs with schedule information
@@ -58,7 +59,7 @@ def schedule_list():
 
 @bp.route("/storage-config")
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def storage_config():
     """Display storage provider configuration page"""
     # Mock storage provider data (in production, this would come from a StorageProvider model)
@@ -170,7 +171,7 @@ def test_cron_expression():
 
 @bp.route("/api/schedule/create", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def create_schedule():
     """Create new backup schedule"""
     try:
@@ -178,15 +179,15 @@ def create_schedule():
 
         job_id = data.get("job_id")
         cron_expression = data.get("cron_expression")
-        data.get("priority", "medium")
-        data.get("description", "")
-        data.get("is_active", True)
+        priority = data.get("priority", "medium")
+        description = data.get("description", "")
+        is_active = data.get("is_active", True)
 
         if not job_id or not cron_expression:
             return jsonify({"success": False, "message": "Job ID and cron expression are required"}), 400
 
         # Verify job exists
-        job = BackupJob.query.get(job_id)
+        job = db.session.get(BackupJob, job_id)
         if not job:
             return jsonify({"success": False, "message": "Backup job not found"}), 404
 
@@ -217,7 +218,7 @@ def get_schedule(schedule_id):
     """Get schedule details"""
     try:
         # In production, fetch from Schedule model
-        job = BackupJob.query.get(schedule_id)
+        job = db.session.get(BackupJob, schedule_id)
         if not job:
             return jsonify({"success": False, "message": "Schedule not found"}), 404
 
@@ -239,7 +240,7 @@ def get_schedule(schedule_id):
 
 @bp.route("/api/schedule/<int:schedule_id>", methods=["DELETE"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def delete_schedule(schedule_id):
     """Delete backup schedule"""
     try:
@@ -261,7 +262,7 @@ def delete_schedule(schedule_id):
 
 @bp.route("/api/schedule/<int:schedule_id>/toggle", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def toggle_schedule(schedule_id):
     """Toggle schedule active status"""
     try:
@@ -288,12 +289,12 @@ def toggle_schedule(schedule_id):
 
 @bp.route("/api/schedule/<int:schedule_id>/test", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def test_schedule(schedule_id):
     """Test schedule execution"""
     try:
         # In production, trigger test execution
-        job = BackupJob.query.get(schedule_id)
+        job = db.session.get(BackupJob, schedule_id)
         if not job:
             return jsonify({"success": False, "message": "Schedule not found"}), 404
 
@@ -313,7 +314,7 @@ def test_schedule(schedule_id):
 
 @bp.route("/api/storage/create", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def create_storage_provider():
     """Create new storage provider"""
     try:
@@ -359,7 +360,7 @@ def get_storage_provider(storage_id):
 
 @bp.route("/api/storage/<int:storage_id>", methods=["DELETE"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def delete_storage_provider(storage_id):
     """Delete storage provider"""
     try:
@@ -374,7 +375,7 @@ def delete_storage_provider(storage_id):
 
 @bp.route("/api/storage/<int:storage_id>/toggle", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def toggle_storage_provider(storage_id):
     """Toggle storage provider active status"""
     try:
@@ -395,7 +396,7 @@ def toggle_storage_provider(storage_id):
 
 @bp.route("/api/storage/<int:storage_id>/test", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def test_storage_connection(storage_id):
     """Test storage provider connection"""
     try:
@@ -413,7 +414,7 @@ def test_storage_connection(storage_id):
 
 @bp.route("/api/storage/test-connection", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def test_new_storage_connection():
     """Test connection for new storage provider before saving"""
     try:

@@ -4,9 +4,10 @@ Pytest configuration and fixtures for backup management system tests.
 This module provides shared fixtures for unit and integration tests,
 including database setup, test client, and common test data.
 """
+
 import os
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from werkzeug.security import generate_password_hash
@@ -272,7 +273,7 @@ def backup_copies(app, backup_job):
                 is_encrypted=True,
                 is_compressed=True,
                 last_backup_size=1024 * 1024 * 1024,  # 1GB
-                last_backup_date=datetime.utcnow(),
+                last_backup_date=datetime.now(timezone.utc),
                 status="success",
             ),
             # Copy 2: Secondary storage, onsite
@@ -284,7 +285,7 @@ def backup_copies(app, backup_job):
                 is_encrypted=True,
                 is_compressed=True,
                 last_backup_size=1024 * 1024 * 1024,  # 1GB
-                last_backup_date=datetime.utcnow(),
+                last_backup_date=datetime.now(timezone.utc),
                 status="success",
             ),
             # Copy 3: Cloud storage, offsite
@@ -296,7 +297,7 @@ def backup_copies(app, backup_job):
                 is_encrypted=True,
                 is_compressed=True,
                 last_backup_size=1024 * 1024 * 1024,  # 1GB
-                last_backup_date=datetime.utcnow(),
+                last_backup_date=datetime.now(timezone.utc),
                 status="success",
             ),
             # Copy 4: Tape storage, offline
@@ -308,7 +309,7 @@ def backup_copies(app, backup_job):
                 is_encrypted=True,
                 is_compressed=True,
                 last_backup_size=1024 * 1024 * 1024,  # 1GB
-                last_backup_date=datetime.utcnow(),
+                last_backup_date=datetime.now(timezone.utc),
                 status="success",
             ),
         ]
@@ -336,7 +337,7 @@ def offline_media(app):
                 capacity_gb=2000,  # 2TB
                 storage_location="Vault A",
                 current_status=["available", "in_use", "stored"][i % 3],
-                purchase_date=(datetime.utcnow() - timedelta(days=365)).date(),
+                purchase_date=(datetime.now(timezone.utc) - timedelta(days=365)).date(),
             )
             for i in range(5)
         ]
@@ -365,7 +366,7 @@ def verification_tests(app, backup_job, admin_user):
             VerificationTest(
                 job_id=job.id,
                 test_type=["full_restore", "partial", "integrity"][i % 3],
-                test_date=datetime.utcnow(),
+                test_date=datetime.now(timezone.utc),
                 tester_id=user.id,
                 test_result=["success", "failed"][i % 2],
                 duration_seconds=300 + i * 60,
@@ -428,8 +429,8 @@ def reports(app, admin_user):
             Report(
                 report_type=["daily", "weekly", "monthly"][i % 3],
                 report_title=f"Test Report {i}",
-                date_from=(datetime.utcnow() - timedelta(days=i + 1)).date(),
-                date_to=(datetime.utcnow() - timedelta(days=i)).date(),
+                date_from=(datetime.now(timezone.utc) - timedelta(days=i + 1)).date(),
+                date_to=(datetime.now(timezone.utc) - timedelta(days=i)).date(),
                 file_format="pdf",
                 file_path=f"/reports/test_report_{i}.pdf",
                 generated_by=user.id,

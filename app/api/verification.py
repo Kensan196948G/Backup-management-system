@@ -2,8 +2,9 @@
 Verification Test Management API
 CRUD operations for verification tests and schedules
 """
+
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import jsonify, request
 from flask_login import current_user
@@ -200,7 +201,7 @@ def get_test(test_id):
         404: Test not found
     """
     try:
-        test = VerificationTest.query.get(test_id)
+        test = db.session.get(VerificationTest, test_id)
         if not test:
             return error_response(404, "Verification test not found", "TEST_NOT_FOUND")
 
@@ -209,20 +210,24 @@ def get_test(test_id):
                 {
                     "id": test.id,
                     "job_id": test.job_id,
-                    "job": {
-                        "id": test.job.id,
-                        "job_name": test.job.job_name,
-                        "job_type": test.job.job_type,
-                        "target_server": test.job.target_server,
-                    }
-                    if test.job
-                    else None,
+                    "job": (
+                        {
+                            "id": test.job.id,
+                            "job_name": test.job.job_name,
+                            "job_type": test.job.job_type,
+                            "target_server": test.job.target_server,
+                        }
+                        if test.job
+                        else None
+                    ),
                     "test_type": test.test_type,
                     "test_date": test.test_date.isoformat() + "Z",
                     "tester_id": test.tester_id,
-                    "tester": {"id": test.tester.id, "username": test.tester.username, "full_name": test.tester.full_name}
-                    if test.tester
-                    else None,
+                    "tester": (
+                        {"id": test.tester.id, "username": test.tester.username, "full_name": test.tester.full_name}
+                        if test.tester
+                        else None
+                    ),
                     "restore_target": test.restore_target,
                     "test_result": test.test_result,
                     "duration_seconds": test.duration_seconds,
@@ -272,7 +277,7 @@ def create_test():
             return validation_error_response(errors)
 
         # Validate job exists
-        job = BackupJob.query.get(data["job_id"])
+        job = db.session.get(BackupJob, data["job_id"])
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -282,7 +287,7 @@ def create_test():
             tester_id = current_user.id
 
         # Parse test_date
-        test_date = datetime.utcnow()
+        test_date = datetime.now(timezone.utc)
         if "test_date" in data:
             try:
                 test_date = datetime.fromisoformat(data["test_date"].replace("Z", "+00:00"))
@@ -360,7 +365,7 @@ def update_test(test_id):
         404: Test not found
     """
     try:
-        test = VerificationTest.query.get(test_id)
+        test = db.session.get(VerificationTest, test_id)
         if not test:
             return error_response(404, "Verification test not found", "TEST_NOT_FOUND")
 
@@ -385,7 +390,7 @@ def update_test(test_id):
         if "notes" in data:
             test.notes = data["notes"]
 
-        test.updated_at = datetime.utcnow()
+        test.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Verification test updated: test_id={test_id}")
@@ -430,7 +435,7 @@ def list_schedules():
             query = query.filter_by(test_frequency=request.args["test_frequency"])
 
         if "overdue" in request.args and request.args["overdue"].lower() == "true":
-            today = datetime.utcnow().date()
+            today = datetime.now(timezone.utc).date()
             query = query.filter(VerificationSchedule.next_test_date < today)
 
         # Execute paginated query
@@ -440,7 +445,7 @@ def list_schedules():
 
         # Format response
         schedules = []
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
 
         for schedule in pagination.items:
             is_overdue = schedule.next_test_date < today
@@ -514,7 +519,7 @@ def create_schedule():
             return validation_error_response(errors)
 
         # Validate job exists
-        job = BackupJob.query.get(data["job_id"])
+        job = db.session.get(BackupJob, data["job_id"])
         if not job:
             return error_response(404, "Backup job not found", "JOB_NOT_FOUND")
 
@@ -576,7 +581,7 @@ def update_schedule(schedule_id):
         404: Schedule not found
     """
     try:
-        schedule = VerificationSchedule.query.get(schedule_id)
+        schedule = db.session.get(VerificationSchedule, schedule_id)
         if not schedule:
             return error_response(404, "Verification schedule not found", "SCHEDULE_NOT_FOUND")
 
@@ -602,7 +607,7 @@ def update_schedule(schedule_id):
         if "is_active" in data:
             schedule.is_active = bool(data["is_active"])
 
-        schedule.updated_at = datetime.utcnow()
+        schedule.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Verification schedule updated: schedule_id={schedule_id}")
@@ -630,7 +635,7 @@ def delete_schedule(schedule_id):
         404: Schedule not found
     """
     try:
-        schedule = VerificationSchedule.query.get(schedule_id)
+        schedule = db.session.get(VerificationSchedule, schedule_id)
         if not schedule:
             return error_response(404, "Verification schedule not found", "SCHEDULE_NOT_FOUND")
 

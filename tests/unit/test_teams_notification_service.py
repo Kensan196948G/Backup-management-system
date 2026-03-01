@@ -3,6 +3,7 @@ Unit Tests for Microsoft Teams Notification Service
 
 Tests Teams webhook integration, Adaptive Card generation, and error handling.
 """
+
 import json
 from datetime import datetime
 from unittest.mock import MagicMock, Mock, patch

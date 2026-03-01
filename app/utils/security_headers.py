@@ -9,6 +9,7 @@ Implements security headers and Flask-Talisman integration:
 - Referrer-Policy
 - Permissions-Policy
 """
+
 import logging
 from typing import Dict
 

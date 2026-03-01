@@ -1,313 +1,130 @@
-# Claude Project Policy
+# CLAUDE.md - 3-2-1-1-0 Backup Management System
 
 ## プロジェクト概要
+企業向けバックアップ管理・監視システム（3-2-1-1-0ルール準拠）
+- **言語**: Python 3.11+ (現環境: 3.14.0)
+- **フレームワーク**: Flask 3.0+, SQLAlchemy 2.0
+- **DB**: SQLite（開発）/ PostgreSQL（本番）
+- **WSGI**: Waitress（本番）/ Flask内蔵（開発）
 
-バックアップ管理システムの開発におけるコード品質保証とセキュリティ強化を目的とした、自動レビュー・修復ポリシーです。
+## 開発環境セットアップ
 
----
+### 仮想環境
+```bash
+# 仮想環境作成（初回のみ）
+python -m venv venv
 
-## 包括レビュー基準
+# アクティベート（Linux/Mac）
+source venv/bin/activate
 
-すべてのコード変更は、以下の観点で**必ず網羅的にレビュー**されなければなりません。
+# アクティベート（Windows）
+venv\Scripts\activate
 
-### 1. バグ（Bug Detection）
-- ロジックエラー
-- Null参照/未定義変数
-- 例外処理の欠如
-- エッジケースの未考慮
-- タイプミス・命名エラー
-
-### 2. セキュリティ（Security）
-- SQLインジェクション
-- XSS脆弱性
-- CSRF対策の欠如
-- 機密情報のハードコード
-- 認証・認可の不備
-- 安全でない依存関係
-
-### 3. パフォーマンス（Performance）
-- N+1クエリ
-- 不要なループ処理
-- メモリリーク
-- 非効率なアルゴリズム
-- キャッシュの未活用
-
-### 4. 設計整合性（Design Consistency）
-- アーキテクチャパターンの違反
-- 責務分離の欠如
-- 密結合
-- 命名規則の不統一
-- DRY原則の違反
-
-### 5. 可読性（Readability）
-- コメント不足
-- 複雑すぎる条件分岐
-- マジックナンバー
-- 冗長なコード
-- 不明瞭な変数名
-
----
-
-## 自動修復ポリシー
-
-### ✅ 自動修復可能な項目
-
-以下の軽微な修正は**自動的に適用可能**とします。
-
-1. **コードフォーマット**
-   - インデント修正
-   - 空白・改行の統一
-   - import文の整理
-
-2. **命名規則**
-   - PEP 8違反の修正
-   - タイポ修正
-   - 命名規則の統一
-
-3. **簡単なバグ修正**
-   - 未使用変数の削除
-   - 明白なタイポ修正
-   - 簡単なロジックエラー
-
-4. **ドキュメント**
-   - docstringの追加
-   - コメントの追加・修正
-   - README更新
-
-5. **軽微なリファクタリング**
-   - 重複コードの統合
-   - 変数名の改善
-   - 短い関数の最適化
-
-### ❌ 自動修復禁止項目
-
-以下の変更は**人間の判断が必須**であり、自動修復を禁止します。
-
-1. **重大設計変更**
-   - アーキテクチャの変更
-   - データベーススキーマの変更
-   - APIインターフェースの変更
-
-2. **新機能追加**
-   - 要件にない機能の追加
-   - 新規ライブラリの導入
-
-3. **セキュリティ関連**
-   - 認証・認可ロジックの変更
-   - 暗号化方式の変更
-   - セキュリティポリシーの変更
-
-4. **破壊的変更**
-   - 既存APIの削除
-   - 後方互換性を損なう変更
-
----
-
-## 修復制御ルール
-
-### 停止条件
-
-以下のいずれかに該当する場合、**自動修復を停止**します。
-
-1. **修復回数上限**: 最大3回まで
-2. **同一エラー検知**: 同じエラーが2回連続で発生
-3. **差分変化なし**: 差分ハッシュが変化しない場合
-4. **重大度High残存**: High重大度の問題が残っている場合
-
-### 状態管理
-
-`state.json` を使用して以下を記録します。
-
-```json
-{
-  "repair_count": 0,
-  "last_hash": "",
-  "last_error": "",
-  "last_review_time": "",
-  "total_issues_found": 0,
-  "total_issues_fixed": 0
-}
+# 依存パッケージインストール
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
----
-
-## 重大度分類
-
-### 🔴 High（重大）
-- セキュリティ脆弱性
-- 重大なバグ
-- データ損失の可能性
-- システムダウンの危険性
-
-**対応**: 人間による即座の修正が必要
-
-### 🟡 Medium（中程度）
-- パフォーマンス問題
-- 設計の非整合性
-- 将来的なバグの可能性
-
-**対応**: 自動修復を試みる（慎重に）
-
-### 🟢 Low（軽微）
-- コードフォーマット
-- 命名規則違反
-- コメント不足
-
-**対応**: 自動修復を積極的に適用
-
----
-
-## 人間の最終判断
-
-以下の場面では**必ず人間が判断**します。
-
-### 修復前の確認
-- 修復計画の妥当性確認
-- 影響範囲の評価
-- リスク評価
-
-### 修復後の確認
-- 修復内容の要約確認
-- テスト結果の検証
-- 最終Commit前のレビュー
-
-### 特殊ケース
-- 重大度Highが残存する場合
-- 修復が3回失敗した場合
-- CI/CDが失敗した場合
-- マージ前の最終確認
-
----
-
-## レビュー実行タイミング
-
-### ローカル開発
-- コミット前（Stop hook）
-- プッシュ前（pre-push hook）
-
-### CI/CD
-- PR作成時
-- mainブランチへのpush時
-- 定期的なヘルスチェック
-
----
-
-## 出力形式
-
-### レビュー結果
-
-```markdown
-## 総合判定
-OK / NG
-
-## 🔴 重大度High
-1. [問題の説明]
-   - ファイル: path/to/file.py
-   - 行番号: 123
-   - 影響: [影響範囲]
-   - 推奨対応: [対応方法]
-
-## 🟡 重大度Medium
-[同様の形式]
-
-## 🟢 重大度Low
-[同様の形式]
-
-## 自動修復可能項目
-1. [修正内容]
-   - 重大度: Low/Medium
-   - 推定時間: X分
+### アプリケーション起動
+```bash
+# 開発サーバー起動
+python run.py --config development
+# URL: http://127.0.0.1:5000
+# 認証: admin / Admin123!
 ```
 
-### 修復結果
+## アーキテクチャ
 
-```markdown
-## 修正内容
-- [修正項目1]
-- [修正項目2]
-
-## 修正ファイル一覧
-- path/to/file1.py
-- path/to/file2.py
-
-## 修正理由
-- [理由1]
-- [理由2]
-
-## 影響確認
-- [x] テスト成功
-- [x] ビルド成功
-- [x] 既存機能に影響なし
+### ディレクトリ構造
+```
+app/
+  __init__.py     # アプリファクトリー
+  models.py       # 16データベースモデル
+  config.py       # 設定クラス（Dev/Prod/Test）
+  api/            # REST API v1（97エンドポイント）
+  auth/           # 認証・認可（RBAC）
+  core/           # バックアップエンジン・ルール検証
+  scheduler/      # APSchedulerベーススケジューラー
+  services/       # ビジネスロジック（9サービス）
+  storage/        # ストレージプロバイダー
+  verification/   # バックアップ検証
+  views/          # Flaskビューコントローラー
+  utils/          # キャッシュ・メトリクス・セキュリティ
+  templates/      # Jinja2テンプレート（42ファイル）
+  static/         # CSS/JS
 ```
 
----
+### 主要データモデル（16個）
+1. User / BackupJob / BackupCopy / BackupExecution
+2. OfflineMedia / MediaRotationSchedule / MediaLending
+3. VerificationTest / VerificationSchedule
+4. ComplianceStatus / Alert / AuditLog
+5. Report / SystemSetting / NotificationLog / APIKey
 
-## 無限ループ防止
+## カスタムコマンド
+- `/commit` - コミット＆プッシュ
+- `/pr` - プルリクエスト作成
+- `/commit-and-pr` - コミット・PR・マージ一括実行
+- `/code-review` - コードレビュー
 
-### 技術的保護
-1. **カウンター**: `state.json` で試行回数を記録
-2. **ハッシュ比較**: 差分が変化しているか確認
-3. **エラー追跡**: 同一エラーの再発を検知
-4. **タイムアウト**: 最大実行時間を設定
+## 開発フェーズ状況
 
-### 運用的保護
-1. **手動介入ポイント**: 明確な人間判断ポイント
-2. **通知**: 異常時の即座通知
-3. **ログ**: 詳細な実行ログの記録
-4. **ロールバック**: 失敗時の自動復旧
+| フェーズ | 内容 | 状態 |
+|---------|------|------|
+| Phase 1-4 | コア実装、DB、API、WebUI | ✅ 完了 |
+| Phase 5-7 | テスト品質、ルート統合、デプロイ | ✅ 完了 |
+| Phase 8-10 | 通知、テスト品質向上、本番最適化 | ✅ 完了（MVP 100%） |
+| Phase 11 | UIウィザード、モーダル、Celery | ✅ 完了 |
+| Phase 12 | PostgreSQL移行 | ✅ 完了（develop） |
+| Phase 13 | PostgreSQL最適化・監視 | ✅ 完了（develop） |
+| Phase 14 | 環境分離・クロスプラットフォーム | 🔄 PR #25 OPEN |
+| Phase 15 | 次フェーズ（要定義） | ⏳ 未着手 |
 
----
+## GitHub状態
 
-## CI/CD統合
+### 未クローズPR
+- **PR #25** (OPEN): Phase 14 - 環境分離とクロスプラットフォーム対応 (develop → main)
+- **PR #26** (DRAFT): 自己修復ループシステム (copilot/implement-self-healing-loop)
 
-### GitHub Actions連携
-- Workflowから自動実行
-- レビュー結果をPRコメントに投稿
-- 修復結果を自動commit
-- 失敗時はIssueを作成
+### 未解決Issue
+- **Issue #10, #11**: 自動検出バグ（2025-11-01）
 
-### ローカルCLI連携
-- Claude Codeのカスタムコマンドとして実行
-- Stop hookで自動起動
-- 対話的な確認プロセス
+## テスト実行
+```bash
+# 全テスト
+pytest tests/ -v
 
----
+# カバレッジ付き
+pytest tests/ --cov=app --cov-report=html
 
-## セキュリティ考慮事項
+# 特定テスト
+pytest tests/unit/ -v
+pytest tests/integration/ -v
 
-### 機密情報保護
-- API Keyの検出・除外
-- パスワードの検出・除外
-- トークンの検出・除外
-- 環境変数への移行推奨
+# リント
+flake8 app/ tests/
+black app/ tests/
+isort app/ tests/
+```
 
-### コード署名
-- Commit署名の要求
-- レビュー承認の記録
-- 変更履歴の追跡
+## 本番デプロイ
+- Windows: `scripts/powershell/install.ps1`
+- Linux: `deployment/linux/QUICKSTART.md`
+- HTTPS: ポート8443（自己署名SSL）
+- サービス: systemd（Linux）/ NSSM（Windows）
 
----
+## 統合バックアップツール
+- **Veeam**: `scripts/powershell/veeam_integration.ps1`
+- **Windows Server Backup**: `scripts/powershell/wsb_integration.ps1`
+- **AOMEI Backupper**: `scripts/powershell/aomei_integration.ps1`
 
-## ドキュメント要件
+## MCP設定（README参照）
+1. filesystem, github, sqlite, context7
+2. brave-search, serena, playwright, memory
+3. sequential-thinking（Phase 14追加）
 
-すべての自動修復は以下を記録します。
-
-1. **変更内容**: 何を変更したか
-2. **変更理由**: なぜ変更したか
-3. **影響範囲**: どこに影響するか
-4. **テスト結果**: 検証結果
-5. **レビュー結果**: レビューの判定
-
----
-
-## まとめ
-
-このポリシーに従うことで：
-
-- ✅ **品質保証**: 一貫したコード品質
-- ✅ **セキュリティ**: 脆弱性の早期発見
-- ✅ **効率化**: 軽微な修正の自動化
-- ✅ **安全性**: 無限ループの防止
-- ✅ **透明性**: すべての変更を記録
-
-**人間とAIの協調により、より高品質で安全なソフトウェア開発を実現します。**
+## 重要な技術的注意事項
+- `datetime.utcnow()` 使用箇所11件 → 将来的に`datetime.now(timezone.utc)`へ移行必要
+- Python 3.14.0環境 → pip直接インストール不可のためvenv経由を使用
+- テストカバレッジ: 42%（目標80%）
+- 239テストケース中176成功（90%成功率）

@@ -2,8 +2,9 @@
 Alerts Management API
 Retrieve and acknowledge alerts
 """
+
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 from flask_login import current_user
@@ -114,7 +115,7 @@ def get_alert(alert_id):
         404: Alert not found
     """
     try:
-        alert = Alert.query.get(alert_id)
+        alert = db.session.get(Alert, alert_id)
         if not alert:
             return error_response(404, "Alert not found", "ALERT_NOT_FOUND")
 
@@ -125,25 +126,29 @@ def get_alert(alert_id):
                     "alert_type": alert.alert_type,
                     "severity": alert.severity,
                     "job_id": alert.job_id,
-                    "job": {
-                        "id": alert.job.id,
-                        "job_name": alert.job.job_name,
-                        "job_type": alert.job.job_type,
-                        "target_server": alert.job.target_server,
-                    }
-                    if alert.job
-                    else None,
+                    "job": (
+                        {
+                            "id": alert.job.id,
+                            "job_name": alert.job.job_name,
+                            "job_type": alert.job.job_type,
+                            "target_server": alert.job.target_server,
+                        }
+                        if alert.job
+                        else None
+                    ),
                     "title": alert.title,
                     "message": alert.message,
                     "is_acknowledged": alert.is_acknowledged,
                     "acknowledged_by": alert.acknowledged_by,
-                    "acknowledger": {
-                        "id": alert.acknowledger.id,
-                        "username": alert.acknowledger.username,
-                        "full_name": alert.acknowledger.full_name,
-                    }
-                    if alert.acknowledger
-                    else None,
+                    "acknowledger": (
+                        {
+                            "id": alert.acknowledger.id,
+                            "username": alert.acknowledger.username,
+                            "full_name": alert.acknowledger.full_name,
+                        }
+                        if alert.acknowledger
+                        else None
+                    ),
                     "acknowledged_at": alert.acknowledged_at.isoformat() + "Z" if alert.acknowledged_at else None,
                     "created_at": alert.created_at.isoformat() + "Z",
                 }
@@ -176,7 +181,7 @@ def acknowledge_alert(alert_id):
         409: Alert already acknowledged
     """
     try:
-        alert = Alert.query.get(alert_id)
+        alert = db.session.get(Alert, alert_id)
         if not alert:
             return error_response(404, "Alert not found", "ALERT_NOT_FOUND")
 
@@ -191,7 +196,7 @@ def acknowledge_alert(alert_id):
         # Mark as acknowledged
         alert.is_acknowledged = True
         alert.acknowledged_by = user_id
-        alert.acknowledged_at = datetime.utcnow()
+        alert.acknowledged_at = datetime.now(timezone.utc)
 
         db.session.commit()
 
@@ -228,7 +233,7 @@ def unacknowledge_alert(alert_id):
         404: Alert not found
     """
     try:
-        alert = Alert.query.get(alert_id)
+        alert = db.session.get(Alert, alert_id)
         if not alert:
             return error_response(404, "Alert not found", "ALERT_NOT_FOUND")
 
@@ -330,7 +335,7 @@ def bulk_acknowledge_alerts():
             user_id = current_user.id
 
         # Update alerts
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         updated_count = Alert.query.filter(Alert.id.in_(data["alert_ids"]), Alert.is_acknowledged == False).update(
             {Alert.is_acknowledged: True, Alert.acknowledged_by: user_id, Alert.acknowledged_at: now},
             synchronize_session=False,

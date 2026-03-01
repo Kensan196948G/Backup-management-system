@@ -19,7 +19,7 @@ import logging
 import threading
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import IntEnum
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -296,7 +296,7 @@ class JobQueue:
 
             job = QueuedJob(
                 priority=int(priority),
-                scheduled_time=scheduled_time or datetime.utcnow(),
+                scheduled_time=scheduled_time or datetime.now(timezone.utc),
                 job_id=job_id,
                 job_data=job_data or {},
                 dependencies=deps,
@@ -350,7 +350,7 @@ class JobQueue:
         Returns:
             Next job to execute or None if queue empty
         """
-        now = current_time or datetime.utcnow()
+        now = current_time or datetime.now(timezone.utc)
 
         with self.lock:
             # Remove and check jobs until we find a ready one
@@ -427,7 +427,7 @@ class JobQueue:
             if job.retry_count <= job.max_retries:
                 # Calculate retry delay
                 delay = self.retry_config.calculate_delay(job.retry_count)
-                retry_time = datetime.utcnow() + timedelta(seconds=delay)
+                retry_time = datetime.now(timezone.utc) + timedelta(seconds=delay)
 
                 # Update job
                 job.scheduled_time = retry_time
@@ -491,7 +491,7 @@ class JobQueue:
                 if job.job_id == job_id:
                     # Reset and re-queue
                     job.retry_count = 0
-                    job.scheduled_time = datetime.utcnow()
+                    job.scheduled_time = datetime.now(timezone.utc)
                     self.status[job_id] = JobStatus.PENDING
                     heapq.heappush(self.queue, job)
 
