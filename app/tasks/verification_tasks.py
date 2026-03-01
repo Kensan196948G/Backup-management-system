@@ -8,7 +8,7 @@ for integrity checking and restore testing.
 
 import logging
 from datetime import UTC, datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from app.tasks import celery_app
 
