@@ -15,13 +15,12 @@ Features:
 
 import logging
 import os
-import signal
 import threading
 import time
-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -260,7 +259,7 @@ class JobIsolator:
             if original_nice is not None and hasattr(os, "setpriority"):
                 try:
                     os.setpriority(os.PRIO_PROCESS, 0, original_nice)
-                except:
+                except Exception:  # nosec B110 - best-effort nice restoration, ignore errors
                     pass
 
     @staticmethod
@@ -371,13 +370,13 @@ class JobExecutor:
         if not self.resource_manager.can_allocate(limits):
             logger.warning(f"Cannot execute job {job_id}: insufficient resources")
             return ExecutionResult(
-                job_id=job_id, status=ExecutionStatus.FAILED, start_time=datetime.utcnow(), error="Insufficient resources"
+                job_id=job_id, status=ExecutionStatus.FAILED, start_time=datetime.now(timezone.utc), error="Insufficient resources"
             )
 
         # Allocate resources
         if not self.resource_manager.allocate(job_id, limits):
             return ExecutionResult(
-                job_id=job_id, status=ExecutionStatus.FAILED, start_time=datetime.utcnow(), error="Resource allocation failed"
+                job_id=job_id, status=ExecutionStatus.FAILED, start_time=datetime.now(timezone.utc), error="Resource allocation failed"
             )
 
         # Submit job
@@ -399,7 +398,7 @@ class JobExecutor:
         self, job_id: int, callback: Callable, job_data: Dict, limits: ResourceLimits
     ) -> ExecutionResult:
         """Execute job with isolation and monitoring"""
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         result = ExecutionResult(job_id=job_id, status=ExecutionStatus.RUNNING, start_time=start_time)
 
         try:
@@ -434,7 +433,7 @@ class JobExecutor:
             logger.error(f"Job {job_id} failed: {e}")
 
         finally:
-            result.end_time = datetime.utcnow()
+            result.end_time = datetime.now(timezone.utc)
             result.duration = (result.end_time - result.start_time).total_seconds()
 
             # Release resources
@@ -472,7 +471,6 @@ class JobExecutor:
         Returns:
             Dictionary of job_id -> ExecutionResult
         """
-        results = {}
 
         # Submit all jobs
         for job_id, callback, job_data, limits in jobs:
@@ -528,7 +526,7 @@ class JobExecutor:
                 self.results[job_id] = ExecutionResult(
                     job_id=job_id,
                     status=ExecutionStatus.CANCELLED,
-                    start_time=datetime.utcnow(),
+                    start_time=datetime.now(timezone.utc),
                     error="Job cancelled by user",
                 )
                 logger.info(f"Cancelled job {job_id}")

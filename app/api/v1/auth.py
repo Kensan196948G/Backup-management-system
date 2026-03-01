@@ -4,10 +4,8 @@ Provides JWT and API key authentication for REST API
 """
 
 import logging
-from datetime import datetime
 
 from flask import Blueprint, jsonify, request
-from werkzeug.security import check_password_hash
 
 from app.api.auth import (
     authenticate_user,
@@ -15,10 +13,8 @@ from app.api.auth import (
     generate_refresh_token,
     jwt_required,
     refresh_access_token,
-    role_required,
-    verify_jwt_token,
 )
-from app.models import User, db
+from app.models import db
 from app.models_api_key import ApiKey, RefreshToken
 from app.utils.rate_limiter import limit_login_attempts
 
@@ -51,7 +47,7 @@ def login():
             "access_token": "string",
             "refresh_token": "string",
             "expires_in": 3600,
-            "token_type": "Bearer",
+            "token_type": "Bearer",  # nosec B105
             "user": {
                 "id": 1,
                 "username": "string",
@@ -96,7 +92,7 @@ def login():
                     "access_token": access_token,
                     "refresh_token": refresh_token_str,
                     "expires_in": 3600,
-                    "token_type": "Bearer",
+                    "token_type": "Bearer",  # nosec B105 - not a password, OAuth2 token type string
                     "user": {"id": user.id, "username": user.username, "role": user.role, "email": user.email},
                 }
             ),
@@ -123,7 +119,7 @@ def refresh():
             "success": true,
             "access_token": "string",
             "expires_in": 3600,
-            "token_type": "Bearer"
+            "token_type": "Bearer"  # nosec B105
         }
     """
     try:
@@ -151,7 +147,7 @@ def refresh():
 
         logger.info(f"Access token refreshed for user_id={refresh_token_obj.user_id}")
 
-        return jsonify({"success": True, "access_token": new_access_token, "expires_in": 3600, "token_type": "Bearer"}), 200
+        return jsonify({"success": True, "access_token": new_access_token, "expires_in": 3600, "token_type": "Bearer"}), 200  # nosec B105
 
     except Exception as e:
         logger.error(f"Token refresh error: {str(e)}", exc_info=True)
@@ -179,7 +175,7 @@ def logout(current_user):
         }
     """
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         refresh_token_str = data.get("refresh_token")
 
         if refresh_token_str:

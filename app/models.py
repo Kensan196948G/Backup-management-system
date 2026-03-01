@@ -44,15 +44,15 @@ class User(UserMixin, db.Model):
     department = db.Column(db.String(100))
     role = db.Column(db.String(20), nullable=False, index=True)  # admin/operator/viewer/auditor
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    last_login = db.Column(db.DateTime)
+    last_login = db.Column(db.DateTime(timezone=True))
 
     # Login attempt tracking
     failed_login_attempts = db.Column(db.Integer, default=0, nullable=False)
-    last_failed_login = db.Column(db.DateTime)
-    account_locked_until = db.Column(db.DateTime)
+    last_failed_login = db.Column(db.DateTime(timezone=True))
+    account_locked_until = db.Column(db.DateTime(timezone=True))
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     backup_jobs = db.relationship("BackupJob", back_populates="owner", lazy="dynamic")
@@ -121,8 +121,8 @@ class BackupJob(db.Model):
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     description = db.Column(db.Text)
     is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     owner = db.relationship("User", back_populates="backup_jobs")
@@ -161,12 +161,12 @@ class BackupCopy(db.Model):
     storage_path = db.Column(db.String(500))
     is_encrypted = db.Column(db.Boolean, default=False, nullable=False)
     is_compressed = db.Column(db.Boolean, default=False, nullable=False)
-    last_backup_date = db.Column(db.DateTime)
+    last_backup_date = db.Column(db.DateTime(timezone=True))
     last_backup_size = db.Column(db.BigInteger)  # bytes
     status = db.Column(db.String(20), default="unknown", nullable=False)  # success/failed/warning/unknown
     offline_media_id = db.Column(db.Integer, db.ForeignKey("offline_media.id"), index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     job = db.relationship("BackupJob", back_populates="copies")
@@ -194,8 +194,8 @@ class OfflineMedia(db.Model):
     owner_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     qr_code = db.Column(db.Text)  # Base64 encoded QR code image
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     owner = db.relationship("User", back_populates="owned_media")
@@ -224,8 +224,8 @@ class MediaRotationSchedule(db.Model):
     next_rotation_date = db.Column(db.Date, nullable=False, index=True)
     last_rotation_date = db.Column(db.Date)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     media = db.relationship("OfflineMedia", back_populates="rotation_schedules")
@@ -246,13 +246,13 @@ class MediaLending(db.Model):
     offline_media_id = db.Column(db.Integer, db.ForeignKey("offline_media.id"), nullable=False, index=True)
     borrower_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
     borrow_purpose = db.Column(db.String(200))
-    borrow_date = db.Column(db.DateTime, nullable=False)
+    borrow_date = db.Column(db.DateTime(timezone=True), nullable=False)
     expected_return = db.Column(db.Date, nullable=False)
-    actual_return = db.Column(db.DateTime, index=True)  # NULL = still borrowed
+    actual_return = db.Column(db.DateTime(timezone=True), index=True)  # NULL = still borrowed
     return_condition = db.Column(db.String(20))  # normal/abnormal
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     media = db.relationship("OfflineMedia", back_populates="lending_records")
@@ -273,15 +273,15 @@ class VerificationTest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey("backup_jobs.id"), nullable=False, index=True)
     test_type = db.Column(db.String(50), nullable=False)  # full_restore/partial/integrity
-    test_date = db.Column(db.DateTime, nullable=False, index=True)
+    test_date = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
     tester_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     restore_target = db.Column(db.String(200))
     test_result = db.Column(db.String(20), nullable=False, index=True)  # success/failed
     duration_seconds = db.Column(db.Integer)
     issues_found = db.Column(db.Text)
     notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     job = db.relationship("BackupJob", back_populates="verification_tests")
@@ -306,8 +306,8 @@ class VerificationSchedule(db.Model):
     last_test_date = db.Column(db.Date)
     assigned_to = db.Column(db.Integer, db.ForeignKey("users.id"))
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     job = db.relationship("BackupJob", back_populates="verification_schedules")
@@ -327,13 +327,13 @@ class BackupExecution(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey("backup_jobs.id"), nullable=False, index=True)
-    execution_date = db.Column(db.DateTime, nullable=False, index=True)
+    execution_date = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
     execution_result = db.Column(db.String(20), nullable=False, index=True)  # success/failed/warning
     error_message = db.Column(db.Text)
     backup_size_bytes = db.Column(db.BigInteger)
     duration_seconds = db.Column(db.Integer)
     source_system = db.Column(db.String(100))  # powershell/manual/scheduled
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     # Relationships
     job = db.relationship("BackupJob", back_populates="executions")
@@ -349,14 +349,14 @@ class ComplianceStatus(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     job_id = db.Column(db.Integer, db.ForeignKey("backup_jobs.id"), nullable=False, index=True)
-    check_date = db.Column(db.DateTime, nullable=False, index=True)
+    check_date = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
     copies_count = db.Column(db.Integer, nullable=False)
     media_types_count = db.Column(db.Integer, nullable=False)
     has_offsite = db.Column(db.Boolean, nullable=False)
     has_offline = db.Column(db.Boolean, nullable=False)
     has_errors = db.Column(db.Boolean, nullable=False)
     overall_status = db.Column(db.String(20), nullable=False, index=True)  # compliant, non_compliant, warning
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     # Relationships
     job = db.relationship("BackupJob", back_populates="compliance_statuses")
@@ -382,8 +382,8 @@ class Alert(db.Model):
     message = db.Column(db.Text, nullable=False)
     is_acknowledged = db.Column(db.Boolean, default=False, nullable=False, index=True)
     acknowledged_by = db.Column(db.Integer, db.ForeignKey("users.id"))
-    acknowledged_at = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    acknowledged_at = db.Column(db.DateTime(timezone=True))
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)
 
     # Relationships
     job = db.relationship("BackupJob", back_populates="alerts")
@@ -410,10 +410,15 @@ class AuditLog(db.Model):
     ip_address = db.Column(db.String(45))  # IPv4/IPv6
     action_result = db.Column(db.String(20), nullable=False)  # success/failed
     details = db.Column(db.Text)  # JSON format
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)
 
     # Relationships
     user = db.relationship("User", back_populates="audit_logs")
+
+    @property
+    def description(self):
+        """Alias for details field for template compatibility."""
+        return self.details
 
     def __repr__(self):
         return f"<AuditLog user_id={self.user_id} action={self.action_type} result={self.action_result}>"
@@ -436,7 +441,7 @@ class Report(db.Model):
     file_path = db.Column(db.String(500))
     file_format = db.Column(db.String(10), nullable=False)  # html/pdf/csv
     generated_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)
 
     # Relationships
     generator = db.relationship("User", back_populates="generated_reports")
@@ -462,7 +467,7 @@ class SystemSetting(db.Model):
     description = db.Column(db.Text)
     is_encrypted = db.Column(db.Boolean, default=False, nullable=False)
     updated_by = db.Column(db.Integer, db.ForeignKey("users.id"))
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     # Relationships
     updater = db.relationship("User", back_populates="updated_settings")
@@ -488,7 +493,7 @@ class NotificationLog(db.Model):
     severity = db.Column(db.String(20), index=True)  # info/warning/error/critical
     status = db.Column(db.String(20), nullable=False, index=True)  # sent/failed/pending
     error_message = db.Column(db.Text)
-    sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    sent_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False, index=True)
 
     # Related entities
     alert_id = db.Column(db.Integer, db.ForeignKey("alerts.id"))
@@ -522,8 +527,8 @@ class VerificationResult(db.Model):
     success = db.Column(db.Boolean, nullable=False, index=True)
     details = db.Column(db.Text)
     task_id = db.Column(db.String(100), index=True)
-    verified_at = db.Column(db.DateTime, nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    verified_at = db.Column(db.DateTime(timezone=True), nullable=False, index=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
     # Relationships
     job = db.relationship("BackupJob", backref=db.backref("verification_results", lazy="dynamic"))
@@ -546,8 +551,8 @@ class ScheduledReport(db.Model):
     recipients = db.Column(db.Text)  # comma-separated email list
     parameters = db.Column(db.Text)  # JSON parameters string
     is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
     def __repr__(self):
         return f"<ScheduledReport type={self.report_type} schedule={self.schedule_type} active={self.is_active}>"

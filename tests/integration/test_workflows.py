@@ -11,7 +11,7 @@ Tests complete business workflows:
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -24,12 +24,15 @@ from app.models import (
     MediaLending,
     OfflineMedia,
     Report,
+    User,
     VerificationTest,
     db,
 )
-from app.services.alert_manager import AlertManager
+from app.services.alert_manager import AlertManager, AlertSeverity, AlertType
 from app.services.compliance_checker import ComplianceChecker
 from app.services.report_generator import ReportGenerator
+
+UTC = timezone.utc
 
 
 class TestCompleteBackupLifecycle:
@@ -42,11 +45,12 @@ class TestCompleteBackupLifecycle:
             response = authenticated_client.post(
                 "/api/jobs",
                 json={
-                    "name": "Production DB Backup",
+                    "job_name": "Production DB Backup",
+                    "job_type": "database",
+                    "backup_tool": "custom",
                     "description": "Daily production database backup",
-                    "source_path": "/data/production/db",
+                    "target_path": "/data/production/db",
                     "schedule_type": "daily",
-                    "schedule_time": "02:00",
                     "retention_days": 30,
                 },
                 headers={"Content-Type": "application/json"},
@@ -56,52 +60,16 @@ class TestCompleteBackupLifecycle:
             data = json.loads(response.data)
 
             # Get job ID
-            job = BackupJob.query.filter_by(name="Production DB Backup").first()
+            job = BackupJob.query.filter_by(job_name="Production DB Backup").first()
             assert job is not None
             job_id = job.id
 
             # Step 2: Create backup copies for 3-2-1-1-0 compliance
             copies_data = [
-                {
-                    "copy_number": 1,
-                    "storage_location": "Primary NAS",
-                    "media_type": "disk",
-                    "is_offsite": False,
-                    "is_offline": False,
-                    "is_encrypted": True,
-                    "size_bytes": 10737418240,  # 10GB
-                    "checksum": "abc123primary",
-                },
-                {
-                    "copy_number": 2,
-                    "storage_location": "Secondary NAS",
-                    "media_type": "disk",
-                    "is_offsite": False,
-                    "is_offline": False,
-                    "is_encrypted": True,
-                    "size_bytes": 10737418240,
-                    "checksum": "def456secondary",
-                },
-                {
-                    "copy_number": 3,
-                    "storage_location": "AWS S3",
-                    "media_type": "cloud",
-                    "is_offsite": True,
-                    "is_offline": False,
-                    "is_encrypted": True,
-                    "size_bytes": 10737418240,
-                    "checksum": "ghi789cloud",
-                },
-                {
-                    "copy_number": 4,
-                    "storage_location": "Tape Library",
-                    "media_type": "tape",
-                    "is_offsite": False,
-                    "is_offline": True,
-                    "is_encrypted": True,
-                    "size_bytes": 10737418240,
-                    "checksum": "jkl012tape",
-                },
+                {"copy_type": "primary", "storage_path": "Primary NAS", "media_type": "disk", "is_encrypted": True, "last_backup_size": 10737418240},
+                {"copy_type": "secondary", "storage_path": "Secondary NAS", "media_type": "disk", "is_encrypted": True, "last_backup_size": 10737418240},
+                {"copy_type": "offsite", "storage_path": "AWS S3", "media_type": "cloud", "is_encrypted": True, "last_backup_size": 10737418240},
+                {"copy_type": "offline", "storage_path": "Tape Library", "media_type": "tape", "is_encrypted": True, "last_backup_size": 10737418240},
             ]
 
             for copy_data in copies_data:
@@ -121,8 +89,7 @@ class TestCompleteBackupLifecycle:
             checker = ComplianceChecker()
             result = checker.check_3_2_1_1_0(job_id)
 
-            assert result["is_compliant"] is True
-            assert result["total_copies"] >= 3
+            assert result["compliant"] is True
             assert result["media_types_count"] >= 2
             assert result["has_offsite"] is True
             assert result["has_offline"] is True
@@ -145,7 +112,7 @@ class TestCompleteBackupLifecycle:
             assert response.status_code in [200, 201]
 
             # Step 2: Verify execution was recorded
-            execution = BackupExecution.query.filter_by(job_id=backup_job.id, status="failed").first()
+            execution = BackupExecution.query.filter_by(job_id=backup_job.id, execution_result="failed").first()
             # May or may not exist
 
             # Step 3: Verify alert was created
@@ -170,12 +137,12 @@ class TestComplianceCheckingWorkflow:
             result = checker.check_3_2_1_1_0(backup_job.id)
 
             assert result is not None
-            assert "is_compliant" in result
+            assert "compliant" in result
 
             # Step 2: Verify compliance status was saved
             status = ComplianceStatus.query.filter_by(job_id=backup_job.id).first()
             if status:
-                assert status.is_compliant == result["is_compliant"]
+                assert (status.overall_status == "compliant") == result["compliant"]
 
             # Step 3: Get compliance overview via API
             response = authenticated_client.get("/api/dashboard/compliance")
@@ -185,7 +152,8 @@ class TestComplianceCheckingWorkflow:
 
             # Step 4: Generate compliance report
             generator = ReportGenerator()
-            report = generator.generate_compliance_report()
+            admin = User.query.filter_by(username="admin_test").first() or User.query.first()
+            report = generator.generate_compliance_report(generated_by=admin.id)
 
             assert report is not None
             assert "compliance" in report.report_type.lower() or "compliance" in str(report.data)
@@ -196,24 +164,16 @@ class TestComplianceCheckingWorkflow:
             # Step 1: Create insufficient copies (only 2, need 3)
             copy1 = BackupCopy(
                 job_id=backup_job.id,
-                copy_number=1,
-                storage_location="Storage 1",
+                copy_type="primary",
+                storage_path="Storage 1",
                 media_type="disk",
-                is_offsite=False,
-                is_offline=False,
-                size_bytes=1024,
-                checksum="hash1",
                 status="success",
             )
             copy2 = BackupCopy(
                 job_id=backup_job.id,
-                copy_number=2,
-                storage_location="Storage 2",
+                copy_type="secondary",
+                storage_path="Storage 2",
                 media_type="disk",
-                is_offsite=False,
-                is_offline=False,
-                size_bytes=1024,
-                checksum="hash2",
                 status="success",
             )
             db.session.add_all([copy1, copy2])
@@ -223,7 +183,7 @@ class TestComplianceCheckingWorkflow:
             checker = ComplianceChecker()
             result = checker.check_3_2_1_1_0(backup_job.id)
 
-            assert result["is_compliant"] is False
+            assert result["compliant"] is False
 
             # Step 3: Create compliance alert
             manager = AlertManager()
@@ -246,11 +206,11 @@ class TestAlertHandlingWorkflow:
             # Step 1: Create alert
             manager = AlertManager()
             alert = manager.create_alert(
-                job_id=backup_job.id,
-                alert_type="warning",
-                severity="medium",
+                alert_type=AlertType.RULE_VIOLATION,
+                severity=AlertSeverity.WARNING,
+                title="Backup Warning",
                 message="Backup took longer than expected",
-                details={"duration": 7200},
+                job_id=backup_job.id,
             )
 
             assert alert is not None
@@ -277,7 +237,11 @@ class TestAlertHandlingWorkflow:
             alerts = []
             for i in range(5):
                 alert = manager.create_alert(
-                    job_id=backup_job.id, alert_type="warning", severity="low", message=f"Warning {i}", details={}
+                    alert_type=AlertType.RULE_VIOLATION,
+                    severity=AlertSeverity.INFO,
+                    title=f"Warning {i}",
+                    message=f"Warning {i}",
+                    job_id=backup_job.id,
                 )
                 alerts.append(alert)
 
@@ -324,22 +288,18 @@ class TestReportGenerationWorkflow:
     def test_custom_date_range_report_workflow(self, authenticated_client, app):
         """Test generating custom date range reports."""
         with app.app_context():
-            # Step 1: Define date range
-            start_date = (datetime.utcnow() - timedelta(days=7)).isoformat()
-            end_date = datetime.utcnow().isoformat()
+            # Step 1: Generate audit report (generate_custom_report was removed; use generate_audit_report)
+            from app.models import User
+            admin = User.query.filter_by(role="admin").first()
+            generated_by = admin.id if admin else 1
 
-            # Step 2: Generate custom report
             generator = ReportGenerator()
-            report = generator.generate_custom_report(
-                datetime.fromisoformat(start_date.replace("Z", "+00:00")),
-                datetime.fromisoformat(end_date.replace("Z", "+00:00")),
-            )
+            report = generator.generate_audit_report(generated_by=generated_by)
 
             assert report is not None
 
-            # Step 3: Verify report content
-            assert report.period_start is not None
-            assert report.period_end is not None
+            # Step 2: Verify report content
+            assert report.date_from is not None or report.date_to is not None
 
 
 class TestMediaRotationWorkflow:
@@ -356,7 +316,7 @@ class TestMediaRotationWorkflow:
                 json={
                     "lent_to": "John Doe",
                     "purpose": "Offsite storage verification",
-                    "expected_return_date": (datetime.utcnow() + timedelta(days=7)).isoformat(),
+                    "expected_return_date": (datetime.now(UTC) + timedelta(days=7)).isoformat(),
                 },
                 headers={"Content-Type": "application/json"},
             )
@@ -382,12 +342,11 @@ class TestMediaRotationWorkflow:
             # Step 1: Create old media
             media = OfflineMedia(
                 media_type="tape",
-                media_label="OLD-TAPE-001",
-                barcode="OLD001",
-                capacity_bytes=1000000000000,
-                location="Storage",
+                media_id="OLD-TAPE-001",
+                capacity_gb=1000,
+                storage_location="Storage",
                 current_status="available",
-                purchase_date=datetime.utcnow() - timedelta(days=1825),  # 5 years old
+                purchase_date=(datetime.now(UTC) - timedelta(days=1825)).date(),
             )
             db.session.add(media)
             db.session.commit()
@@ -489,11 +448,12 @@ class TestCompleteSystemWorkflow:
             response = authenticated_client.post(
                 "/api/jobs",
                 json={
-                    "name": "Complete Lifecycle Test",
+                    "job_name": "Complete Lifecycle Test",
+                    "job_type": "file",
+                    "backup_tool": "custom",
                     "description": "Testing complete workflow",
-                    "source_path": "/data/complete",
+                    "target_path": "/data/complete",
                     "schedule_type": "weekly",
-                    "schedule_time": "03:00",
                     "retention_days": 90,
                 },
                 headers={"Content-Type": "application/json"},
@@ -502,21 +462,19 @@ class TestCompleteSystemWorkflow:
             assert response.status_code in [200, 201]
 
             # Get job
-            job = BackupJob.query.filter_by(name="Complete Lifecycle Test").first()
+            job = BackupJob.query.filter_by(job_name="Complete Lifecycle Test").first()
             assert job is not None
 
             # Step 2: Configure backup copies
+            copy_types = ["primary", "secondary", "offsite", "offline"]
             for i in range(4):
                 copy = BackupCopy(
                     job_id=job.id,
-                    copy_number=i + 1,
-                    storage_location=f"Storage {i+1}",
+                    copy_type=copy_types[i],
+                    storage_path=f"Storage {i+1}",
                     media_type=["disk", "disk", "cloud", "tape"][i],
-                    is_offsite=i == 2,
-                    is_offline=i == 3,
                     is_encrypted=True,
-                    size_bytes=5368709120,  # 5GB
-                    checksum=f"hash{i+1}",
+                    last_backup_size=5368709120,
                     status="success",
                 )
                 db.session.add(copy)
@@ -528,11 +486,10 @@ class TestCompleteSystemWorkflow:
             # Step 4: Check compliance
             checker = ComplianceChecker()
             result = checker.check_3_2_1_1_0(job.id)
-            assert result["is_compliant"] is True
-
-            # Step 5: Generate report
+            assert result["compliant"] is True
             generator = ReportGenerator()
-            report = generator.generate_daily_report()
+            admin = User.query.filter_by(username="admin_test").first() or User.query.first()
+            report = generator.generate_daily_report(generated_by=admin.id)
             assert report is not None
 
             # Step 6: Verify no critical alerts

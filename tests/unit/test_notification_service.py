@@ -10,7 +10,7 @@ Tests cover:
 """
 
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
@@ -55,7 +55,7 @@ class TestEmailNotificationService(unittest.TestCase):
         self.assertFalse(self.service.check_rate_limit(recipient))
 
         # Clear old entries (simulate time passing)
-        cutoff = datetime.utcnow() - timedelta(seconds=self.service.rate_limit_window + 1)
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=self.service.rate_limit_window + 1)
         self.service.delivery_history[recipient] = [cutoff for _ in range(5)]
 
         # Should now pass again

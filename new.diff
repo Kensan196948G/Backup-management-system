@@ -1,0 +1,141 @@
+diff --git a/app/api/media.py b/app/api/media.py
+index 85e7b4b..67a72e4 100755
+--- a/app/api/media.py
++++ b/app/api/media.py
+@@ -4,7 +4,7 @@ CRUD operations for offline media (tapes, external HDDs, USB drives)
+ """
+ 
+ import logging
+-from datetime import date, datetime, timezone
++from datetime import datetime, timezone
+ 
+ from flask import jsonify, request
+ from flask_login import current_user
+diff --git a/app/scheduler/executor.py b/app/scheduler/executor.py
+index 8be4499..e990659 100755
+--- a/app/scheduler/executor.py
++++ b/app/scheduler/executor.py
+@@ -15,13 +15,12 @@ Features:
+ 
+ import logging
+ import os
+-import signal
+ import threading
+ import time
+-from concurrent.futures import Future, ThreadPoolExecutor, as_completed
++from concurrent.futures import Future, ThreadPoolExecutor
+ from contextlib import contextmanager
+ from dataclasses import dataclass, field
+-from datetime import datetime, timedelta, timezone
++from datetime import datetime, timezone
+ from enum import Enum
+ from typing import Any, Callable, Dict, List, Optional, Tuple
+ 
+@@ -472,7 +471,6 @@ class JobExecutor:
+         Returns:
+             Dictionary of job_id -> ExecutionResult
+         """
+-        results = {}
+ 
+         # Submit all jobs
+         for job_id, callback, job_data, limits in jobs:
+diff --git a/app/services/alert_manager.py b/app/services/alert_manager.py
+index fcd49b9..40b3361 100755
+--- a/app/services/alert_manager.py
++++ b/app/services/alert_manager.py
+@@ -8,7 +8,6 @@ Supports multiple notification channels:
+ - Microsoft Teams webhooks
+ """
+ 
+-import json
+ import logging
+ from datetime import datetime, timedelta, timezone
+ from enum import Enum
+diff --git a/app/services/compliance_checker.py b/app/services/compliance_checker.py
+index 35e3342..9fcc503 100755
+--- a/app/services/compliance_checker.py
++++ b/app/services/compliance_checker.py
+@@ -11,7 +11,7 @@ Implements 3-2-1-1-0 backup rule validation:
+ 
+ import logging
+ from datetime import datetime, timedelta, timezone
+-from typing import Dict, List, Optional, Tuple
++from typing import Dict, List
+ 
+ from app.config import Config
+ from app.models import (
+diff --git a/app/services/pdf_generator.py b/app/services/pdf_generator.py
+index 39e0c8c..625dadd 100755
+--- a/app/services/pdf_generator.py
++++ b/app/services/pdf_generator.py
+@@ -15,9 +15,8 @@ import base64
+ import logging
+ import os
+ from datetime import datetime, timezone
+-from io import BytesIO
+ from pathlib import Path
+-from typing import Dict, List, Optional, Tuple
++from typing import Dict, List, Optional
+ 
+ from flask import render_template
+ from weasyprint import CSS, HTML
+diff --git a/app/services/report_generator.py b/app/services/report_generator.py
+index 14b3f81..4ea0046 100755
+--- a/app/services/report_generator.py
++++ b/app/services/report_generator.py
+@@ -16,11 +16,10 @@ Report types:
+ 
+ import csv
+ import logging
+-import os
+ from datetime import datetime, timedelta, timezone
+-from io import BytesIO, StringIO
++from io import StringIO
+ from pathlib import Path
+-from typing import Dict, List, Optional, Tuple
++from typing import Dict, Optional, Tuple
+ 
+ from app.config import Config
+ from app.models import (
+diff --git a/app/services/teams_notification_service.py b/app/services/teams_notification_service.py
+index 14f1e4a..3057ba5 100755
+--- a/app/services/teams_notification_service.py
++++ b/app/services/teams_notification_service.py
+@@ -5,7 +5,6 @@ Manages Microsoft Teams Webhook integrations with Adaptive Card support.
+ Supports async delivery, error handling, and notification history tracking.
+ """
+ 
+-import json
+ import logging
+ from datetime import datetime, timezone
+ from enum import Enum
+diff --git a/app/tasks/verification_tasks.py b/app/tasks/verification_tasks.py
+index 5e37eb0..79ebf3e 100755
+--- a/app/tasks/verification_tasks.py
++++ b/app/tasks/verification_tasks.py
+@@ -8,7 +8,7 @@ for integrity checking and restore testing.
+ 
+ import logging
+ from datetime import UTC, datetime
+-from typing import Any, Dict, List, Optional
++from typing import Any, Dict
+ 
+ from app.tasks import celery_app
+ 
+diff --git a/app/views/backup_schedule.py b/app/views/backup_schedule.py
+index 5a1e31f..48ff9b6 100755
+--- a/app/views/backup_schedule.py
++++ b/app/views/backup_schedule.py
+@@ -179,9 +179,9 @@ def create_schedule():
+ 
+         job_id = data.get("job_id")
+         cron_expression = data.get("cron_expression")
+-        priority = data.get("priority", "medium")
+-        description = data.get("description", "")
+-        is_active = data.get("is_active", True)
++        data.get("priority", "medium")
++        data.get("description", "")
++        data.get("is_active", True)
+ 
+         if not job_id or not cron_expression:
+             return jsonify({"success": False, "message": "Job ID and cron expression are required"}), 400

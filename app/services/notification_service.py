@@ -20,18 +20,16 @@ Features:
 
 import logging
 import smtplib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from flask import current_app, render_template
-from jinja2 import Environment, FileSystemLoader, Template
+from jinja2 import Environment, FileSystemLoader
 
 from app.config import Config
-from app.models import db
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +114,7 @@ class EmailNotificationService:
         Returns:
             True if rate limit not exceeded
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         cutoff = now - timedelta(seconds=self.rate_limit_window)
 
         # Clean old entries
@@ -137,7 +135,7 @@ class EmailNotificationService:
         Args:
             recipient: Email address
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if recipient not in self.delivery_history:
             self.delivery_history[recipient] = []
 
@@ -262,7 +260,7 @@ class EmailNotificationService:
             Dictionary mapping recipients to success status
         """
         subject = f"Backup Success: {job_name}"
-        context = {"job_name": job_name, "timestamp": datetime.utcnow(), "details": details}
+        context = {"job_name": job_name, "timestamp": datetime.now(timezone.utc), "details": details}
 
         results = {}
         for recipient in recipients:
@@ -290,7 +288,7 @@ class EmailNotificationService:
         subject = f"[CRITICAL] Backup Failed: {job_name}"
         context = {
             "job_name": job_name,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "error_message": error_message,
             "details": details,
         }
@@ -321,7 +319,7 @@ class EmailNotificationService:
         subject = f"[WARNING] 3-2-1-1-0 Rule Violation: {job_name}"
         context = {
             "job_name": job_name,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "violations": violations,
             "details": details,
         }
@@ -353,7 +351,7 @@ class EmailNotificationService:
         context = {
             "media_id": media_id,
             "reminder_type": reminder_type,
-            "timestamp": datetime.utcnow(),
+            "timestamp": datetime.now(timezone.utc),
             "details": details,
         }
 
@@ -376,8 +374,8 @@ class EmailNotificationService:
         Returns:
             Dictionary mapping recipients to success status
         """
-        subject = f"Daily Backup Report - {datetime.utcnow().strftime('%Y-%m-%d')}"
-        context = {"report_date": datetime.utcnow().strftime("%Y-%m-%d"), "data": report_data}
+        subject = f"Daily Backup Report - {datetime.now(timezone.utc).strftime('%Y-%m-%d')}"
+        context = {"report_date": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "data": report_data}
 
         results = {}
         for recipient in recipients:
@@ -680,7 +678,7 @@ class MultiChannelNotificationOrchestrator:
                     <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 20px 0;">
                     <p style="color: #666; font-size: 12px; margin-bottom: 0;">
                         Backup Management System<br>
-                        {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}
+                        {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}
                     </p>
                 </div>
             </body>

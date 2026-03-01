@@ -7,7 +7,7 @@ Tests core services:
 - ReportGenerator: Report generation
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -402,8 +402,10 @@ class TestReportGenerator:
         """Test generating an audit date range report."""
         with app.app_context():
             generator = ReportGenerator()
-            start_date = datetime.utcnow() - timedelta(days=7)
-            end_date = datetime.utcnow()
+            start_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=7)
+            end_date = datetime.now(timezone.utc).replace(tzinfo=None)
+
+            end_date = datetime.now(timezone.utc).replace(tzinfo=None)
 
             report = generator.generate_audit_report(generated_by=1, start_date=start_date, end_date=end_date)
 
@@ -430,8 +432,8 @@ class TestReportGenerator:
                 BackupExecution(
                     job_id=backup_job.id,
                     status=["success", "failed", "success"][i % 3],
-                    start_time=datetime.utcnow() - timedelta(hours=i),
-                    end_time=datetime.utcnow() - timedelta(hours=i - 1),
+                    start_time=datetime.now(timezone.utc) - timedelta(hours=i),
+                    end_time=datetime.now(timezone.utc) - timedelta(hours=i - 1),
                     total_size=1024000,
                     total_files=100,
                 )
@@ -493,9 +495,9 @@ class TestReportGenerator:
         """Test that report has proper generation timestamp."""
         with app.app_context():
             generator = ReportGenerator()
-            before = datetime.utcnow()
+            before = datetime.now(timezone.utc).replace(tzinfo=None)
             report = generator.generate_daily_report(generated_by=1)
-            after = datetime.utcnow()
+            after = datetime.now(timezone.utc).replace(tzinfo=None)
 
             assert report.created_at >= before
             assert report.created_at <= after
@@ -513,8 +515,10 @@ class TestReportGenerator:
         """Test retrieving reports within a date range via direct DB query."""
         with app.app_context():
             # get_reports_by_date_range() not implemented on ReportGenerator - query DB directly
-            start_date = datetime.utcnow() - timedelta(days=30)
-            end_date = datetime.utcnow()
+            start_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=30)
+            end_date = datetime.now(timezone.utc).replace(tzinfo=None)
+
+            end_date = datetime.now(timezone.utc).replace(tzinfo=None)
 
             reports_list = Report.query.filter(
                 Report.created_at >= start_date,

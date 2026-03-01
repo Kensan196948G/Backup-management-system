@@ -10,8 +10,8 @@ Implements 3-2-1-1-0 backup rule validation:
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List
 
 from app.config import Config
 from app.models import (
@@ -119,7 +119,12 @@ class ComplianceChecker:
             offline_copies = [copy for copy in copies if copy.copy_type == "offline" or copy.media_type == "tape"]
             for copy in offline_copies:
                 if copy.last_backup_date:
-                    age_days = (datetime.utcnow() - copy.last_backup_date).days
+                    # Handle both naive (SQLite) and aware (PostgreSQL) datetimes
+                    last_date = copy.last_backup_date
+                    now = datetime.now(timezone.utc)
+                    if last_date.tzinfo is None:
+                        last_date = last_date.replace(tzinfo=timezone.utc)
+                    age_days = (now - last_date).days
                     if age_days > self.offline_warning_days:
                         warnings.append(
                             f"Offline copy '{copy.storage_path}' "
@@ -152,7 +157,7 @@ class ComplianceChecker:
                 "details": {
                     "job_id": job_id,
                     "job_name": job.job_name,
-                    "checked_at": datetime.utcnow().isoformat(),
+                    "checked_at": datetime.now(timezone.utc).isoformat(),
                     "copies": [
                         {
                             "id": copy.id,
@@ -223,7 +228,7 @@ class ComplianceChecker:
                 "non_compliant_jobs": non_compliant_count,
                 "compliance_rate": round(compliance_rate, 2),
                 "results": results,
-                "checked_at": datetime.utcnow().isoformat(),
+                "checked_at": datetime.now(timezone.utc).isoformat(),
             }
 
             logger.info(f"System compliance check: {compliant_count}/{total_jobs} jobs compliant " f"({compliance_rate:.1f}%)")
@@ -253,7 +258,7 @@ class ComplianceChecker:
             List of historical compliance checks
         """
         try:
-            since_date = datetime.utcnow() - timedelta(days=days)
+            since_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             history = (
                 ComplianceStatus.query.filter(ComplianceStatus.job_id == job_id, ComplianceStatus.check_date >= since_date)
@@ -290,7 +295,7 @@ class ComplianceChecker:
             # Create new compliance status record
             status = ComplianceStatus(
                 job_id=job_id,
-                check_date=datetime.utcnow(),
+                check_date=datetime.now(timezone.utc),
                 copies_count=result["copies_count"],
                 media_types_count=result["media_types_count"],
                 has_offsite=result["has_offsite"],

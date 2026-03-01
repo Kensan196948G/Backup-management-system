@@ -4,7 +4,7 @@ Retrieve and acknowledge alerts
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 from flask_login import current_user
@@ -196,7 +196,7 @@ def acknowledge_alert(alert_id):
         # Mark as acknowledged
         alert.is_acknowledged = True
         alert.acknowledged_by = user_id
-        alert.acknowledged_at = datetime.utcnow()
+        alert.acknowledged_at = datetime.now(timezone.utc)
 
         db.session.commit()
 
@@ -335,7 +335,7 @@ def bulk_acknowledge_alerts():
             user_id = current_user.id
 
         # Update alerts
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         updated_count = Alert.query.filter(Alert.id.in_(data["alert_ids"]), Alert.is_acknowledged == False).update(
             {Alert.is_acknowledged: True, Alert.acknowledged_by: user_id, Alert.acknowledged_at: now},
             synchronize_session=False,

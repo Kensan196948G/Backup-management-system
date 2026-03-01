@@ -3,7 +3,7 @@ Verification Test Management Views
 Test execution, scheduling, and history
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import (
     current_app,
@@ -15,7 +15,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from sqlalchemy import and_, desc, or_
+from sqlalchemy import desc, or_
 from sqlalchemy.orm import joinedload
 
 from app.auth.decorators import role_required
@@ -117,7 +117,7 @@ def execute():
             test_data = {
                 "job_id": request.form.get("job_id"),
                 "test_type": request.form.get("test_type"),
-                "test_date": datetime.utcnow(),
+                "test_date": datetime.now(timezone.utc),
                 "result": request.form.get("result", "pending"),
                 "notes": request.form.get("notes"),
                 "tested_by_id": current_user.id,
@@ -161,7 +161,7 @@ def update(test_id):
             # Update test data
             test.result = request.form.get("result")
             test.notes = request.form.get("notes")
-            test.updated_at = datetime.utcnow()
+            test.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
 
@@ -192,7 +192,7 @@ def schedule():
     Shows upcoming scheduled tests
     """
     # Get upcoming schedules (next 30 days)
-    end_date = datetime.utcnow() + timedelta(days=30)
+    end_date = datetime.now(timezone.utc) + timedelta(days=30)
 
     schedules = (
         VerificationSchedule.query.filter(VerificationSchedule.next_test_date <= end_date)
@@ -220,7 +220,7 @@ def create_schedule():
                 "next_test_date": (
                     datetime.strptime(request.form.get("next_test_date"), "%Y-%m-%d")
                     if request.form.get("next_test_date")
-                    else datetime.utcnow()
+                    else datetime.now(timezone.utc)
                 ),
                 "assigned_to_id": request.form.get("assigned_to_id") or current_user.id,
                 "is_active": request.form.get("is_active") == "on",
@@ -275,7 +275,7 @@ def edit_schedule(schedule_id):
             )
             schedule.assigned_to_id = request.form.get("assigned_to_id") or current_user.id
             schedule.is_active = request.form.get("is_active") == "on"
-            schedule.updated_at = datetime.utcnow()
+            schedule.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
 

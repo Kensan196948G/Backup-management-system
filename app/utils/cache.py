@@ -13,7 +13,7 @@ import hashlib
 import json
 import logging
 from functools import wraps
-from typing import Any, Callable, Optional, Union
+from typing import Callable, Optional
 
 from flask import current_app
 from flask_caching import Cache

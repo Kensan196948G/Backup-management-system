@@ -4,7 +4,7 @@ Provides summary data for dashboard display
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import jsonify
 from sqlalchemy import and_, func
@@ -19,7 +19,6 @@ from app.models import (
     BackupJob,
     ComplianceStatus,
     OfflineMedia,
-    VerificationTest,
     db,
 )
 
@@ -104,7 +103,7 @@ def get_dashboard_summary():
             summary["compliance"][status] = count
 
         # Backup executions in last 24 hours
-        last_24h = datetime.utcnow() - timedelta(hours=24)
+        last_24h = datetime.now(timezone.utc) - timedelta(hours=24)
         executions_24h = (
             db.session.query(BackupExecution.execution_result, func.count(BackupExecution.id))
             .filter(BackupExecution.execution_date >= last_24h)
@@ -133,7 +132,7 @@ def get_dashboard_summary():
         # Verification tests
         from app.models import VerificationSchedule
 
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
 
         pending_tests = VerificationSchedule.query.filter(
             VerificationSchedule.is_active == True, VerificationSchedule.next_test_date <= today + timedelta(days=7)
@@ -250,7 +249,7 @@ def get_compliance_trend():
     """
     try:
         # Get data for last 30 days
-        last_30_days = datetime.utcnow() - timedelta(days=30)
+        last_30_days = datetime.now(timezone.utc) - timedelta(days=30)
 
         # Get daily compliance snapshots
         daily_compliance = (
@@ -306,7 +305,7 @@ def get_execution_statistics():
     """
     try:
         # Get data for last 7 days
-        last_7_days = datetime.utcnow() - timedelta(days=7)
+        last_7_days = datetime.now(timezone.utc) - timedelta(days=7)
 
         # Get daily execution statistics
         daily_stats = (

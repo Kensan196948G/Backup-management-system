@@ -3,11 +3,11 @@ Dashboard Views
 Main dashboard showing system overview and statistics
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import current_app, jsonify, render_template
-from flask_login import current_user, login_required
-from sqlalchemy import and_, func, or_
+from flask_login import login_required
+from sqlalchemy import and_, func
 
 from app.models import (
     Alert,
@@ -18,7 +18,6 @@ from app.models import (
     VerificationTest,
     db,
 )
-from app.services.compliance_checker import ComplianceChecker
 from app.views import dashboard_bp
 
 
@@ -115,7 +114,7 @@ def api_success_rate_chart():
     """
     try:
         # Get last 7 days
-        end_date = datetime.utcnow()
+        end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=6)
 
         labels = []
@@ -124,7 +123,7 @@ def api_success_rate_chart():
 
         for i in range(7):
             date = start_date + timedelta(days=i)
-            date_str = date.strftime("%Y-%m-%d")
+            date.strftime("%Y-%m-%d")
             labels.append(date.strftime("%m/%d"))
 
             # Count success and failures for this date
@@ -179,7 +178,7 @@ def api_storage_chart():
     try:
         # Calculate storage usage by copy type
         # This is a simplified version - you may want to add actual storage calculation
-        from sqlalchemy import case
+        pass
 
         storage_stats = db.session.query(func.count(BackupJob.id).label("count")).filter(BackupJob.is_active == True).first()
 
@@ -223,7 +222,7 @@ def get_dashboard_statistics():
     compliance_rate = round((compliant_jobs / total_jobs * 100) if total_jobs > 0 else 0, 1)
 
     # Backup success rate (last 7 days)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    seven_days_ago = datetime.now(timezone.utc) - timedelta(days=7)
     total_executions = BackupExecution.query.filter(BackupExecution.execution_date >= seven_days_ago).count()
 
     successful_executions = BackupExecution.query.filter(
