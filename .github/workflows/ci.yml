@@ -212,7 +212,11 @@ jobs:
       - name: Run E2E tests
         run: |
           if [ -d "tests/e2e" ] && ls tests/e2e/test_*.py 1>/dev/null 2>&1; then
-            pytest tests/e2e/ -v --tb=short --base-url=http://127.0.0.1:5000 || echo "E2E tests failed (not blocking)"
+            pytest tests/e2e/ -v --tb=short \
+              --base-url=http://127.0.0.1:5000 \
+              --timeout=60 \
+              --output=test-results \
+              2>&1 | tee e2e-test-output.txt || echo "E2E tests completed with errors (non-blocking)"
           else
             echo "No E2E tests found, skipping"
           fi
@@ -235,4 +239,5 @@ jobs:
           path: |
             test-results/
             playwright-report/
+            e2e-test-output.txt
           if-no-files-found: ignore
