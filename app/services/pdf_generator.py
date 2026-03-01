@@ -550,10 +550,8 @@ class ChartGenerator:
                 if os.path.exists(font_path):
                     fm.fontManager.addfont(font_path)
                     plt.rcParams["font.family"] = "Noto Sans CJK JP"
-            except Exception:
+            except Exception:  # nosec B110 - font loading is optional, ignore failures
                 pass
-
-            plt.figure(figsize=(10, 6))
 
             dates = data.get("dates", [])
             compliance_rates = data.get("compliance_rates", [])

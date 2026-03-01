@@ -365,9 +365,8 @@ class VerificationService:
                 # Use random sample (up to 10 files)
                 if source_path.is_dir():
                     all_files = [f for f in source_path.rglob("*") if f.is_file()]
-                    import random
-
-                    files_to_test = random.sample(all_files, min(10, len(all_files)))
+                    import random  # nosec B311 - non-cryptographic use: random file sampling for verification
+                    files_to_test = random.sample(all_files, min(10, len(all_files)))  # nosec B311
                 else:
                     files_to_test = [source_path]
 

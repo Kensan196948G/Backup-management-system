@@ -157,12 +157,19 @@ class SlackChannel:
         Send message to Slack webhook
 
         Args:
-            webhook_url: Slack webhook URL
+            webhook_url: Slack webhook URL (must be HTTPS)
             message: Message payload as dictionary
 
         Returns:
             True if sent successfully, False otherwise
         """
+        # Validate URL scheme to prevent SSRF (only allow HTTPS)
+        from urllib.parse import urlparse
+        parsed = urlparse(webhook_url)
+        if parsed.scheme not in ("https",):
+            logger.error(f"Rejected non-HTTPS webhook URL scheme: {parsed.scheme}")
+            return False
+
         try:
             # Convert message to JSON
             data = json.dumps(message).encode("utf-8")
@@ -174,9 +181,9 @@ class SlackChannel:
                 headers={"Content-Type": "application/json"},
             )
 
-            # Send request
+            # Send request (URL validated to HTTPS-only above)
             start_time = time.time()
-            with urlopen(request, timeout=10) as response:
+            with urlopen(request, timeout=10) as response:  # nosec B310
                 response_data = response.read()
                 delivery_time = int((time.time() - start_time) * 1000)
 

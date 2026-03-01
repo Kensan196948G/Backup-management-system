@@ -367,7 +367,7 @@ def api_login():
             {
                 "access_token": access_token,
                 "refresh_token": refresh_token,
-                "token_type": "Bearer",
+                "token_type": "Bearer",  # nosec B105
                 "expires_in": int(current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").total_seconds()),
                 "user": {
                     "id": user.id,
@@ -411,7 +411,7 @@ def api_refresh_token():
         jsonify(
             {
                 "access_token": access_token,
-                "token_type": "Bearer",
+                "token_type": "Bearer",  # nosec B105
                 "expires_in": int(current_app.config.get("JWT_ACCESS_TOKEN_EXPIRES").total_seconds()),
             }
         ),

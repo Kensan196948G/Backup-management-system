@@ -51,7 +51,7 @@ def login():
             "access_token": "string",
             "refresh_token": "string",
             "expires_in": 3600,
-            "token_type": "Bearer",
+            "token_type": "Bearer",  # nosec B105
             "user": {
                 "id": 1,
                 "username": "string",
@@ -96,7 +96,7 @@ def login():
                     "access_token": access_token,
                     "refresh_token": refresh_token_str,
                     "expires_in": 3600,
-                    "token_type": "Bearer",
+                    "token_type": "Bearer",  # nosec B105 - not a password, OAuth2 token type string
                     "user": {"id": user.id, "username": user.username, "role": user.role, "email": user.email},
                 }
             ),
@@ -123,7 +123,7 @@ def refresh():
             "success": true,
             "access_token": "string",
             "expires_in": 3600,
-            "token_type": "Bearer"
+            "token_type": "Bearer"  # nosec B105
         }
     """
     try:
@@ -151,7 +151,7 @@ def refresh():
 
         logger.info(f"Access token refreshed for user_id={refresh_token_obj.user_id}")
 
-        return jsonify({"success": True, "access_token": new_access_token, "expires_in": 3600, "token_type": "Bearer"}), 200
+        return jsonify({"success": True, "access_token": new_access_token, "expires_in": 3600, "token_type": "Bearer"}), 200  # nosec B105
 
     except Exception as e:
         logger.error(f"Token refresh error: {str(e)}", exc_info=True)

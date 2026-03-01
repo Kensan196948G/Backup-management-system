@@ -260,7 +260,7 @@ class JobIsolator:
             if original_nice is not None and hasattr(os, "setpriority"):
                 try:
                     os.setpriority(os.PRIO_PROCESS, 0, original_nice)
-                except:
+                except Exception:  # nosec B110 - best-effort nice restoration, ignore errors
                     pass
 
     @staticmethod
