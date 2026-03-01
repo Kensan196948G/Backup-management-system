@@ -244,6 +244,14 @@ def _register_blueprints(app):
     except ImportError as e:
         app.logger.warning(f"Views blueprints not found: {e}")
 
+    try:
+        from app.views.backup_schedule import bp as backup_schedule_bp
+
+        app.register_blueprint(backup_schedule_bp)
+        app.logger.info("Backup schedule blueprint registered")
+    except ImportError as e:
+        app.logger.warning(f"Backup schedule blueprint not found: {e}")
+
     # Admin blueprints (Phase 13)
     try:
         from app.views.admin.postgres_monitor import bp as postgres_monitor_bp

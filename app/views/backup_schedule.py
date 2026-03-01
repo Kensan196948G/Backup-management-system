@@ -10,7 +10,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import func
 
 from app.models import BackupJob, SystemSetting, db
-from app.utils.decorators import role_required
+from app.auth.decorators import role_required
 
 bp = Blueprint("backup_schedule", __name__, url_prefix="/backup")
 
@@ -22,7 +22,7 @@ bp = Blueprint("backup_schedule", __name__, url_prefix="/backup")
 
 @bp.route("/schedule")
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def schedule_list():
     """Display backup schedule management page"""
     # Fetch all backup jobs with schedule information
@@ -59,7 +59,7 @@ def schedule_list():
 
 @bp.route("/storage-config")
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def storage_config():
     """Display storage provider configuration page"""
     # Mock storage provider data (in production, this would come from a StorageProvider model)
@@ -171,7 +171,7 @@ def test_cron_expression():
 
 @bp.route("/api/schedule/create", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def create_schedule():
     """Create new backup schedule"""
     try:
@@ -240,7 +240,7 @@ def get_schedule(schedule_id):
 
 @bp.route("/api/schedule/<int:schedule_id>", methods=["DELETE"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def delete_schedule(schedule_id):
     """Delete backup schedule"""
     try:
@@ -262,7 +262,7 @@ def delete_schedule(schedule_id):
 
 @bp.route("/api/schedule/<int:schedule_id>/toggle", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def toggle_schedule(schedule_id):
     """Toggle schedule active status"""
     try:
@@ -289,7 +289,7 @@ def toggle_schedule(schedule_id):
 
 @bp.route("/api/schedule/<int:schedule_id>/test", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def test_schedule(schedule_id):
     """Test schedule execution"""
     try:
@@ -314,7 +314,7 @@ def test_schedule(schedule_id):
 
 @bp.route("/api/storage/create", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def create_storage_provider():
     """Create new storage provider"""
     try:
@@ -360,7 +360,7 @@ def get_storage_provider(storage_id):
 
 @bp.route("/api/storage/<int:storage_id>", methods=["DELETE"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def delete_storage_provider(storage_id):
     """Delete storage provider"""
     try:
@@ -375,7 +375,7 @@ def delete_storage_provider(storage_id):
 
 @bp.route("/api/storage/<int:storage_id>/toggle", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def toggle_storage_provider(storage_id):
     """Toggle storage provider active status"""
     try:
@@ -396,7 +396,7 @@ def toggle_storage_provider(storage_id):
 
 @bp.route("/api/storage/<int:storage_id>/test", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def test_storage_connection(storage_id):
     """Test storage provider connection"""
     try:
@@ -414,7 +414,7 @@ def test_storage_connection(storage_id):
 
 @bp.route("/api/storage/test-connection", methods=["POST"])
 @login_required
-@role_required(["admin", "operator"])
+@role_required("admin", "operator")
 def test_new_storage_connection():
     """Test connection for new storage provider before saving"""
     try:

@@ -54,58 +54,50 @@ class Rule321110Validator:
         }
 
         # バックアップジョブ取得
-        from app.models import BackupExecution, BackupJob, db
+        from app.models import BackupCopy, BackupExecution, BackupJob, db
 
         job = db.session.get(BackupJob, job_id)
         if not job:
             logger.error(f"Job not found", extra={"job_id": job_id})
             return result
 
-        # 実行履歴からコピー数をカウント
-        executions = BackupExecution.query.filter_by(job_id=job_id, status="completed").all()
+        # BackupCopyからコピー数とメディア情報を取得（実際のモデルに基づく）
+        copies = BackupCopy.query.filter_by(job_id=job_id).all()
 
         # Rule: 最低3つのコピー
-        total_copies = len(executions)
+        total_copies = len(copies)
         result["min_copies"] = total_copies >= 3
         result["details"]["total_copies"] = total_copies
 
         # Rule: 2つ以上の異なるメディアタイプ
         media_types = set()
-        for execution in executions:
-            if execution.media and execution.media.media_type:
-                media_types.add(execution.media.media_type)
+        for copy in copies:
+            if copy.media_type:
+                media_types.add(copy.media_type)
 
         result["different_media"] = len(media_types) >= 2
         result["details"]["media_types"] = list(media_types)
         result["details"]["media_count"] = len(media_types)
 
-        # Rule: 1つ以上のオフサイトコピー
-        offsite_count = 0
-        for execution in executions:
-            if execution.media and execution.media.storage_location == "offsite":
-                offsite_count += 1
+        # Rule: 1つ以上のオフサイトコピー（copy_type == "offsite"）
+        offsite_count = sum(1 for c in copies if c.copy_type == "offsite")
 
         result["offsite_copy"] = offsite_count >= 1
         result["details"]["offsite_copies"] = offsite_count
 
-        # Rule: 1つ以上のオフライン/イミュータブルコピー
-        offline_count = 0
-        for execution in executions:
-            if execution.media and (execution.media.is_offline or execution.media.is_immutable):
-                offline_count += 1
+        # Rule: 1つ以上のオフライン/イミュータブルコピー（copy_type == "offline"）
+        offline_count = sum(1 for c in copies if c.copy_type == "offline")
 
         result["offline_copy"] = offline_count >= 1
         result["details"]["offline_copies"] = offline_count
 
-        # Rule: 検証エラー0件
-        # 将来的にはAgent-03のVerificationServiceから取得
-        verification_errors = 0
-        for execution in executions:
-            if execution.verification_status == "failed":
-                verification_errors += 1
+        # Rule: 検証エラー0件（execution_result == "failed"のカウント）
+        failed_count = BackupExecution.query.filter_by(
+            job_id=job_id, execution_result="failed"
+        ).count()
 
-        result["zero_errors"] = verification_errors == 0
-        result["details"]["verification_errors"] = verification_errors
+        result["zero_errors"] = failed_count == 0
+        result["details"]["verification_errors"] = failed_count
 
         # 総合判定
         result["compliant"] = (
@@ -169,12 +161,12 @@ class Rule321110Validator:
         recommendations = []
 
         if not result["min_copies"]:
-            current = result["details"]["total_copies"]
-            needed = 3 - current
+            current = result["details"].get("total_copies", 0)
+            needed = max(0, 3 - current)
             recommendations.append(f"追加で{needed}つのバックアップコピーを作成してください")
 
         if not result["different_media"]:
-            current = result["details"]["media_count"]
+            current = result["details"].get("media_count", 0)
             recommendations.append(
                 f"現在{current}種類のメディアのみ使用。別の種類のメディア（テープ、クラウド等）にもバックアップしてください"
             )
@@ -186,7 +178,7 @@ class Rule321110Validator:
             recommendations.append("オフライン/イミュータブルストレージにバックアップコピーを作成してください")
 
         if not result["zero_errors"]:
-            errors = result["details"]["verification_errors"]
+            errors = result["details"].get("verification_errors", 0)
             recommendations.append(f"{errors}件の検証エラーがあります。検証を再実行し、エラーを修正してください")
 
         return recommendations
