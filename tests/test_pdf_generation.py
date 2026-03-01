@@ -6,7 +6,7 @@ Tests for WeasyPrint-based PDF report generation
 
 import os
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -76,7 +76,7 @@ def test_data(app, test_user):
         for i in range(10):
             execution = BackupExecution(
                 job_id=job.id,
-                execution_date=datetime.utcnow() - timedelta(days=i),
+                execution_date=datetime.now(timezone.utc) - timedelta(days=i),
                 execution_result="success" if i < 8 else "failed",
                 backup_size_bytes=1024 * 1024 * 100,  # 100MB
                 duration_seconds=120,
@@ -86,7 +86,7 @@ def test_data(app, test_user):
         # Create compliance status
         compliance = ComplianceStatus(
             job_id=job.id,
-            check_date=datetime.utcnow(),
+            check_date=datetime.now(timezone.utc),
             three_copies=True,
             two_media_types=True,
             one_offsite=True,
@@ -99,7 +99,7 @@ def test_data(app, test_user):
         # Create verification test
         test = VerificationTest(
             job_id=job.id,
-            test_date=datetime.utcnow(),
+            test_date=datetime.now(timezone.utc),
             test_type="integrity",
             test_result="success",
         )
@@ -303,7 +303,7 @@ class TestReportGeneratorPDF:
 
             report = generator.generate_daily_report(
                 generated_by=test_user.id,
-                date=datetime.utcnow().date(),
+                date=datetime.now(timezone.utc).date(),
                 format="pdf",
             )
 
@@ -332,8 +332,8 @@ class TestReportGeneratorPDF:
 
             report = generator.generate_audit_report(
                 generated_by=test_user.id,
-                start_date=datetime.utcnow() - timedelta(days=7),
-                end_date=datetime.utcnow(),
+                start_date=datetime.now(timezone.utc) - timedelta(days=7),
+                end_date=datetime.now(timezone.utc),
                 format="pdf",
             )
 
@@ -372,7 +372,7 @@ class TestPDFTemplates:
                 "report_title": "Test ISO 27001 Report",
                 "start_date": datetime(2025, 10, 1),
                 "end_date": datetime(2025, 10, 31),
-                "generated_date": datetime.utcnow(),
+                "generated_date": datetime.now(timezone.utc),
                 "data": {
                     "total_jobs": 10,
                     "compliance_rate": 95.0,
@@ -397,7 +397,7 @@ class TestPDFTemplates:
                 "report_title": "3-2-1-1-0 Compliance Report",
                 "start_date": datetime(2025, 10, 1),
                 "end_date": datetime(2025, 10, 31),
-                "generated_date": datetime.utcnow(),
+                "generated_date": datetime.now(timezone.utc),
                 "data": {
                     "total_jobs": 10,
                     "compliance_rate": 90.0,

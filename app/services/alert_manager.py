@@ -10,7 +10,7 @@ Supports multiple notification channels:
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Dict, List, Optional
 
@@ -440,7 +440,7 @@ class AlertManager:
 
             alert.is_acknowledged = True
             alert.acknowledged_by = user_id
-            alert.acknowledged_at = datetime.utcnow()
+            alert.acknowledged_at = datetime.now(timezone.utc)
 
             db.session.commit()
 
@@ -485,7 +485,7 @@ class AlertManager:
             List of Alert objects
         """
         try:
-            since_date = datetime.utcnow() - timedelta(days=days)
+            since_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             alerts = (
                 Alert.query.filter(Alert.job_id == job_id, Alert.created_at >= since_date)
@@ -513,7 +513,7 @@ class AlertManager:
             List of Alert objects
         """
         try:
-            since_date = datetime.utcnow() - timedelta(days=days)
+            since_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             alerts = (
                 Alert.query.filter(Alert.alert_type == alert_type, Alert.created_at >= since_date)
@@ -541,7 +541,7 @@ class AlertManager:
             List of Alert objects
         """
         try:
-            since_date = datetime.utcnow() - timedelta(days=days)
+            since_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             alerts = (
                 Alert.query.filter(Alert.severity == severity, Alert.created_at >= since_date)
@@ -667,7 +667,7 @@ class AlertManager:
             Number of deleted alerts
         """
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             count = Alert.query.filter(Alert.is_acknowledged == True, Alert.acknowledged_at < cutoff_date).delete()
 

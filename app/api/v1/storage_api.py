@@ -12,7 +12,7 @@ Endpoints:
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 from pydantic import ValidationError
@@ -83,7 +83,7 @@ def list_storage_providers(current_user):
                 "used_bytes": provider.total_size_bytes,
                 "is_online": True,
                 "is_active": True,
-                "created_at": datetime.utcnow(),
+                "created_at": datetime.now(timezone.utc),
                 "last_verified": provider.last_updated,
             }
             provider_list.append(provider_data)
@@ -300,7 +300,7 @@ def get_storage_space(current_user, storage_id):
             "free_bytes": free_bytes,
             "utilization_percent": round(utilization, 2) if utilization else None,
             "backup_count": backup_count,
-            "last_updated": datetime.utcnow(),
+            "last_updated": datetime.now(timezone.utc),
         }
 
         response = APIResponse(success=True, data=response_data)

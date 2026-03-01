@@ -70,7 +70,7 @@ class TestComplianceChecker:
                     media_type="disk",
                     storage_path="/backup/primary",
                     status="success",
-                    last_backup_date=datetime.utcnow(),
+                    last_backup_date=datetime.now(timezone.utc),
                 ),
                 BackupCopy(
                     job_id=sample_job.id,
@@ -78,7 +78,7 @@ class TestComplianceChecker:
                     media_type="cloud",
                     storage_path="s3://bucket/backup",
                     status="success",
-                    last_backup_date=datetime.utcnow(),
+                    last_backup_date=datetime.now(timezone.utc),
                 ),
                 BackupCopy(
                     job_id=sample_job.id,
@@ -86,7 +86,7 @@ class TestComplianceChecker:
                     media_type="tape",
                     storage_path="TAPE-001",
                     status="success",
-                    last_backup_date=datetime.utcnow(),
+                    last_backup_date=datetime.now(timezone.utc),
                 ),
             ]
             for copy in copies:
@@ -115,7 +115,7 @@ class TestComplianceChecker:
                 media_type="disk",
                 storage_path="/backup/primary",
                 status="success",
-                last_backup_date=datetime.utcnow(),
+                last_backup_date=datetime.now(timezone.utc),
             )
             db.session.add(copy)
             db.session.commit()
@@ -139,7 +139,7 @@ class TestComplianceChecker:
                     media_type="disk",
                     storage_path="/backup/primary",
                     status="success",
-                    last_backup_date=datetime.utcnow(),
+                    last_backup_date=datetime.now(timezone.utc),
                 ),
                 BackupCopy(
                     job_id=sample_job.id,
@@ -147,7 +147,7 @@ class TestComplianceChecker:
                     media_type="cloud",
                     storage_path="s3://bucket/backup",
                     status="success",
-                    last_backup_date=datetime.utcnow(),
+                    last_backup_date=datetime.now(timezone.utc),
                 ),
                 BackupCopy(
                     job_id=sample_job.id,
@@ -156,7 +156,7 @@ class TestComplianceChecker:
                     storage_path="TAPE-001",
                     status="success",
                     # Stale backup (older than warning threshold)
-                    last_backup_date=datetime.utcnow() - timedelta(days=15),
+                    last_backup_date=datetime.now(timezone.utc) - timedelta(days=15),
                 ),
             ]
             for copy in copies:
@@ -180,7 +180,7 @@ class TestComplianceChecker:
                 media_type="disk",
                 storage_path="/backup/primary",
                 status="success",
-                last_backup_date=datetime.utcnow(),
+                last_backup_date=datetime.now(timezone.utc),
             )
             db.session.add(copy)
             db.session.commit()
@@ -199,7 +199,7 @@ class TestComplianceChecker:
             for i in range(3):
                 status = ComplianceStatus(
                     job_id=sample_job.id,
-                    check_date=datetime.utcnow() - timedelta(days=i),
+                    check_date=datetime.now(timezone.utc) - timedelta(days=i),
                     copies_count=3,
                     media_types_count=2,
                     has_offsite=True,
@@ -389,7 +389,7 @@ class TestReportGenerator:
             # Add an execution record
             execution = BackupExecution(
                 job_id=sample_job.id,
-                execution_date=datetime.utcnow(),
+                execution_date=datetime.now(timezone.utc),
                 execution_result="success",
                 backup_size_bytes=1000000,
                 duration_seconds=3600,
@@ -413,7 +413,7 @@ class TestReportGenerator:
             # Add an execution record
             execution = BackupExecution(
                 job_id=sample_job.id,
-                execution_date=datetime.utcnow(),
+                execution_date=datetime.now(timezone.utc),
                 execution_result="success",
                 backup_size_bytes=1000000,
                 duration_seconds=3600,
@@ -437,7 +437,7 @@ class TestReportGenerator:
             # Add compliance status
             status = ComplianceStatus(
                 job_id=sample_job.id,
-                check_date=datetime.utcnow(),
+                check_date=datetime.now(timezone.utc),
                 copies_count=3,
                 media_types_count=2,
                 has_offsite=True,
@@ -467,11 +467,11 @@ class TestReportGenerator:
             old_report = Report(
                 report_type="daily",
                 report_title="Old Report",
-                date_from=datetime.utcnow().date() - timedelta(days=120),
-                date_to=datetime.utcnow().date() - timedelta(days=120),
+                date_from=datetime.now(timezone.utc).date() - timedelta(days=120),
+                date_to=datetime.now(timezone.utc).date() - timedelta(days=120),
                 file_format="html",
                 generated_by=admin.id,
-                created_at=datetime.utcnow() - timedelta(days=120),
+                created_at=datetime.now(timezone.utc) - timedelta(days=120),
             )
             db.session.add(old_report)
             db.session.commit()

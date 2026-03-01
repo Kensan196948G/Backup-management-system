@@ -4,7 +4,7 @@ CRUD operations for backup jobs
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 from flask_login import current_user
@@ -406,7 +406,7 @@ def update_job(job_id):
         if "is_active" in data:
             job.is_active = bool(data["is_active"])
 
-        job.updated_at = datetime.utcnow()
+        job.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Backup job updated: {job.job_name} (ID: {job.id})")

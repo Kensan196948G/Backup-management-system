@@ -13,7 +13,7 @@ Endpoints:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 from pydantic import ValidationError
@@ -256,7 +256,7 @@ def update_backup_job(current_user, backup_id):
         for field, value in update_data.model_dump(exclude_unset=True).items():
             setattr(backup_job, field, value)
 
-        backup_job.updated_at = datetime.utcnow()
+        backup_job.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Backup job updated: {backup_job.name} (ID: {backup_job.id}) by {current_user.username}")
@@ -375,7 +375,7 @@ def trigger_backup(current_user, backup_id):
                         "job_name": backup_job.name,
                         "backup_type": trigger_data.backup_type,
                         "triggered_by": current_user.username,
-                        "triggered_at": datetime.utcnow().isoformat(),
+                        "triggered_at": datetime.now(timezone.utc).isoformat(),
                     },
                 ).model_dump()
             ),

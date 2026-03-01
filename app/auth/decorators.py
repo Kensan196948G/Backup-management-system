@@ -3,7 +3,7 @@ Authentication and Authorization Decorators
 Role-based access control decorators for views and API endpoints
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 
 import jwt
@@ -208,8 +208,8 @@ def check_account_locked(user):
     if user.account_locked_until is None:
         return False, None
 
-    if user.account_locked_until > datetime.utcnow():
-        remaining_seconds = int((user.account_locked_until - datetime.utcnow()).total_seconds())
+    if user.account_locked_until > datetime.now(timezone.utc):
+        remaining_seconds = int((user.account_locked_until - datetime.now(timezone.utc)).total_seconds())
         return True, remaining_seconds
 
     # Lock has expired, reset it

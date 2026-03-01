@@ -9,7 +9,7 @@ PostgreSQLのパフォーマンス指標を可視化し、
 from flask import Blueprint, jsonify, render_template
 from flask_login import login_required
 
-from app.decorators import admin_required
+from app.auth.decorators import admin_required
 from app.services.postgres_monitor_service import PostgresMonitorService
 
 bp = Blueprint("postgres_monitor", __name__, url_prefix="/admin/postgres")

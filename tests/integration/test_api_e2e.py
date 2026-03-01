@@ -13,7 +13,7 @@ Complete API workflow tests covering:
 
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -280,7 +280,7 @@ class TestAOMEIIntegration:
                     "copy_id": copy.id,
                     "status": "success",
                     "last_backup_size": 6442450944,  # 6GB
-                    "last_backup_date": datetime.utcnow().isoformat(),
+                    "last_backup_date": datetime.now(timezone.utc).isoformat(),
                 },
             )
 
@@ -305,7 +305,7 @@ class TestVerificationWorkflow:
                 json={
                     "test_type": "full_restore",
                     "frequency_days": 7,
-                    "next_test_date": (datetime.utcnow() + timedelta(days=7)).isoformat(),
+                    "next_test_date": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
                 },
             )
 
@@ -520,7 +520,7 @@ class TestCompleteBusinessWorkflow:
                 json={
                     "lent_to": "Backup Operator",
                     "purpose": "Weekly backup rotation",
-                    "expected_return_date": (datetime.utcnow() + timedelta(days=7)).isoformat(),
+                    "expected_return_date": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
                 },
             )
 

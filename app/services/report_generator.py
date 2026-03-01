@@ -17,7 +17,7 @@ Report types:
 import csv
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from io import BytesIO, StringIO
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -78,7 +78,7 @@ class ReportGenerator:
         """
         try:
             if date is None:
-                date = datetime.utcnow().date()
+                date = datetime.now(timezone.utc).date()
             elif isinstance(date, datetime):
                 date = date.date()
 
@@ -135,7 +135,7 @@ class ReportGenerator:
         """
         try:
             if end_date is None:
-                end_date = datetime.utcnow().date()
+                end_date = datetime.now(timezone.utc).date()
             elif isinstance(end_date, datetime):
                 end_date = end_date.date()
 
@@ -196,7 +196,7 @@ class ReportGenerator:
             Report object with file path
         """
         try:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             if year is None:
                 year = now.year
             if month is None:
@@ -264,7 +264,7 @@ class ReportGenerator:
         """
         try:
             if end_date is None:
-                end_date = datetime.utcnow().date()
+                end_date = datetime.now(timezone.utc).date()
             elif isinstance(end_date, datetime):
                 end_date = end_date.date()
 
@@ -329,7 +329,7 @@ class ReportGenerator:
             Report object with file path
         """
         try:
-            now = datetime.utcnow().date()
+            now = datetime.now(timezone.utc).date()
             if end_date is None:
                 end_date = now
             elif isinstance(end_date, datetime):
@@ -791,7 +791,7 @@ class ReportGenerator:
                 "report_title": f"Daily Backup Report - {date}",
                 "start_date": datetime.combine(date, datetime.min.time()),
                 "end_date": datetime.combine(date, datetime.max.time()),
-                "generated_date": datetime.utcnow(),
+                "generated_date": datetime.now(timezone.utc),
                 "data": {
                     **data,
                     "success_rate": (
@@ -846,7 +846,7 @@ class ReportGenerator:
                 "report_title": f"Weekly Report - {start_date} to {end_date}",
                 "start_date": datetime.combine(start_date, datetime.min.time()),
                 "end_date": datetime.combine(end_date, datetime.max.time()),
-                "generated_date": datetime.utcnow(),
+                "generated_date": datetime.now(timezone.utc),
                 "data": {
                     **data,
                     "success_rate": ((data.get("success_count", 0) / total_executions * 100) if total_executions > 0 else 0),
@@ -890,7 +890,7 @@ class ReportGenerator:
                 "report_title": f"Monthly Report - {start_date.strftime('%Y-%m')}",
                 "start_date": datetime.combine(start_date, datetime.min.time()),
                 "end_date": datetime.combine(end_date, datetime.max.time()),
-                "generated_date": datetime.utcnow(),
+                "generated_date": datetime.now(timezone.utc),
                 "data": {
                     **data,
                     "success_rate": ((data.get("success_count", 0) / total_executions * 100) if total_executions > 0 else 0),
@@ -955,7 +955,7 @@ class ReportGenerator:
                 "report_title": "3-2-1-1-0 Compliance Report",
                 "start_date": datetime.combine(start_date, datetime.min.time()),
                 "end_date": datetime.combine(end_date, datetime.max.time()),
-                "generated_date": datetime.utcnow(),
+                "generated_date": datetime.now(timezone.utc),
                 "data": {
                     **data,
                     "three_copies_count": three_copies_count,
@@ -1052,7 +1052,7 @@ class ReportGenerator:
                 "report_title": "Audit Log Report",
                 "start_date": datetime.combine(start_date, datetime.min.time()),
                 "end_date": datetime.combine(end_date, datetime.max.time()),
-                "generated_date": datetime.utcnow(),
+                "generated_date": datetime.now(timezone.utc),
                 "data": {
                     **data,
                     "action_type_stats": action_type_stats,
@@ -1215,7 +1215,7 @@ class ReportGenerator:
             Number of deleted reports
         """
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             # Delete database records
             count = Report.query.filter(Report.created_at < cutoff_date).delete()

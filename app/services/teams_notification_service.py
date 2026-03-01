@@ -7,7 +7,7 @@ Supports async delivery, error handling, and notification history tracking.
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
@@ -578,7 +578,7 @@ class TeamsNotificationService:
             error: Error message if failed
         """
         record = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "card_type": card_type,
             "title": title,
             "severity": severity,
@@ -662,6 +662,6 @@ class TeamsNotificationService:
             title="🔔 Connection Test",
             message="This is a test notification from Backup Management System.",
             severity="info",
-            facts=[{"title": "Test Time", "value": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")}],
+            facts=[{"title": "Test Time", "value": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")}],
             webhook_url=webhook_url,
         )

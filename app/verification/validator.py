@@ -8,7 +8,7 @@ metadata comparison, and corruption detection.
 import logging
 import os
 import stat
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -100,13 +100,13 @@ class FileValidator(IVerificationService):
             Tuple of (status, details_dict)
         """
         self.validation_stats["total_validations"] += 1
-        self.validation_stats["last_validation"] = datetime.utcnow().isoformat()
+        self.validation_stats["last_validation"] = datetime.now(timezone.utc).isoformat()
 
         details = {
             "source": str(source_path),
             "target": str(target_path),
             "algorithm": algorithm.value,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         try:
@@ -199,7 +199,7 @@ class FileValidator(IVerificationService):
             "failed": 0,
             "errors": 0,
             "algorithm": algorithm.value,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "details": [],
         }
 

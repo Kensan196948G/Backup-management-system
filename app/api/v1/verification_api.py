@@ -10,7 +10,7 @@ Endpoints:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 from pydantic import ValidationError
@@ -83,7 +83,7 @@ def start_verification(current_user, backup_id):
             backup_id=backup_id,
             test_type=verification_data.test_type,
             test_status="pending",
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(timezone.utc),
             tester_id=current_user.id,
         )
 
@@ -345,7 +345,7 @@ def cancel_verification(current_user, verification_id):
 
         # Update status
         verification.test_status = "cancelled"
-        verification.completed_at = datetime.utcnow()
+        verification.completed_at = datetime.now(timezone.utc)
         verification.test_result = "cancelled"
         db.session.commit()
 

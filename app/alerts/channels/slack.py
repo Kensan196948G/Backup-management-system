@@ -6,7 +6,7 @@ Sends notifications via Slack Incoming Webhooks
 import json
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -399,7 +399,7 @@ class SlackChannel:
                     "elements": [
                         {
                             "type": "mrkdwn",
-                            "text": f"Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}",
+                            "text": f"Generated: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
                         }
                     ],
                 },
@@ -460,7 +460,7 @@ class SlackChannel:
                         "text": {
                             "type": "mrkdwn",
                             "text": ":white_check_mark: *Test notification from Backup Management System*\n"
-                            f"Connection successful at {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}",
+                            f"Connection successful at {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}",
                         },
                     }
                 ],

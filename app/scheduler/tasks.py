@@ -11,7 +11,7 @@ Tasks:
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ def check_offline_media_updates(app):
             logger.info("Starting offline media update check")
 
             warning_days = app.config.get("OFFLINE_MEDIA_UPDATE_WARNING_DAYS", 7)
-            threshold_date = datetime.utcnow() - timedelta(days=warning_days)
+            threshold_date = datetime.now(timezone.utc) - timedelta(days=warning_days)
 
             # Find media not updated within threshold
             outdated_media = OfflineMedia.query.filter(
@@ -106,7 +106,7 @@ def check_verification_reminders(app):
             logger.info("Starting verification reminder check")
 
             reminder_days = app.config.get("VERIFICATION_REMINDER_DAYS", 7)
-            threshold_date = datetime.utcnow().date() + timedelta(days=reminder_days)
+            threshold_date = datetime.now(timezone.utc).date() + timedelta(days=reminder_days)
 
             # Find upcoming verification tests
             upcoming_tests = VerificationSchedule.query.filter(
@@ -142,7 +142,7 @@ def execute_scheduled_verification_tests(app):
         try:
             logger.info("Starting scheduled verification test execution")
 
-            today = datetime.utcnow().date()
+            today = datetime.now(timezone.utc).date()
 
             # Find verification schedules that are due
             due_schedules = VerificationSchedule.query.filter(
@@ -208,7 +208,7 @@ def cleanup_verification_test_data(app):
             logger.info("Starting verification test data cleanup")
 
             retention_days = app.config.get("VERIFICATION_TEST_RETENTION_DAYS", 365)
-            threshold_date = datetime.utcnow() - timedelta(days=retention_days)
+            threshold_date = datetime.now(timezone.utc) - timedelta(days=retention_days)
 
             # Delete old verification test records
             deleted_count = VerificationTest.query.filter(VerificationTest.test_date < threshold_date).delete()
@@ -238,13 +238,13 @@ def cleanup_old_logs(app):
 
             # Cleanup old audit logs
             audit_retention_days = app.config.get("LOG_ROTATION_DAYS", 90)
-            audit_threshold = datetime.utcnow() - timedelta(days=audit_retention_days)
+            audit_threshold = datetime.now(timezone.utc) - timedelta(days=audit_retention_days)
 
             deleted_audits = AuditLog.query.filter(AuditLog.timestamp < audit_threshold).delete()
 
             # Cleanup old backup execution logs
             execution_retention_days = app.config.get("LOG_ROTATION_DAYS", 90)
-            execution_threshold = datetime.utcnow() - timedelta(days=execution_retention_days)
+            execution_threshold = datetime.now(timezone.utc) - timedelta(days=execution_retention_days)
 
             deleted_executions = BackupExecution.query.filter(BackupExecution.execution_date < execution_threshold).delete()
 
@@ -254,7 +254,7 @@ def cleanup_old_logs(app):
             log_dir = Path(app.root_path).parent / "logs"
             if log_dir.exists():
                 retention_days = app.config.get("LOG_ROTATION_DAYS", 90)
-                threshold_time = datetime.utcnow() - timedelta(days=retention_days)
+                threshold_time = datetime.now(timezone.utc) - timedelta(days=retention_days)
 
                 deleted_files = 0
                 for log_file in log_dir.glob("*.log.*"):
@@ -294,7 +294,7 @@ def generate_daily_report(app):
             logger.info("Starting daily report generation and email notification")
 
             # Collect report data
-            today = datetime.utcnow().date()
+            today = datetime.now(timezone.utc).date()
             yesterday = today - timedelta(days=1)
 
             # Get all backup jobs
@@ -302,7 +302,7 @@ def generate_daily_report(app):
 
             # Get today's executions
             executions_today = BackupExecution.query.filter(
-                BackupExecution.execution_date >= yesterday, BackupExecution.execution_date < datetime.utcnow()
+                BackupExecution.execution_date >= yesterday, BackupExecution.execution_date < datetime.now(timezone.utc)
             ).all()
 
             successful_backups = sum(1 for e in executions_today if e.execution_result == "success")

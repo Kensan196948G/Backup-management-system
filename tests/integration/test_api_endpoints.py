@@ -12,7 +12,7 @@ Tests all 43+ API endpoints across:
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -219,7 +219,7 @@ class TestJobsAPI:
             execution = BackupExecution(
                 job_id=job.id,
                 execution_result="success",
-                execution_date=datetime.utcnow(),
+                execution_date=datetime.now(timezone.utc),
                 backup_size_bytes=1024000,
             )
             db.session.add(execution)
@@ -372,7 +372,7 @@ class TestDashboardAPI:
             execution = BackupExecution(
                 job_id=backup_job.id,
                 execution_result="success",
-                execution_date=datetime.utcnow(),
+                execution_date=datetime.now(timezone.utc),
                 backup_size_bytes=1024000,
             )
             db.session.add(execution)
@@ -467,7 +467,7 @@ class TestMediaAPI:
                 json={
                     "lent_to": "John Doe",
                     "purpose": "Verification",
-                    "expected_return_date": (datetime.utcnow() + timedelta(days=7)).isoformat(),
+                    "expected_return_date": (datetime.now(timezone.utc) + timedelta(days=7)).isoformat(),
                 },
                 headers={"Content-Type": "application/json"},
             )
