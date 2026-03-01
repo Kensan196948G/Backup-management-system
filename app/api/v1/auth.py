@@ -179,7 +179,7 @@ def logout(current_user):
         }
     """
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         refresh_token_str = data.get("refresh_token")
 
         if refresh_token_str:
