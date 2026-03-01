@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from .interfaces import ChecksumAlgorithm, IVerificationService, VerificationStatus
+from .interfaces import ChecksumAlgorithm
 
 logger = logging.getLogger(__name__)
 

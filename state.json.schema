@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Auto-Repair State Schema",
+  "description": "自動修復システムの状態管理スキーマ",
+  "type": "object",
+  "properties": {
+    "repair_count": {
+      "type": "integer",
+      "description": "現在の修復試行回数",
+      "minimum": 0,
+      "maximum": 3,
+      "default": 0
+    },
+    "last_hash": {
+      "type": "string",
+      "description": "前回の差分ハッシュ（SHA-256）",
+      "pattern": "^[a-f0-9]{64}$|^$",
+      "default": ""
+    },
+    "last_error": {
+      "type": "string",
+      "description": "前回検出されたエラーのハッシュ",
+      "pattern": "^[a-f0-9]{64}$|^$",
+      "default": ""
+    },
+    "last_review_time": {
+      "type": "string",
+      "description": "最後にレビューを実行した時刻（ISO 8601形式）",
+      "format": "date-time",
+      "default": ""
+    },
+    "total_issues_found": {
+      "type": "integer",
+      "description": "累計で発見された問題の総数",
+      "minimum": 0,
+      "default": 0
+    },
+    "total_issues_fixed": {
+      "type": "integer",
+      "description": "累計で修復された問題の総数",
+      "minimum": 0,
+      "default": 0
+    },
+    "consecutive_failures": {
+      "type": "integer",
+      "description": "連続失敗回数",
+      "minimum": 0,
+      "default": 0
+    },
+    "last_error_message": {
+      "type": "string",
+      "description": "最後に発生したエラーメッセージ",
+      "default": ""
+    }
+  },
+  "required": [
+    "repair_count",
+    "last_hash",
+    "last_error"
+  ],
+  "additionalProperties": false
+}

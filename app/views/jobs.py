@@ -15,7 +15,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from sqlalchemy import and_, desc, or_
+from sqlalchemy import desc, or_
 
 from app.auth.decorators import role_required
 from app.models import (
@@ -325,7 +325,7 @@ def check_compliance(job_id):
     """
     Manually trigger compliance check for a job
     """
-    job = BackupJob.query.get_or_404(job_id)
+    BackupJob.query.get_or_404(job_id)
 
     try:
         checker = ComplianceChecker()

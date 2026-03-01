@@ -6,7 +6,6 @@ metadata comparison, and corruption detection.
 """
 
 import logging
-import os
 import stat
 from datetime import datetime, timezone
 from pathlib import Path

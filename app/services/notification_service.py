@@ -27,11 +27,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from flask import current_app, render_template
-from jinja2 import Environment, FileSystemLoader, Template
+from jinja2 import Environment, FileSystemLoader
 
 from app.config import Config
-from app.models import db
 
 logger = logging.getLogger(__name__)
 

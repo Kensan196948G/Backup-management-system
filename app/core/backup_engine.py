@@ -7,7 +7,6 @@ ISO 27001 A.12.3準拠のバックアップエンジン
 import hashlib
 import logging
 import os
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
@@ -17,7 +16,6 @@ from app.core.exceptions import (
     BackupJobNotFoundError,
     CopyOperationError,
     InsufficientStorageError,
-    RetryExhaustedError,
     VerificationFailedError,
 )
 

@@ -12,12 +12,11 @@ import logging
 import time
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, List, Optional
+from typing import Callable, List, Optional
 
-from flask import current_app
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import joinedload, selectinload, subqueryload
+from sqlalchemy.orm import joinedload, selectinload
 
 logger = logging.getLogger(__name__)
 

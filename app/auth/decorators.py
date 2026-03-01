@@ -6,7 +6,6 @@ Role-based access control decorators for views and API endpoints
 from datetime import datetime, timezone
 from functools import wraps
 
-import jwt
 from flask import abort, jsonify, request
 from flask_login import current_user, login_user
 

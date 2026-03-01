@@ -22,7 +22,6 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user
 from flask_mail import Mail
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import HTTPException
 
@@ -587,4 +586,3 @@ def _register_cli_commands(app):
 
 
 # Import models to ensure they are registered
-from app import models

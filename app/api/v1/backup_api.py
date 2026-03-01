@@ -32,7 +32,6 @@ from app.api.schemas import (
     PaginatedResponse,
 )
 from app.models import BackupExecution, BackupJob, db
-from app.services.backup_service import BackupService
 
 logger = logging.getLogger(__name__)
 

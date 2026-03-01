@@ -12,7 +12,7 @@ from flask_login import current_user
 from app.api import api_bp
 from app.api.errors import error_response, validation_error_response
 from app.auth.decorators import api_token_required, role_required
-from app.models import BackupJob, User, VerificationSchedule, VerificationTest, db
+from app.models import BackupJob, VerificationSchedule, VerificationTest, db
 
 logger = logging.getLogger(__name__)
 

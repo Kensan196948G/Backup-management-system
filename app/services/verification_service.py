@@ -22,7 +22,6 @@ from typing import Dict, List, Optional, Tuple
 from app.models import (
     BackupCopy,
     BackupJob,
-    User,
     VerificationSchedule,
     VerificationTest,
     db,

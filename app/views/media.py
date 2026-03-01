@@ -15,7 +15,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from sqlalchemy import and_, desc, or_
+from sqlalchemy import desc, or_
 
 from app.auth.decorators import role_required
 from app.models import BackupJob, MediaLending, MediaRotationSchedule, OfflineMedia, db
