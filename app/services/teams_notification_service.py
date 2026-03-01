@@ -5,7 +5,6 @@ Manages Microsoft Teams Webhook integrations with Adaptive Card support.
 Supports async delivery, error handling, and notification history tracking.
 """
 
-import json
 import logging
 from datetime import datetime, timezone
 from enum import Enum

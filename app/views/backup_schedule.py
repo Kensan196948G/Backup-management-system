@@ -179,9 +179,9 @@ def create_schedule():
 
         job_id = data.get("job_id")
         cron_expression = data.get("cron_expression")
-        priority = data.get("priority", "medium")
-        description = data.get("description", "")
-        is_active = data.get("is_active", True)
+        data.get("priority", "medium")
+        data.get("description", "")
+        data.get("is_active", True)
 
         if not job_id or not cron_expression:
             return jsonify({"success": False, "message": "Job ID and cron expression are required"}), 400

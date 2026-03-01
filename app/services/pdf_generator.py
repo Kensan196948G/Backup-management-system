@@ -15,9 +15,8 @@ import base64
 import logging
 import os
 from datetime import datetime, timezone
-from io import BytesIO
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from flask import render_template
 from weasyprint import CSS, HTML

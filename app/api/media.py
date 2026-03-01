@@ -4,7 +4,7 @@ CRUD operations for offline media (tapes, external HDDs, USB drives)
 """
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 from flask_login import current_user
