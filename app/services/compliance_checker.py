@@ -119,8 +119,12 @@ class ComplianceChecker:
             offline_copies = [copy for copy in copies if copy.copy_type == "offline" or copy.media_type == "tape"]
             for copy in offline_copies:
                 if copy.last_backup_date:
-                    # SQLite stores naive datetimes; strip tzinfo for comparison
-                    age_days = (datetime.now(timezone.utc).replace(tzinfo=None) - copy.last_backup_date).days
+                    # Handle both naive (SQLite) and aware (PostgreSQL) datetimes
+                    last_date = copy.last_backup_date
+                    now = datetime.now(timezone.utc)
+                    if last_date.tzinfo is None:
+                        last_date = last_date.replace(tzinfo=timezone.utc)
+                    age_days = (now - last_date).days
                     if age_days > self.offline_warning_days:
                         warnings.append(
                             f"Offline copy '{copy.storage_path}' "
@@ -254,7 +258,7 @@ class ComplianceChecker:
             List of historical compliance checks
         """
         try:
-            since_date = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
+            since_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             history = (
                 ComplianceStatus.query.filter(ComplianceStatus.job_id == job_id, ComplianceStatus.check_date >= since_date)
