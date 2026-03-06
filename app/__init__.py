@@ -22,7 +22,6 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for
 from flask_login import LoginManager, current_user
 from flask_mail import Mail
 from flask_migrate import Migrate
-from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.exceptions import HTTPException
 
@@ -88,6 +87,16 @@ def create_app(config_name=None):
             _init_scheduler(app)
         except Exception as e:
             app.logger.warning(f"Scheduler initialization skipped: {str(e)}")
+
+    # Initialize Prometheus metrics (Phase 17)
+    if app.config.get("PROMETHEUS_ENABLED", False):
+        try:
+            from app.utils.metrics import init_metrics
+
+            init_metrics(app)
+            app.logger.info("Prometheus metrics initialized")
+        except Exception as e:
+            app.logger.warning(f"Prometheus metrics initialization skipped: {str(e)}")
 
     # Register template context processors
     _register_context_processors(app)
@@ -233,6 +242,14 @@ def _register_blueprints(app):
         app.logger.info("Views blueprints registered")
     except ImportError as e:
         app.logger.warning(f"Views blueprints not found: {e}")
+
+    try:
+        from app.views.backup_schedule import bp as backup_schedule_bp
+
+        app.register_blueprint(backup_schedule_bp)
+        app.logger.info("Backup schedule blueprint registered")
+    except ImportError as e:
+        app.logger.warning(f"Backup schedule blueprint not found: {e}")
 
     # Admin blueprints (Phase 13)
     try:
@@ -569,4 +586,3 @@ def _register_cli_commands(app):
 
 
 # Import models to ensure they are registered
-from app import models

@@ -14,7 +14,7 @@ import asyncio
 import logging
 import shutil
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -22,7 +22,6 @@ from typing import Dict, List, Optional, Tuple
 from app.models import (
     BackupCopy,
     BackupJob,
-    User,
     VerificationSchedule,
     VerificationTest,
     db,
@@ -112,7 +111,7 @@ class VerificationService:
         Returns:
             Tuple of (result, details_dict)
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         logger.info(f"Starting {test_type.value} verification for job {job_id}")
 
         try:
@@ -137,7 +136,7 @@ class VerificationService:
                 raise ValueError(f"Unknown test type: {test_type}")
 
             # Calculate duration
-            duration_seconds = int((datetime.utcnow() - start_time).total_seconds())
+            duration_seconds = int((datetime.now(timezone.utc) - start_time).total_seconds())
 
             # Record test result in database
             self._record_test_result(
@@ -156,7 +155,7 @@ class VerificationService:
                 self.stats["successful_tests"] += 1
             else:
                 self.stats["failed_tests"] += 1
-            self.stats["last_test"] = datetime.utcnow().isoformat()
+            self.stats["last_test"] = datetime.now(timezone.utc).isoformat()
 
             logger.info(f"Verification test completed: {result.value} in {duration_seconds}s")
 
@@ -164,7 +163,7 @@ class VerificationService:
 
         except Exception as e:
             logger.error(f"Error executing verification test: {e}", exc_info=True)
-            duration_seconds = int((datetime.utcnow() - start_time).total_seconds())
+            duration_seconds = int((datetime.now(timezone.utc) - start_time).total_seconds())
 
             # Record error
             self._record_test_result(
@@ -196,13 +195,13 @@ class VerificationService:
         details = {
             "test_type": "full_restore",
             "job_name": job.job_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "copies_tested": [],
         }
 
         # Use test directory if no target specified
         if not restore_target:
-            test_dir = self.test_root_dir / f"full_restore_{job.id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            test_dir = self.test_root_dir / f"full_restore_{job.id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
             restore_target = str(test_dir)
             details["cleanup_required"] = True
         else:
@@ -328,12 +327,12 @@ class VerificationService:
         details = {
             "test_type": "partial",
             "job_name": job.job_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
 
         # Use test directory if no target specified
         if not restore_target:
-            test_dir = self.test_root_dir / f"partial_restore_{job.id}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            test_dir = self.test_root_dir / f"partial_restore_{job.id}_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}"
             restore_target = str(test_dir)
             details["cleanup_required"] = True
         else:
@@ -365,9 +364,8 @@ class VerificationService:
                 # Use random sample (up to 10 files)
                 if source_path.is_dir():
                     all_files = [f for f in source_path.rglob("*") if f.is_file()]
-                    import random
-
-                    files_to_test = random.sample(all_files, min(10, len(all_files)))
+                    import random  # nosec B311 - non-cryptographic use: random file sampling for verification
+                    files_to_test = random.sample(all_files, min(10, len(all_files)))  # nosec B311
                 else:
                     files_to_test = [source_path]
 
@@ -442,7 +440,7 @@ class VerificationService:
         details = {
             "test_type": "integrity",
             "job_name": job.job_name,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "copies_checked": [],
         }
 
@@ -566,7 +564,7 @@ class VerificationService:
             test = VerificationTest(
                 job_id=job_id,
                 test_type=test_type,
-                test_date=datetime.utcnow(),
+                test_date=datetime.now(timezone.utc),
                 tester_id=tester_id,
                 restore_target=restore_target,
                 test_result=test_result,
@@ -628,7 +626,7 @@ class VerificationService:
         Returns:
             Next test date
         """
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         frequency_mapping = {"monthly": 30, "quarterly": 90, "semi-annual": 180, "annual": 365}
 
@@ -645,7 +643,7 @@ class VerificationService:
         """
         schedule = db.session.get(VerificationSchedule, schedule_id)
         if schedule:
-            schedule.last_test_date = datetime.utcnow().date()
+            schedule.last_test_date = datetime.now(timezone.utc).date()
             schedule.next_test_date = next_test_date.date()
             db.session.commit()
             logger.info(f"Updated verification schedule {schedule_id}: next test on {next_test_date.date()}")
@@ -657,7 +655,7 @@ class VerificationService:
         Returns:
             List of overdue schedules
         """
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         overdue = VerificationSchedule.query.filter(
             VerificationSchedule.is_active == True, VerificationSchedule.next_test_date <= today
         ).all()

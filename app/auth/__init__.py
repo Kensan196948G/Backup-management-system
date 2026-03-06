@@ -9,4 +9,4 @@ from flask import Blueprint
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 # Import routes after blueprint creation to avoid circular imports
-from app.auth import routes
+from app.auth import routes  # noqa: F401, E402

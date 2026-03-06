@@ -47,7 +47,8 @@ class TestAgent0102Integration:
         engine = BackupEngine()
 
         # ファイルコピー実行
-        result = engine.copy_file(str(test_file), "backup_copy.txt")
+        backup_file = Path(backup_dir) / "backup_copy.txt"
+        result = engine.copy_file(str(test_file), str(backup_file))
 
         # 検証
         assert result["bytes_copied"] > 0

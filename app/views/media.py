@@ -3,7 +3,7 @@ Offline Media Management Views
 Media inventory, rotation, and lending management
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import (
     current_app,
@@ -15,7 +15,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from sqlalchemy import and_, desc, or_
+from sqlalchemy import desc, or_
 
 from app.auth.decorators import role_required
 from app.models import BackupJob, MediaLending, MediaRotationSchedule, OfflineMedia, db
@@ -195,7 +195,7 @@ def edit(media_id):
             media.storage_location = request.form.get("storage_location")
             media.status = request.form.get("status")
             media.job_id = request.form.get("job_id") or None
-            media.updated_at = datetime.utcnow()
+            media.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
 
@@ -283,7 +283,7 @@ def lend(media_id):
 
             # Update media status
             media.status = "lent"
-            media.updated_at = datetime.utcnow()
+            media.updated_at = datetime.now(timezone.utc)
 
             db.session.add(lending)
             db.session.commit()
@@ -322,11 +322,11 @@ def return_media(media_id):
             return redirect(url_for("media.detail", media_id=media_id))
 
         # Update lending record
-        lending.returned_at = datetime.utcnow()
+        lending.returned_at = datetime.now(timezone.utc)
 
         # Update media status
         media.status = "available"
-        media.updated_at = datetime.utcnow()
+        media.updated_at = datetime.now(timezone.utc)
 
         db.session.commit()
 
@@ -353,7 +353,7 @@ def rotation_schedule():
     Shows upcoming media rotations
     """
     # Get upcoming rotations (next 30 days)
-    end_date = datetime.utcnow() + timedelta(days=30)
+    end_date = datetime.now(timezone.utc) + timedelta(days=30)
 
     schedules = (
         MediaRotationSchedule.query.filter(MediaRotationSchedule.next_rotation_date <= end_date)

@@ -6,7 +6,7 @@ ISO 27001 A.12.3準拠のストレージプロバイダーインターフェー�
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Dict, Optional
+from typing import Callable, Optional
 
 
 class StorageType(Enum):
@@ -65,25 +65,21 @@ class IStorageProvider(ABC):
     @abstractmethod
     def storage_type(self) -> StorageType:
         """ストレージタイプを取得"""
-        pass
 
     @property
     @abstractmethod
     def storage_location(self) -> StorageLocation:
         """ストレージ配置場所を取得"""
-        pass
 
     @property
     @abstractmethod
     def is_immutable(self) -> bool:
         """イミュータブルストレージか（3-2-1-1-0の「1（オフライン）」）"""
-        pass
 
     @property
     @abstractmethod
     def provider_id(self) -> str:
         """プロバイダーID（一意識別子）"""
-        pass
 
     @abstractmethod
     def connect(self) -> bool:
@@ -96,12 +92,10 @@ class IStorageProvider(ABC):
         Raises:
             ConnectionError: 接続失敗
         """
-        pass
 
     @abstractmethod
     def disconnect(self) -> None:
         """ストレージから切断"""
-        pass
 
     @abstractmethod
     def copy_file(self, source: str, destination: str, callback: Optional[Callable] = None) -> CopyResult:
@@ -120,7 +114,6 @@ class IStorageProvider(ABC):
             CopyOperationError: コピー失敗
             InsufficientStorageError: 容量不足
         """
-        pass
 
     @abstractmethod
     def delete_file(self, path: str) -> bool:
@@ -133,7 +126,6 @@ class IStorageProvider(ABC):
         Returns:
             削除成功ならTrue
         """
-        pass
 
     @abstractmethod
     def get_available_space(self) -> int:
@@ -143,7 +135,6 @@ class IStorageProvider(ABC):
         Returns:
             利用可能バイト数
         """
-        pass
 
     @abstractmethod
     def get_storage_info(self) -> StorageInfo:
@@ -153,7 +144,6 @@ class IStorageProvider(ABC):
         Returns:
             StorageInfo（容量、使用量等）
         """
-        pass
 
     @abstractmethod
     def verify_file(self, path: str, expected_checksum: str) -> bool:
@@ -167,7 +157,6 @@ class IStorageProvider(ABC):
         Returns:
             検証成功ならTrue
         """
-        pass
 
     @abstractmethod
     def list_files(self, path: str, pattern: str = "*") -> list:
@@ -181,7 +170,6 @@ class IStorageProvider(ABC):
         Returns:
             ファイル情報のリスト
         """
-        pass
 
     def is_online(self) -> bool:
         """

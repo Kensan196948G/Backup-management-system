@@ -4,7 +4,7 @@ CRUD operations for offline media (tapes, external HDDs, USB drives)
 """
 
 import logging
-from datetime import date, datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 from flask_login import current_user
@@ -370,7 +370,7 @@ def update_media(media_id):
         if "notes" in data:
             media.notes = data["notes"]
 
-        media.updated_at = datetime.utcnow()
+        media.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Offline media updated: {media.media_id} (ID: {media.id})")
@@ -470,8 +470,15 @@ def borrow_media(media_id):
 
         # Validate required fields
         errors = {}
+        expected_return = None
         if "expected_return" not in data:
             errors["expected_return"] = "expected_return is required"
+        else:
+            # Validate expected_return date
+            try:
+                expected_return = datetime.strptime(data["expected_return"], "%Y-%m-%d").date()
+            except ValueError:
+                errors["expected_return"] = "Invalid date format. Use YYYY-MM-DD"
 
         # Use current user as borrower if not specified
         borrower_id = data.get("borrower_id")
@@ -481,13 +488,6 @@ def borrow_media(media_id):
         if not borrower_id:
             errors["borrower_id"] = "borrower_id is required"
 
-        # Validate expected_return date
-        try:
-            expected_return = datetime.strptime(data["expected_return"], "%Y-%m-%d").date()
-        except ValueError:
-            errors["expected_return"] = "Invalid date format. Use YYYY-MM-DD"
-            expected_return = None
-
         if errors:
             return validation_error_response(errors)
 
@@ -496,7 +496,7 @@ def borrow_media(media_id):
             offline_media_id=media_id,
             borrower_id=borrower_id,
             borrow_purpose=data.get("borrow_purpose"),
-            borrow_date=datetime.utcnow(),
+            borrow_date=datetime.now(timezone.utc),
             expected_return=expected_return,
         )
 
@@ -549,7 +549,7 @@ def return_media(media_id):
         data = request.get_json() or {}
 
         # Update lending record
-        active_lending.actual_return = datetime.utcnow()
+        active_lending.actual_return = datetime.now(timezone.utc)
         active_lending.return_condition = data.get("return_condition", "normal")
 
         if "notes" in data:

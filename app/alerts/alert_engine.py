@@ -5,11 +5,11 @@ Defines alert rules, severity levels, and alert generation logic
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-from sqlalchemy import and_, func, or_
+from sqlalchemy import and_, func
 
 from app.models import (
     Alert,
@@ -224,7 +224,7 @@ class AlertEngine:
         if not job_id:
             return False
 
-        cooldown_time = datetime.utcnow() - timedelta(minutes=rule.cooldown_minutes)
+        cooldown_time = datetime.now(timezone.utc) - timedelta(minutes=rule.cooldown_minutes)
 
         # Check for recent similar alerts
         recent_alert = (
@@ -272,7 +272,7 @@ class AlertEngine:
 
     def _check_backup_failed(self) -> List[Dict[str, Any]]:
         """Check for failed backups in the last hour"""
-        one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
 
         failed_executions = (
             BackupExecution.query.filter(
@@ -329,7 +329,7 @@ class AlertEngine:
 
     def _check_backup_warning(self) -> List[Dict[str, Any]]:
         """Check for backup warnings in the last hour"""
-        one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+        one_hour_ago = datetime.now(timezone.utc) - timedelta(hours=1)
 
         warning_executions = (
             BackupExecution.query.filter(
@@ -401,7 +401,7 @@ class AlertEngine:
 
     def _check_verification_overdue(self) -> List[Dict[str, Any]]:
         """Check for overdue verification tests"""
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         triggers = []
 
         overdue_schedules = (
@@ -442,7 +442,7 @@ class AlertEngine:
             else:
                 continue  # Skip manual jobs
 
-            threshold_time = datetime.utcnow() - timedelta(hours=threshold_hours)
+            threshold_time = datetime.now(timezone.utc) - timedelta(hours=threshold_hours)
 
             # Get last successful execution
             last_execution = (
@@ -477,7 +477,7 @@ class AlertEngine:
 
             alert.is_acknowledged = True
             alert.acknowledged_by = user_id
-            alert.acknowledged_at = datetime.utcnow()
+            alert.acknowledged_at = datetime.now(timezone.utc)
 
             db.session.commit()
             logger.info(f"Alert {alert_id} acknowledged by user {user_id}")
@@ -507,7 +507,7 @@ class AlertEngine:
 
     def get_alert_statistics(self, days: int = 30) -> Dict[str, Any]:
         """Get alert statistics for the specified period"""
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         total_alerts = Alert.query.filter(Alert.created_at >= start_date).count()
 

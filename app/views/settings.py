@@ -133,7 +133,7 @@ def export():
                 "lockout_duration": 30,
                 "enable_audit_log": True,
                 "require_2fa": False,
-                "password_expiry_days": 90,
+                "password_expiry_days": 90,  # nosec B105 - not a password, days value
             }
 
         if include_users:

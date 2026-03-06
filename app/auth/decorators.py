@@ -3,12 +3,11 @@ Authentication and Authorization Decorators
 Role-based access control decorators for views and API endpoints
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import wraps
 
-import jwt
 from flask import abort, jsonify, request
-from flask_login import current_user
+from flask_login import current_user, login_user
 
 
 def login_required(f):
@@ -148,9 +147,19 @@ def api_token_required(f):
             if token_type.lower() != "bearer":
                 return jsonify({"error": {"code": "INVALID_TOKEN_TYPE", "message": "Token type must be Bearer"}}), 401
 
-            # Verify token (this would be implemented in a separate utility)
-            # For now, we'll pass it through
-            # TODO: Implement JWT verification
+            # Verify JWT token
+            from app.api.auth import verify_jwt_token
+            payload = verify_jwt_token(token)
+            if payload is None:
+                return jsonify({"error": {"code": "INVALID_TOKEN", "message": "Invalid or expired token"}}), 401
+
+            # Log in the user for this request
+            from app.models import User
+            user = User.query.get(payload.get("user_id"))
+            if user and user.is_active:
+                login_user(user)
+            else:
+                return jsonify({"error": {"code": "INVALID_TOKEN", "message": "User not found or inactive"}}), 401
 
         except ValueError:
             return jsonify({"error": {"code": "INVALID_AUTH_HEADER", "message": "Invalid Authorization header format"}}), 401
@@ -198,8 +207,8 @@ def check_account_locked(user):
     if user.account_locked_until is None:
         return False, None
 
-    if user.account_locked_until > datetime.utcnow():
-        remaining_seconds = int((user.account_locked_until - datetime.utcnow()).total_seconds())
+    if user.account_locked_until > datetime.now(timezone.utc):
+        remaining_seconds = int((user.account_locked_until - datetime.now(timezone.utc)).total_seconds())
         return True, remaining_seconds
 
     # Lock has expired, reset it

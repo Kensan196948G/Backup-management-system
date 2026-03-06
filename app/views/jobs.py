@@ -3,7 +3,7 @@ Backup Job Views
 Job list, detail, create, edit, and delete views
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import (
     current_app,
@@ -15,7 +15,7 @@ from flask import (
     url_for,
 )
 from flask_login import current_user, login_required
-from sqlalchemy import and_, desc, or_
+from sqlalchemy import desc, or_
 
 from app.auth.decorators import role_required
 from app.models import (
@@ -171,10 +171,9 @@ def create():
                 "job_type": request.form.get("job_type"),
                 "description": request.form.get("description"),
                 "target_server": request.form.get("target_server"),
-                "target_path": request.form.get("target_path"),
+                "target_path": request.form.get("destination_path") or request.form.get("target_path"),
                 "backup_tool": request.form.get("backup_tool"),
-                "schedule_type": request.form.get("schedule_type"),
-                "schedule_time": request.form.get("schedule_time"),
+                "schedule_type": request.form.get("schedule_type", "daily"),
                 "retention_days": int(request.form.get("retention_days", 30)),
                 "is_active": request.form.get("is_active") == "on",
                 "owner_id": current_user.id,
@@ -223,7 +222,7 @@ def edit(job_id):
             job.schedule_time = request.form.get("schedule_time")
             job.retention_days = int(request.form.get("retention_days", 30))
             job.is_active = request.form.get("is_active") == "on"
-            job.updated_at = datetime.utcnow()
+            job.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
 
@@ -295,7 +294,7 @@ def toggle_active(job_id):
 
     try:
         job.is_active = not job.is_active
-        job.updated_at = datetime.utcnow()
+        job.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         status = "有効" if job.is_active else "無効"
@@ -326,7 +325,7 @@ def check_compliance(job_id):
     """
     Manually trigger compliance check for a job
     """
-    job = BackupJob.query.get_or_404(job_id)
+    BackupJob.query.get_or_404(job_id)
 
     try:
         checker = ComplianceChecker()

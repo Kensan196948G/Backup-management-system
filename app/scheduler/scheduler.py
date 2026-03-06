@@ -16,7 +16,6 @@ Features:
 
 import calendar
 import logging
-import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum

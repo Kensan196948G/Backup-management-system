@@ -62,7 +62,6 @@ class IVerificationService(ABC):
             PermissionError: If file cannot be read
             IOError: If file read fails
         """
-        pass
 
     @abstractmethod
     def calculate_checksums_parallel(
@@ -82,7 +81,6 @@ class IVerificationService(ABC):
         Returns:
             Dictionary mapping file paths to checksums
         """
-        pass
 
     @abstractmethod
     def verify_file(
@@ -99,7 +97,6 @@ class IVerificationService(ABC):
         Returns:
             Tuple of (status, details_dict)
         """
-        pass
 
     @abstractmethod
     def verify_backup(
@@ -116,7 +113,6 @@ class IVerificationService(ABC):
         Returns:
             Dictionary containing verification results
         """
-        pass
 
     @abstractmethod
     def verify_metadata(self, source_path: Path, target_path: Path) -> Tuple[VerificationStatus, Dict]:
@@ -130,7 +126,6 @@ class IVerificationService(ABC):
         Returns:
             Tuple of (status, details_dict)
         """
-        pass
 
     @abstractmethod
     def detect_corruption(
@@ -147,7 +142,6 @@ class IVerificationService(ABC):
         Returns:
             True if file is corrupted, False otherwise
         """
-        pass
 
 
 class IChecksumStorage(ABC):
@@ -156,14 +150,11 @@ class IChecksumStorage(ABC):
     @abstractmethod
     def store_checksum(self, file_path: Path, checksum: str, algorithm: ChecksumAlgorithm) -> None:
         """Store checksum for a file"""
-        pass
 
     @abstractmethod
     def retrieve_checksum(self, file_path: Path, algorithm: ChecksumAlgorithm) -> Optional[str]:
         """Retrieve stored checksum for a file"""
-        pass
 
     @abstractmethod
     def delete_checksum(self, file_path: Path) -> None:
         """Delete stored checksum for a file"""
-        pass

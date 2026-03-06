@@ -1,0 +1,88 @@
+# Prometheus Alert Rules for 3-2-1-1-0 Backup Management System
+# Phase 17 - Monitoring Infrastructure
+
+groups:
+  - name: backup_system_alerts
+    rules:
+      # Backup failure rate exceeds 20%
+      - alert: BackupJobFailureRateHigh
+        expr: |
+          (
+            sum(rate(backup_executions_total{result="failed"}[1h]))
+            /
+            sum(rate(backup_executions_total[1h]))
+          ) > 0.2
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backup failure rate is above 20%"
+          description: >
+            The backup job failure rate has exceeded 20% over the last hour.
+            Current failure rate: {{ $value | humanizePercentage }}.
+
+      # Compliance violations detected
+      - alert: ComplianceViolationDetected
+        expr: compliance_rate < 1.0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "3-2-1-1-0 compliance violation detected"
+          description: >
+            One or more backup jobs are not compliant with the 3-2-1-1-0 rule.
+            Current compliance rate: {{ $value | humanizePercentage }}.
+
+      # No backup jobs running for extended period
+      - alert: NoBackupJobsRunning
+        expr: active_jobs == 0 and backup_jobs_total{status="active"} > 0
+        for: 24h
+        labels:
+          severity: warning
+        annotations:
+          summary: "No backup jobs have run in the last 24 hours"
+          description: >
+            There are active backup jobs configured but none have executed
+            in the past 24 hours. Check scheduler and job configurations.
+
+      # High number of unacknowledged alerts
+      - alert: HighUnacknowledgedAlerts
+        expr: sum(alerts_unacknowledged) >= 10
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "10 or more unacknowledged alerts"
+          description: >
+            There are {{ $value }} unacknowledged alerts in the system.
+            Please review and acknowledge pending alerts.
+
+      # Backup execution taking too long
+      - alert: BackupExecutionSlow
+        expr: |
+          histogram_quantile(0.95, rate(backup_execution_duration_seconds_bucket[1h])) > 3600
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backup execution time exceeds 1 hour (p95)"
+          description: >
+            The 95th percentile backup execution duration has exceeded 1 hour.
+            P95 duration: {{ $value | humanizeDuration }}.
+
+      # Verification test failures
+      - alert: VerificationTestFailureRateHigh
+        expr: |
+          (
+            sum(rate(verification_tests_total{result="failed"}[24h]))
+            /
+            sum(rate(verification_tests_total[24h]))
+          ) > 0.3
+        for: 1h
+        labels:
+          severity: critical
+        annotations:
+          summary: "Verification test failure rate exceeds 30%"
+          description: >
+            More than 30% of verification tests are failing over the last 24 hours.
+            This may indicate backup integrity issues.

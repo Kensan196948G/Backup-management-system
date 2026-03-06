@@ -6,7 +6,7 @@ Tests for backup verification and restore testing functionality.
 
 import shutil
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -181,7 +181,7 @@ class TestVerificationService:
             schedule = VerificationSchedule(
                 job_id=self.job_id,
                 test_frequency="monthly",
-                next_test_date=(datetime.utcnow() - timedelta(days=1)).date(),
+                next_test_date=(datetime.now(timezone.utc) - timedelta(days=1)).date(),
                 is_active=True,
             )
             db.session.add(schedule)
@@ -234,7 +234,7 @@ class TestVerificationService:
             quarterly_date = service._calculate_next_test_date("quarterly")
             annual_date = service._calculate_next_test_date("annual")
 
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
 
             assert (monthly_date - now).days >= 29
             assert (quarterly_date - now).days >= 89

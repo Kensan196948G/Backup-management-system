@@ -4,7 +4,7 @@ CRUD operations for verification tests and schedules
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import jsonify, request
 from flask_login import current_user
@@ -12,7 +12,7 @@ from flask_login import current_user
 from app.api import api_bp
 from app.api.errors import error_response, validation_error_response
 from app.auth.decorators import api_token_required, role_required
-from app.models import BackupJob, User, VerificationSchedule, VerificationTest, db
+from app.models import BackupJob, VerificationSchedule, VerificationTest, db
 
 logger = logging.getLogger(__name__)
 
@@ -287,7 +287,7 @@ def create_test():
             tester_id = current_user.id
 
         # Parse test_date
-        test_date = datetime.utcnow()
+        test_date = datetime.now(timezone.utc)
         if "test_date" in data:
             try:
                 test_date = datetime.fromisoformat(data["test_date"].replace("Z", "+00:00"))
@@ -390,7 +390,7 @@ def update_test(test_id):
         if "notes" in data:
             test.notes = data["notes"]
 
-        test.updated_at = datetime.utcnow()
+        test.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Verification test updated: test_id={test_id}")
@@ -435,7 +435,7 @@ def list_schedules():
             query = query.filter_by(test_frequency=request.args["test_frequency"])
 
         if "overdue" in request.args and request.args["overdue"].lower() == "true":
-            today = datetime.utcnow().date()
+            today = datetime.now(timezone.utc).date()
             query = query.filter(VerificationSchedule.next_test_date < today)
 
         # Execute paginated query
@@ -445,7 +445,7 @@ def list_schedules():
 
         # Format response
         schedules = []
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
 
         for schedule in pagination.items:
             is_overdue = schedule.next_test_date < today
@@ -607,7 +607,7 @@ def update_schedule(schedule_id):
         if "is_active" in data:
             schedule.is_active = bool(data["is_active"])
 
-        schedule.updated_at = datetime.utcnow()
+        schedule.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Verification schedule updated: schedule_id={schedule_id}")

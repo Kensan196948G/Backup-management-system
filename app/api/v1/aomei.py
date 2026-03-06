@@ -18,18 +18,16 @@ import logging
 from datetime import datetime
 from functools import wraps
 
-from flask import current_app, jsonify, request
+from flask import jsonify, request
 from pydantic import ValidationError
 
 from app.api import api_bp
-from app.api.auth import jwt_required, role_required
+from app.api.auth import jwt_required
 from app.api.errors import error_response, validation_error_response
 from app.api.schemas import (
     AOMEIJobRegisterRequest,
-    AOMEIJobResponse,
     AOMEILogAnalysisRequest,
     AOMEIStatusRequest,
-    APIResponse,
 )
 from app.services.aomei_service import AOMEIService
 

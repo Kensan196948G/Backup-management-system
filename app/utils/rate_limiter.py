@@ -11,7 +11,7 @@ Implements rate limiting to prevent abuse:
 
 import logging
 from functools import wraps
-from typing import Callable, Optional
+from typing import Callable
 
 from flask import Flask, g, request
 from flask_limiter import Limiter

@@ -21,6 +21,10 @@ safety==2.3.5
 # Type Checking
 mypy==1.7.1
 
+# E2E Testing (Playwright)
+playwright>=1.40.0
+pytest-playwright>=0.4.0
+
 # Load Testing
 locust==2.20.0
 

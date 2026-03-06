@@ -1,0 +1,23 @@
+[Unit]
+Description=3-2-1-1-0 Backup Management System - Celery Beat Scheduler
+After=network.target redis.service backup-celery-worker.service
+Requires=redis.service
+
+[Service]
+Type=simple
+User=backupmgmt
+Group=backupmgmt
+WorkingDirectory=/opt/backup-management-system
+Environment="FLASK_ENV=production"
+EnvironmentFile=/opt/backup-management-system/.env
+ExecStart=/opt/backup-management-system/venv/bin/celery \
+    -A celery_worker.celery_app beat \
+    --loglevel=INFO \
+    --scheduler=celery.beat:PersistentScheduler \
+    --schedule=/var/lib/backup-management/celerybeat-schedule \
+    --logfile=/var/log/backup-management/celery-beat.log
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

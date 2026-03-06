@@ -22,7 +22,12 @@ reports_bp = Blueprint("reports", __name__, url_prefix="/reports")
 settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
 
 # Import routes after blueprint creation to avoid circular imports
-from app.views import dashboard, jobs, media, reports, settings, verification
+from app.views import dashboard  # noqa: F401, E402
+from app.views import jobs  # noqa: F401, E402
+from app.views import media  # noqa: F401, E402
+from app.views import verification  # noqa: F401, E402
+from app.views import reports  # noqa: F401, E402
+from app.views import settings  # noqa: F401, E402
 
 
 def register_blueprints(app):

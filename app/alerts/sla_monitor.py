@@ -5,7 +5,7 @@ Tracks backup completion times, success rates, and alerts on SLA violations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from sqlalchemy import and_, func
@@ -120,7 +120,7 @@ class SLAMonitor:
 
     def _calculate_job_metrics(self, job: BackupJob, days: int) -> SLAMetrics:
         """Calculate SLA metrics for a specific job"""
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         # Get executions within the period
         executions = (
@@ -205,7 +205,7 @@ class SLAMonitor:
 
             # Check backup age
             if target.max_age_hours and last_execution_date:
-                age_hours = (datetime.utcnow() - last_execution_date).total_seconds() / 3600
+                age_hours = (datetime.now(timezone.utc) - last_execution_date).total_seconds() / 3600
                 if age_hours > target.max_age_hours:
                     violations.append(f"Last backup {age_hours:.1f}h ago exceeds target {target.max_age_hours}h")
 
@@ -236,7 +236,7 @@ class SLAMonitor:
         """Create an SLA violation alert"""
         try:
             # Check if similar alert exists recently
-            one_day_ago = datetime.utcnow() - timedelta(days=1)
+            one_day_ago = datetime.now(timezone.utc) - timedelta(days=1)
             recent_alert = (
                 Alert.query.filter(
                     and_(
@@ -321,7 +321,7 @@ class SLAMonitor:
             )
 
         return {
-            "report_date": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "report_date": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
             "period_days": days,
             "total_jobs": len(metrics_list),
             "compliant_jobs": compliant_count,
@@ -352,7 +352,7 @@ class SLAMonitor:
         # Calculate data points
         num_intervals = days // interval_days
         for i in range(num_intervals):
-            end_date = datetime.utcnow() - timedelta(days=i * interval_days)
+            end_date = datetime.now(timezone.utc) - timedelta(days=i * interval_days)
             start_date = end_date - timedelta(days=interval_days)
 
             # Get executions in interval
@@ -393,7 +393,7 @@ class SLAMonitor:
         Returns:
             Global statistics dictionary
         """
-        start_date = datetime.utcnow() - timedelta(days=days)
+        start_date = datetime.now(timezone.utc) - timedelta(days=days)
 
         # Total executions
         total_executions = BackupExecution.query.filter(BackupExecution.execution_date >= start_date).count()

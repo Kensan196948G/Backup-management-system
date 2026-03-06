@@ -4,7 +4,7 @@ Endpoint for PowerShell scripts to update backup status
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import jsonify, request
 
@@ -65,7 +65,7 @@ def update_backup_status():
             return validation_error_response({"execution_result": f'Must be one of: {", ".join(valid_results)}'})
 
         # Parse execution date
-        execution_date = datetime.utcnow()
+        execution_date = datetime.now(timezone.utc)
         if "execution_date" in data:
             try:
                 execution_date = datetime.fromisoformat(data["execution_date"].replace("Z", "+00:00"))
@@ -91,8 +91,8 @@ def update_backup_status():
         # Generate alerts for failed backups
         if data["execution_result"] in ["failed", "warning"]:
             alert_manager = AlertManager()
-            alert_manager.create_backup_failure_alert(
-                job_id=data["job_id"], execution_id=execution.id, error_message=data.get("error_message")
+            alert_manager.create_failure_alert(
+                job_id=data["job_id"], error_message=data.get("error_message")
             )
 
         # Check compliance and generate alerts if needed
@@ -165,7 +165,7 @@ def update_copy_status():
                 return validation_error_response({"last_backup_size": "Must be a non-negative number"})
             copy.last_backup_size = int(data["last_backup_size"])
 
-        copy.updated_at = datetime.utcnow()
+        copy.updated_at = datetime.now(timezone.utc)
         db.session.commit()
 
         logger.info(f"Backup copy status updated: copy_id={data['copy_id']}")

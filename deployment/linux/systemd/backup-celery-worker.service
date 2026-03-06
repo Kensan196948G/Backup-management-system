@@ -1,0 +1,31 @@
+[Unit]
+Description=3-2-1-1-0 Backup Management System - Celery Worker
+After=network.target redis.service
+Requires=redis.service
+
+[Service]
+Type=forking
+User=backupmgmt
+Group=backupmgmt
+WorkingDirectory=/opt/backup-management-system
+Environment="FLASK_ENV=production"
+EnvironmentFile=/opt/backup-management-system/.env
+PIDFile=/var/run/celery/backup-celery-worker.pid
+ExecStart=/opt/backup-management-system/venv/bin/celery \
+    -A celery_worker.celery_app worker \
+    --loglevel=INFO \
+    --concurrency=4 \
+    --queues=backup,email,notifications,default \
+    --pidfile=/var/run/celery/backup-celery-worker.pid \
+    --logfile=/var/log/backup-management/celery-worker.log \
+    --detach
+ExecStop=/opt/backup-management-system/venv/bin/celery \
+    -A celery_worker.celery_app control shutdown
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=10
+KillMode=mixed
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

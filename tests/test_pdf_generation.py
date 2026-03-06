@@ -6,7 +6,7 @@ Tests for WeasyPrint-based PDF report generation
 
 import os
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -53,6 +53,10 @@ def test_user(app):
         user.set_password("password123")
         db.session.add(user)
         db.session.commit()
+        user_id = user.id  # capture id before context exits
+        # Re-query in context to keep attributes loaded
+        db.session.expunge(user)
+        user.id = user_id
         return user
 
 
@@ -60,14 +64,18 @@ def test_user(app):
 def test_data(app, test_user):
     """Create test data"""
     with app.app_context():
+        # Re-attach user to current session
+        user = User.query.get(test_user.id)
+
         # Create backup job
         job = BackupJob(
             job_name="Test Backup Job",
-            source_path="/test/source",
-            destination_path="/test/destination",
+            job_type="file",
+            backup_tool="custom",
             schedule_type="daily",
+            retention_days=30,
             is_active=True,
-            created_by=test_user.id,
+            owner_id=user.id,
         )
         db.session.add(job)
         db.session.commit()
@@ -76,7 +84,7 @@ def test_data(app, test_user):
         for i in range(10):
             execution = BackupExecution(
                 job_id=job.id,
-                execution_date=datetime.utcnow() - timedelta(days=i),
+                execution_date=datetime.now(timezone.utc) - timedelta(days=i),
                 execution_result="success" if i < 8 else "failed",
                 backup_size_bytes=1024 * 1024 * 100,  # 100MB
                 duration_seconds=120,
@@ -86,12 +94,12 @@ def test_data(app, test_user):
         # Create compliance status
         compliance = ComplianceStatus(
             job_id=job.id,
-            check_date=datetime.utcnow(),
-            three_copies=True,
-            two_media_types=True,
-            one_offsite=True,
-            one_offline=True,
-            zero_errors=True,
+            check_date=datetime.now(timezone.utc).replace(tzinfo=None),
+            copies_count=3,
+            media_types_count=2,
+            has_offsite=True,
+            has_offline=True,
+            has_errors=False,
             overall_status="compliant",
         )
         db.session.add(compliance)
@@ -99,27 +107,28 @@ def test_data(app, test_user):
         # Create verification test
         test = VerificationTest(
             job_id=job.id,
-            test_date=datetime.utcnow(),
+            test_date=datetime.now(timezone.utc).replace(tzinfo=None),
             test_type="integrity",
             test_result="success",
+            tester_id=user.id,
         )
         db.session.add(test)
 
         # Create audit logs
         for i in range(20):
             log = AuditLog(
-                user_id=test_user.id,
+                user_id=user.id,
                 action_type="EXECUTE" if i % 2 == 0 else "VERIFY",
                 action_result="success",
                 resource_type="BackupJob",
                 resource_id=job.id,
-                description=f"Test action {i}",
+                details=f"Test action {i}",
                 ip_address="127.0.0.1",
             )
             db.session.add(log)
 
         db.session.commit()
-        return {"job": job, "user": test_user}
+        return {"job": job, "user": user}
 
 
 class TestPDFGenerator:
@@ -303,7 +312,7 @@ class TestReportGeneratorPDF:
 
             report = generator.generate_daily_report(
                 generated_by=test_user.id,
-                date=datetime.utcnow().date(),
+                date=datetime.now(timezone.utc).date(),
                 format="pdf",
             )
 
@@ -332,8 +341,8 @@ class TestReportGeneratorPDF:
 
             report = generator.generate_audit_report(
                 generated_by=test_user.id,
-                start_date=datetime.utcnow() - timedelta(days=7),
-                end_date=datetime.utcnow(),
+                start_date=datetime.now(timezone.utc) - timedelta(days=7),
+                end_date=datetime.now(timezone.utc),
                 format="pdf",
             )
 
@@ -372,12 +381,23 @@ class TestPDFTemplates:
                 "report_title": "Test ISO 27001 Report",
                 "start_date": datetime(2025, 10, 1),
                 "end_date": datetime(2025, 10, 31),
-                "generated_date": datetime.utcnow(),
+                "generated_date": datetime.now(timezone.utc),
                 "data": {
                     "total_jobs": 10,
                     "compliance_rate": 95.0,
                     "success_rate": 98.0,
                     "verification_rate": 97.0,
+                    "failed_count": 1,
+                    "warning_count": 2,
+                    "success_count": 97,
+                    "test_failed_count": 0,
+                    "test_success_count": 10,
+                    "total_backup_size": 1024 * 1024 * 1024,
+                    "avg_backup_size": 100 * 1024 * 1024,
+                    "avg_duration": 120,
+                    "executions": [],
+                    "verification_tests": [],
+                    "compliance_statuses": [],
                 },
                 "clauses": [],
             }
@@ -397,7 +417,7 @@ class TestPDFTemplates:
                 "report_title": "3-2-1-1-0 Compliance Report",
                 "start_date": datetime(2025, 10, 1),
                 "end_date": datetime(2025, 10, 31),
-                "generated_date": datetime.utcnow(),
+                "generated_date": datetime.now(timezone.utc),
                 "data": {
                     "total_jobs": 10,
                     "compliance_rate": 90.0,

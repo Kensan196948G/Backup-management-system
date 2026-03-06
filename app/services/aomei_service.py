@@ -11,7 +11,7 @@ Features:
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
 from app.models import BackupCopy, BackupExecution, BackupJob, db
@@ -99,7 +99,7 @@ class AOMEIService:
                     job.target_path = target_path
                 if description:
                     job.description = description
-                job.updated_at = datetime.utcnow()
+                job.updated_at = datetime.now(timezone.utc)
 
                 db.session.commit()
 
@@ -158,9 +158,9 @@ class AOMEIService:
 
             # Use current time if not provided
             if not start_time:
-                start_time = datetime.utcnow()
+                start_time = datetime.now(timezone.utc)
             if not end_time:
-                end_time = datetime.utcnow()
+                end_time = datetime.now(timezone.utc)
 
             # Create backup execution record
             execution = BackupExecution(
@@ -193,12 +193,12 @@ class AOMEIService:
             copy.last_backup_size = backup_size
             copy.status = mapped_status
             copy.storage_path = storage_path or copy.storage_path
-            copy.updated_at = datetime.utcnow()
+            copy.updated_at = datetime.now(timezone.utc)
 
             # Update job information
             if task_name:
                 job.job_name = task_name
-            job.updated_at = datetime.utcnow()
+            job.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
 

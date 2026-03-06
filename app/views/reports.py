@@ -4,7 +4,7 @@ Report viewing, generation, and export
 """
 
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from flask import (
     current_app,
@@ -16,8 +16,8 @@ from flask import (
     send_file,
     url_for,
 )
-from flask_login import current_user, login_required
-from sqlalchemy import and_, desc, or_
+from flask_login import login_required
+from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
 from app.auth.decorators import role_required
@@ -95,7 +95,7 @@ def generate():
         try:
             # Get form data
             report_type = request.form.get("report_type")
-            period_type = request.form.get("period_type")
+            request.form.get("period_type")
             start_date_str = request.form.get("start_date")
             end_date_str = request.form.get("end_date")
             format_type = request.form.get("format", "pdf")
@@ -287,7 +287,7 @@ def api_generate():
             return jsonify({"error": {"code": "INVALID_REQUEST", "message": "report_type is required"}}), 400
 
         report_type = data["report_type"]
-        period_type = data.get("period_type", "custom")
+        data.get("period_type", "custom")
         start_date_str = data.get("start_date")
         end_date_str = data.get("end_date")
         format_type = data.get("format", "pdf")
