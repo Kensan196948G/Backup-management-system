@@ -51,6 +51,14 @@ jobs:
             echo "app/ directory not found, skipping isort"
           fi
 
+      - name: Check for auto-repair artifacts in staging
+        run: |
+          if git diff --cached --name-only | grep -E '\.(diff|patch)$|^state\.json$|^current\.diff$|^new\.diff$'; then
+            echo "ERROR: Auto-repair artifacts should not be committed!"
+            exit 1
+          fi
+          echo "✅ Auto-repair artifact check passed"
+
   test:
     name: Run Tests
     runs-on: ubuntu-latest

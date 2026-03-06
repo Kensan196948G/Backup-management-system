@@ -225,3 +225,12 @@ logs/*.log.*
 
 # ビルド成果物
 reports/*.html
+
+# Auto-repair artifacts (prevent auto-repair loop from polluting repo)
+current.diff
+new.diff
+state.json
+*.diff
+repair_state*.json
+.repair_*/
+.auto-repair-state.json
