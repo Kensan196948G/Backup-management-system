@@ -8,7 +8,6 @@ Supports multiple notification channels:
 - Microsoft Teams webhooks
 """
 
-import json
 import logging
 from datetime import datetime, timedelta, timezone
 from enum import Enum

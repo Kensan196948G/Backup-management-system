@@ -16,11 +16,10 @@ Report types:
 
 import csv
 import logging
-import os
 from datetime import datetime, timedelta, timezone
-from io import BytesIO, StringIO
+from io import StringIO
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from app.config import Config
 from app.models import (
