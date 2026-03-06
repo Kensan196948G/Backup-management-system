@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 
 from flask import (
+    abort,
     current_app,
     flash,
     jsonify,
@@ -68,7 +69,9 @@ def detail(report_id):
     Report detail page
     Shows report metadata and download link
     """
-    report = Report.query.get_or_404(report_id)
+    report = db.session.get(Report, report_id)
+    if report is None:
+        abort(404)
 
     return render_template("reports/detail.html", report=report)
 
@@ -150,7 +153,9 @@ def download(report_id):
     """
     Download report file
     """
-    report = Report.query.get_or_404(report_id)
+    report = db.session.get(Report, report_id)
+    if report is None:
+        abort(404)
 
     try:
         # Check if file exists
@@ -183,7 +188,9 @@ def delete(report_id):
     """
     Delete report (admin only)
     """
-    report = Report.query.get_or_404(report_id)
+    report = db.session.get(Report, report_id)
+    if report is None:
+        abort(404)
 
     try:
         # Delete file
@@ -264,8 +271,10 @@ def api_detail(report_id):
     """
     API endpoint for report detail
     """
+    report = db.session.get(Report, report_id)
+    if report is None:
+        return jsonify({"error": {"code": "NOT_FOUND", "message": "Report not found"}}), 404
     try:
-        report = Report.query.get_or_404(report_id)
         return jsonify({"report": report.to_dict()}), 200
 
     except Exception as e:

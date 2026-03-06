@@ -6,6 +6,7 @@ Media inventory, rotation, and lending management
 from datetime import datetime, timedelta, timezone
 
 from flask import (
+    abort,
     current_app,
     flash,
     jsonify,
@@ -111,7 +112,9 @@ def detail(media_id):
     Media detail page
     Shows media information, rotation schedule, and lending history
     """
-    media = OfflineMedia.query.get_or_404(media_id)
+    media = db.session.get(OfflineMedia, media_id)
+    if media is None:
+        abort(404)
 
     # Get rotation schedule
     rotation = MediaRotationSchedule.query.filter_by(offline_media_id=media_id).first()
@@ -169,7 +172,9 @@ def edit(media_id):
     """
     Edit offline media
     """
-    media = OfflineMedia.query.get_or_404(media_id)
+    media = db.session.get(OfflineMedia, media_id)
+    if media is None:
+        abort(404)
 
     if request.method == "POST":
         try:
@@ -206,7 +211,9 @@ def delete(media_id):
     """
     Delete offline media (admin only)
     """
-    media = OfflineMedia.query.get_or_404(media_id)
+    media = db.session.get(OfflineMedia, media_id)
+    if media is None:
+        abort(404)
 
     try:
         label = media.media_id
@@ -241,7 +248,9 @@ def lend(media_id):
     """
     Lend media to user
     """
-    media = OfflineMedia.query.get_or_404(media_id)
+    media = db.session.get(OfflineMedia, media_id)
+    if media is None:
+        abort(404)
 
     if request.method == "POST":
         try:
@@ -292,7 +301,9 @@ def return_media(media_id):
     """
     Return borrowed media
     """
-    media = OfflineMedia.query.get_or_404(media_id)
+    media = db.session.get(OfflineMedia, media_id)
+    if media is None:
+        abort(404)
 
     try:
         # Find active lending record
@@ -369,8 +380,10 @@ def api_detail(media_id):
     """
     API endpoint for media detail
     """
+    media = db.session.get(OfflineMedia, media_id)
+    if media is None:
+        return jsonify({"error": {"code": "NOT_FOUND", "message": "Media not found"}}), 404
     try:
-        media = OfflineMedia.query.get_or_404(media_id)
         return jsonify({"media": media.to_dict()}), 200
 
     except Exception as e:
