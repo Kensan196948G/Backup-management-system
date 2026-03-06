@@ -267,7 +267,7 @@ def get_compliance_trend():
         # Organize data by date
         trend_data = {}
         for date_val, status, count in daily_compliance:
-            date_str = date_val.isoformat()
+            date_str = date_val if isinstance(date_val, str) else date_val.isoformat()
             if date_str not in trend_data:
                 trend_data[date_str] = {"compliant": 0, "non_compliant": 0, "warning": 0}
             trend_data[date_str][status] = count
@@ -323,7 +323,7 @@ def get_execution_statistics():
         # Organize data by date
         stats_data = {}
         for date_val, result, count in daily_stats:
-            date_str = date_val.isoformat()
+            date_str = date_val if isinstance(date_val, str) else date_val.isoformat()
             if date_str not in stats_data:
                 stats_data[date_str] = {"success": 0, "failed": 0, "warning": 0}
             stats_data[date_str][result] = count

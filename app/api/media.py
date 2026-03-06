@@ -470,8 +470,15 @@ def borrow_media(media_id):
 
         # Validate required fields
         errors = {}
+        expected_return = None
         if "expected_return" not in data:
             errors["expected_return"] = "expected_return is required"
+        else:
+            # Validate expected_return date
+            try:
+                expected_return = datetime.strptime(data["expected_return"], "%Y-%m-%d").date()
+            except ValueError:
+                errors["expected_return"] = "Invalid date format. Use YYYY-MM-DD"
 
         # Use current user as borrower if not specified
         borrower_id = data.get("borrower_id")
@@ -480,13 +487,6 @@ def borrow_media(media_id):
 
         if not borrower_id:
             errors["borrower_id"] = "borrower_id is required"
-
-        # Validate expected_return date
-        try:
-            expected_return = datetime.strptime(data["expected_return"], "%Y-%m-%d").date()
-        except ValueError:
-            errors["expected_return"] = "Invalid date format. Use YYYY-MM-DD"
-            expected_return = None
 
         if errors:
             return validation_error_response(errors)
