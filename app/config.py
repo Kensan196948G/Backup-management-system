@@ -63,6 +63,10 @@ class Config:
     # Microsoft Teams
     TEAMS_WEBHOOK_URL = os.environ.get("TEAMS_WEBHOOK_URL")
 
+    # Slack
+    SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
+    SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL", "#backup-alerts")
+
     # Logging
     LOG_DIR = BASE_DIR / "logs"
     LOG_LEVEL = os.environ.get("LOG_LEVEL") or "INFO"
