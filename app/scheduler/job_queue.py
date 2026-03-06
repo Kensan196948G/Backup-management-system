@@ -102,7 +102,7 @@ class JobDependencyManager:
         self.dependencies: Dict[int, Set[int]] = defaultdict(set)  # job -> dependencies
         self.dependents: Dict[int, Set[int]] = defaultdict(set)  # job -> dependents
         self.completed: Set[int] = set()
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()  # RLock: mark_completed calls is_ready while holding lock
 
     def add_dependency(self, job_id: int, depends_on: int) -> None:
         """
