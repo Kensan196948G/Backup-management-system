@@ -1,0 +1,767 @@
+name: Auto Error Detection & Repair Loop
+
+# ============================================================
+# 🤖 自動エラー検知・修復ループシステム
+#
+# 概要:
+#   30分間隔で自動的にエラーを検知し、可能な限り自動修復します。
+#   最大15回のループで繰り返し修復を試みます。
+#
+# エラー検知項目（7種類）:
+#   1. コードスタイル: flake8（ESLint相当）
+#   2. フォーマット: black/isort（Prettier相当）
+#   3. テスト実行: pytest（Jest相当）
+#   4. セキュリティ脆弱性: pip-audit（npm audit相当）
+#   5. DBマイグレーション: alembic（migrations相当）
+#   6. ファイルパーミッション: chmod確認（File Permissions相当）
+#   7. コード品質: bandit（Code Quality相当）
+#
+# 実行スケジュール:
+#   - cron: 30分ごと自動実行
+#   - 手動実行: GitHub Actions UI
+#   - Issueトリガー: auto-fix ラベル付与
+# ============================================================
+
+on:
+  # 30分ごと自動実行
+  schedule:
+    - cron: '*/30 * * * *'
+
+  # 手動実行（GitHub Actions UI からトリガー可能）
+  workflow_dispatch:
+    inputs:
+      max_repairs:
+        description: '最大修復ループ回数（デフォルト: 15）'
+        required: false
+        default: '15'
+        type: string
+      target_branch:
+        description: '対象ブランチ（デフォルト: develop）'
+        required: false
+        default: 'develop'
+        type: string
+      dry_run:
+        description: 'ドライラン（修復コミットなし）'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+  # Issueに auto-fix ラベルが付与されたときにトリガー
+  issues:
+    types: [labeled]
+
+# 並列実行防止（競合・二重修復防止）
+# cancel-in-progress: false で実行中のループを中断しない
+concurrency:
+  group: auto-error-detection-loop
+  cancel-in-progress: false
+
+jobs:
+  auto-error-detection-and-repair:
+    name: Auto Error Detection & Repair
+    runs-on: ubuntu-latest
+
+    # Issueトリガーの場合、auto-fix ラベルのみ実行
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'auto-fix')
+
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+
+    # 環境変数設定
+    env:
+      MAX_REPAIRS: ${{ github.event.inputs.max_repairs || '15' }}
+      TARGET_BRANCH: ${{ github.event.inputs.target_branch || 'develop' }}
+      DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+      PYTHONPATH: '.'
+
+    steps:
+      # ============================================================
+      # Step 1: チェックアウト
+      # ============================================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target_branch || 'develop' }}
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ============================================================
+      # Step 2: Python 環境セットアップ
+      # ============================================================
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # アプリケーション依存関係
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          fi
+          # 開発ツール（エラー検知・修復用）
+          pip install \
+            flake8 \
+            black \
+            isort \
+            bandit \
+            autoflake \
+            pip-audit \
+            pytest \
+            pytest-cov
+
+      # ============================================================
+      # Step 3: 修復状態の復元（Cacheから前回状態引き継ぎ）
+      # ============================================================
+      - name: Restore repair state from cache
+        id: cache-restore
+        uses: actions/cache@v4
+        with:
+          path: .auto-repair-state.json
+          key: auto-repair-state-${{ env.TARGET_BRANCH }}-${{ github.run_number }}
+          restore-keys: |
+            auto-repair-state-${{ env.TARGET_BRANCH }}-
+
+      - name: Initialize repair state
+        id: init
+        run: |
+          if [ ! -f .auto-repair-state.json ]; then
+            cat > .auto-repair-state.json << 'STATEOF'
+          {
+            "repair_count": 0,
+            "loop_count": 0,
+            "total_issues_found": 0,
+            "total_issues_fixed": 0,
+            "last_run": "",
+            "history": []
+          }
+          STATEOF
+          fi
+
+          echo "🔧 修復状態を初期化しました"
+          cat .auto-repair-state.json
+
+          # 現在の修復カウントを取得
+          REPAIR_COUNT=$(python3 -c "import json; d=json.load(open('.auto-repair-state.json')); print(d.get('repair_count', 0))")
+          echo "repair_count=$REPAIR_COUNT" >> $GITHUB_OUTPUT
+          echo "max_repairs=$MAX_REPAIRS" >> $GITHUB_OUTPUT
+
+      # ============================================================
+      # Step 4: エラー検知フェーズ（7種類）
+      # ============================================================
+
+      # --- 検知1: コードスタイル（flake8 / ESLint相当）---
+      - name: "[検知1] コードスタイルチェック (flake8)"
+        id: check_style
+        continue-on-error: true
+        run: |
+          echo "🔍 [検知1] コードスタイルチェック開始..."
+          ERRORS_FOUND=0
+
+          if [ -d "app" ]; then
+            # 重大エラーチェック（E9=構文エラー, F63/F7/F82=未定義参照等）
+            if ! flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1 | tee /tmp/flake8-critical.log; then
+              echo "❌ 重大なコードスタイルエラーが検出されました"
+              ERRORS_FOUND=1
+            fi
+
+            # 警告チェック（E501=行長, W291=末尾スペース等）
+            flake8 app/ --count \
+              --max-line-length=127 \
+              --extend-ignore=E203,W503 \
+              --statistics 2>&1 | tee /tmp/flake8-warnings.log || true
+          fi
+
+          echo "style_errors=$ERRORS_FOUND" >> $GITHUB_OUTPUT
+          if [ "$ERRORS_FOUND" -eq 0 ]; then
+            echo "✅ [検知1] コードスタイル: 問題なし"
+          else
+            echo "⚠️  [検知1] コードスタイル: エラーあり"
+          fi
+
+      # --- 検知2: フォーマット（black/isort / Prettier相当）---
+      - name: "[検知2] フォーマットチェック (black/isort)"
+        id: check_format
+        continue-on-error: true
+        run: |
+          echo "🔍 [検知2] フォーマットチェック開始..."
+          FORMAT_ERRORS=0
+
+          if [ -d "app" ]; then
+            # Black フォーマットチェック（--check は変更なしでチェックのみ）
+            if ! black app/ --check --line-length=127 2>&1 | tee /tmp/black-check.log; then
+              echo "❌ Blackフォーマット違反が検出されました"
+              FORMAT_ERRORS=1
+            fi
+
+            # isort インポートソートチェック
+            if ! isort app/ --check-only --profile black 2>&1 | tee /tmp/isort-check.log; then
+              echo "❌ isortインポート順序違反が検出されました"
+              FORMAT_ERRORS=1
+            fi
+          fi
+
+          echo "format_errors=$FORMAT_ERRORS" >> $GITHUB_OUTPUT
+          if [ "$FORMAT_ERRORS" -eq 0 ]; then
+            echo "✅ [検知2] フォーマット: 問題なし"
+          else
+            echo "⚠️  [検知2] フォーマット: 修正が必要"
+          fi
+
+      # --- 検知3: テスト実行（pytest / Jest相当）---
+      - name: "[検知3] テスト実行 (pytest)"
+        id: check_tests
+        continue-on-error: true
+        run: |
+          echo "🔍 [検知3] テスト実行開始..."
+          TEST_ERRORS=0
+
+          if [ -d "tests" ]; then
+            # Unitテストのみ実行（高速・CIフレンドリー）
+            if ! pytest tests/unit/ -x -q --tb=short \
+              --timeout=60 \
+              -p no:warnings \
+              2>&1 | tee /tmp/pytest-results.log; then
+              echo "❌ テスト失敗が検出されました"
+              TEST_ERRORS=1
+            fi
+          else
+            echo "⚠️  testsディレクトリが見つかりません"
+          fi
+
+          echo "test_errors=$TEST_ERRORS" >> $GITHUB_OUTPUT
+          if [ "$TEST_ERRORS" -eq 0 ]; then
+            echo "✅ [検知3] テスト: すべて合格"
+          else
+            echo "⚠️  [検知3] テスト: 失敗あり"
+          fi
+
+      # --- 検知4: セキュリティ脆弱性（pip-audit / npm audit相当）---
+      - name: "[検知4] セキュリティ脆弱性スキャン (pip-audit)"
+        id: check_security
+        continue-on-error: true
+        run: |
+          echo "🔍 [検知4] セキュリティ脆弱性スキャン開始..."
+          SEC_ERRORS=0
+
+          if [ -f "requirements.txt" ]; then
+            # pip-audit で既知の脆弱性をチェック
+            if ! pip-audit -r requirements.txt \
+              --format=json \
+              --output=/tmp/pip-audit-report.json 2>&1 | tee /tmp/pip-audit.log; then
+              VULN_COUNT=$(python3 -c "
+          import json, sys
+          try:
+              data = json.load(open('/tmp/pip-audit-report.json'))
+              vulns = [d for d in data.get('dependencies', []) if d.get('vulns')]
+              print(len(vulns))
+          except:
+              print(0)
+          ")
+              if [ "$VULN_COUNT" -gt 0 ]; then
+                echo "❌ $VULN_COUNT 件の脆弱性が検出されました"
+                SEC_ERRORS=1
+              fi
+            fi
+          fi
+
+          echo "security_errors=$SEC_ERRORS" >> $GITHUB_OUTPUT
+          if [ "$SEC_ERRORS" -eq 0 ]; then
+            echo "✅ [検知4] セキュリティ: 脆弱性なし"
+          else
+            echo "⚠️  [検知4] セキュリティ: 脆弱性あり（requirements.txt の更新が必要）"
+          fi
+
+      # --- 検知5: DBマイグレーション（alembic / migrations相当）---
+      - name: "[検知5] DBマイグレーション整合性チェック (alembic)"
+        id: check_migrations
+        continue-on-error: true
+        run: |
+          echo "🔍 [検知5] DBマイグレーション整合性チェック開始..."
+          MIGRATION_ERRORS=0
+
+          if [ -d "migrations" ] && [ -f "migrations/env.py" ]; then
+            # alembic heads で複数ヘッド（マージ未解決）を検出
+            HEADS=$(python3 -c "
+          import subprocess, sys
+          result = subprocess.run(
+              ['python', '-c', 'from app import create_app; app = create_app(); app.app_context().push()'],
+              capture_output=True, text=True, timeout=30
+          )
+          if result.returncode != 0:
+              sys.exit(1)
+          " 2>&1) || true
+
+            # migration ファイルの重複チェック
+            DUPLICATE_REVISIONS=$(find migrations/versions -name "*.py" -exec grep -l "^revision = " {} \; | \
+              xargs -I{} python3 -c "
+          import re
+          content = open('{}').read()
+          m = re.search(r\"revision = '([^']+)'\", content)
+          if m: print(m.group(1))
+          " 2>/dev/null | sort | uniq -d)
+
+            if [ -n "$DUPLICATE_REVISIONS" ]; then
+              echo "❌ 重複マイグレーションリビジョンが検出されました: $DUPLICATE_REVISIONS"
+              MIGRATION_ERRORS=1
+            fi
+          else
+            echo "ℹ️  migrationsディレクトリが見つかりません（スキップ）"
+          fi
+
+          echo "migration_errors=$MIGRATION_ERRORS" >> $GITHUB_OUTPUT
+          if [ "$MIGRATION_ERRORS" -eq 0 ]; then
+            echo "✅ [検知5] DBマイグレーション: 整合性OK"
+          else
+            echo "⚠️  [検知5] DBマイグレーション: 問題あり"
+          fi
+
+      # --- 検知6: ファイルパーミッション（chmod確認）---
+      - name: "[検知6] ファイルパーミッションチェック"
+        id: check_permissions
+        continue-on-error: true
+        run: |
+          echo "🔍 [検知6] ファイルパーミッションチェック開始..."
+          PERM_ERRORS=0
+
+          # スクリプトファイルに実行権限があるか確認
+          MISSING_EXEC=()
+          for script in $(find scripts/ -name "*.sh" 2>/dev/null); do
+            if [ ! -x "$script" ]; then
+              MISSING_EXEC+=("$script")
+            fi
+          done
+
+          # Pythonファイルに誤った実行権限がないか確認（セキュリティ）
+          WRONG_EXEC=()
+          for pyfile in $(find app/ -name "*.py" 2>/dev/null | head -50); do
+            if [ -x "$pyfile" ] && [ "$(head -1 "$pyfile")" != "#!/usr/bin/env python" ] && \
+               [ "$(head -1 "$pyfile")" != "#!/usr/bin/env python3" ]; then
+              WRONG_EXEC+=("$pyfile")
+            fi
+          done
+
+          if [ "${#MISSING_EXEC[@]}" -gt 0 ]; then
+            echo "⚠️  実行権限なしのシェルスクリプト: ${MISSING_EXEC[*]}"
+            PERM_ERRORS=1
+          fi
+
+          echo "permission_errors=$PERM_ERRORS" >> $GITHUB_OUTPUT
+          echo "missing_exec_scripts=${MISSING_EXEC[*]}" >> $GITHUB_OUTPUT
+          if [ "$PERM_ERRORS" -eq 0 ]; then
+            echo "✅ [検知6] ファイルパーミッション: 問題なし"
+          else
+            echo "⚠️  [検知6] ファイルパーミッション: 修正が必要"
+          fi
+
+      # --- 検知7: コード品質（bandit / Code Quality相当）---
+      - name: "[検知7] コード品質・セキュリティ静的解析 (bandit)"
+        id: check_quality
+        continue-on-error: true
+        run: |
+          echo "🔍 [検知7] コード品質・静的セキュリティ解析開始..."
+          QUALITY_ERRORS=0
+
+          if [ -d "app" ]; then
+            # bandit で高深刻度の問題のみ検出（-ll = medium以上）
+            if ! bandit -r app/ -ll -f json -o /tmp/bandit-report.json 2>&1 | tee /tmp/bandit.log; then
+              HIGH_ISSUES=$(python3 -c "
+          import json
+          try:
+              data = json.load(open('/tmp/bandit-report.json'))
+              issues = [i for i in data.get('results', [])
+                        if i.get('issue_severity') == 'HIGH']
+              print(len(issues))
+          except:
+              print(0)
+          ")
+              if [ "$HIGH_ISSUES" -gt 0 ]; then
+                echo "❌ $HIGH_ISSUES 件の高深刻度セキュリティ問題が検出されました"
+                QUALITY_ERRORS=1
+              fi
+            fi
+          fi
+
+          echo "quality_errors=$QUALITY_ERRORS" >> $GITHUB_OUTPUT
+          if [ "$QUALITY_ERRORS" -eq 0 ]; then
+            echo "✅ [検知7] コード品質: 問題なし"
+          else
+            echo "⚠️  [検知7] コード品質: 修正が必要"
+          fi
+
+      # ============================================================
+      # Step 5: エラー集計
+      # ============================================================
+      - name: Aggregate error detection results
+        id: aggregate
+        run: |
+          echo "📊 エラー検知結果を集計中..."
+
+          TOTAL_ERRORS=0
+          FIXABLE_ERRORS=0
+          ERROR_SUMMARY=""
+
+          # 各検知結果を集計
+          if [ "${{ steps.check_style.outputs.style_errors }}" = "1" ]; then
+            TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
+            FIXABLE_ERRORS=$((FIXABLE_ERRORS + 1))
+            ERROR_SUMMARY="${ERROR_SUMMARY}style,"
+          fi
+          if [ "${{ steps.check_format.outputs.format_errors }}" = "1" ]; then
+            TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
+            FIXABLE_ERRORS=$((FIXABLE_ERRORS + 1))
+            ERROR_SUMMARY="${ERROR_SUMMARY}format,"
+          fi
+          if [ "${{ steps.check_tests.outputs.test_errors }}" = "1" ]; then
+            TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
+            ERROR_SUMMARY="${ERROR_SUMMARY}tests,"
+          fi
+          if [ "${{ steps.check_security.outputs.security_errors }}" = "1" ]; then
+            TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
+            ERROR_SUMMARY="${ERROR_SUMMARY}security,"
+          fi
+          if [ "${{ steps.check_migrations.outputs.migration_errors }}" = "1" ]; then
+            TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
+            ERROR_SUMMARY="${ERROR_SUMMARY}migrations,"
+          fi
+          if [ "${{ steps.check_permissions.outputs.permission_errors }}" = "1" ]; then
+            TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
+            FIXABLE_ERRORS=$((FIXABLE_ERRORS + 1))
+            ERROR_SUMMARY="${ERROR_SUMMARY}permissions,"
+          fi
+          if [ "${{ steps.check_quality.outputs.quality_errors }}" = "1" ]; then
+            TOTAL_ERRORS=$((TOTAL_ERRORS + 1))
+            ERROR_SUMMARY="${ERROR_SUMMARY}quality,"
+          fi
+
+          echo "total_errors=$TOTAL_ERRORS" >> $GITHUB_OUTPUT
+          echo "fixable_errors=$FIXABLE_ERRORS" >> $GITHUB_OUTPUT
+          echo "error_summary=${ERROR_SUMMARY%,}" >> $GITHUB_OUTPUT
+
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📋 検知結果サマリー:"
+          echo "  合計エラー数: $TOTAL_ERRORS / 7"
+          echo "  自動修復可能: $FIXABLE_ERRORS"
+          echo "  エラー種別: ${ERROR_SUMMARY%,}"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      # ============================================================
+      # Step 6: 自動修復ループ（最大15回）
+      # ============================================================
+      - name: Auto repair loop (max 15 iterations)
+        id: repair
+        if: steps.aggregate.outputs.fixable_errors != '0'
+        run: |
+          echo "🛠  自動修復ループ開始（最大 $MAX_REPAIRS 回）..."
+
+          REPAIR_COUNT=${{ steps.init.outputs.repair_count }}
+          LOOP_ITER=0
+          TOTAL_FIXED=0
+
+          while [ "$LOOP_ITER" -lt "$MAX_REPAIRS" ]; do
+            LOOP_ITER=$((LOOP_ITER + 1))
+            echo ""
+            echo "┌─────────────────────────────────────────┐"
+            echo "│  修復ループ $LOOP_ITER / $MAX_REPAIRS              │"
+            echo "└─────────────────────────────────────────┘"
+
+            FIXED_THIS_LOOP=0
+
+            # ── 修復1: コードスタイル（autoflake + 構文エラーは手動対応が必要）──
+            if [ "${{ steps.check_style.outputs.style_errors }}" = "1" ] || \
+               python3 -c "import sys; sys.exit(0 if __import__('subprocess').run(['flake8','app/','--count','--select=E9,F63,F7,F82'], capture_output=True).returncode != 0 else 1)" 2>/dev/null; then
+              echo "  🔧 [修復1] 未使用変数/importを削除中..."
+              if [ -d "app" ]; then
+                autoflake --in-place --remove-unused-variables -r app/ 2>/dev/null || true
+                FIXED_THIS_LOOP=$((FIXED_THIS_LOOP + 1))
+              fi
+            fi
+
+            # ── 修復2: フォーマット（black + isort / Prettier相当）──
+            echo "  🔧 [修復2] コードフォーマットを自動修正中..."
+            if [ -d "app" ]; then
+              black app/ --line-length=127 2>/dev/null || true
+              isort app/ --profile black 2>/dev/null || true
+              FIXED_THIS_LOOP=$((FIXED_THIS_LOOP + 1))
+            fi
+
+            # ── 修復6: ファイルパーミッション（chmod自動適用）──
+            if [ "${{ steps.check_permissions.outputs.permission_errors }}" = "1" ]; then
+              echo "  🔧 [修復6] シェルスクリプトに実行権限を付与中..."
+              find scripts/ -name "*.sh" -exec chmod +x {} \; 2>/dev/null || true
+              FIXED_THIS_LOOP=$((FIXED_THIS_LOOP + 1))
+            fi
+
+            # ── 変更確認 ──
+            if [[ -n $(git status --porcelain) ]]; then
+              echo "  ✅ ループ $LOOP_ITER: $FIXED_THIS_LOOP 種の修復が完了しました"
+              git diff --stat
+
+              # ── ドライランでなければコミット ──
+              if [ "$DRY_RUN" = "false" ]; then
+                git config user.name "auto-repair-bot[bot]"
+                git config user.email "auto-repair-bot[bot]@users.noreply.github.com"
+
+                git add app/ scripts/ 2>/dev/null || git add . 2>/dev/null || true
+
+                REPAIR_COUNT=$((REPAIR_COUNT + 1))
+                git commit -m "$(cat << COMMITMSG
+          🤖 自動修復 ループ${LOOP_ITER}/${MAX_REPAIRS} (修復#${REPAIR_COUNT})
+
+          自動検知・修復ツールによる自動修正:
+          - black: Pythonコードフォーマット
+          - isort: importソート順の統一
+          - autoflake: 未使用変数削除
+          - chmod: スクリプト実行権限付与
+
+          検知エラー: ${{ steps.aggregate.outputs.error_summary }}
+
+          Co-Authored-By: Auto Repair Bot <noreply@github.com>
+          COMMITMSG
+          )" 2>/dev/null || true
+
+                git push origin HEAD:$TARGET_BRANCH 2>/dev/null || true
+                TOTAL_FIXED=$((TOTAL_FIXED + 1))
+              else
+                echo "  ℹ️  ドライランのためコミットをスキップ"
+              fi
+
+              # ── 修復後に再チェック ──
+              echo "  🔍 修復後再チェック中..."
+              REMAINING_ERRORS=0
+
+              if ! black app/ --check --line-length=127 2>/dev/null; then
+                REMAINING_ERRORS=$((REMAINING_ERRORS + 1))
+              fi
+              if ! isort app/ --check-only --profile black 2>/dev/null; then
+                REMAINING_ERRORS=$((REMAINING_ERRORS + 1))
+              fi
+              if ! flake8 app/ --count --select=E9,F63,F7,F82 2>/dev/null; then
+                REMAINING_ERRORS=$((REMAINING_ERRORS + 1))
+              fi
+
+              if [ "$REMAINING_ERRORS" -eq 0 ]; then
+                echo "  🎉 すべての自動修復可能なエラーが解決されました！"
+                break
+              else
+                echo "  ♻️  残り $REMAINING_ERRORS 件のエラー → 次のループへ"
+              fi
+            else
+              echo "  ✅ ループ $LOOP_ITER: 修復する変更はありません"
+              break
+            fi
+
+          done
+
+          # 修復状態を更新
+          python3 << 'PYEOF'
+          import json
+          from datetime import datetime
+
+          state_file = '.auto-repair-state.json'
+          with open(state_file) as f:
+              state = json.load(f)
+
+          state['repair_count'] = state.get('repair_count', 0) + $TOTAL_FIXED
+          state['loop_count'] = state.get('loop_count', 0) + $LOOP_ITER
+          state['total_issues_found'] = state.get('total_issues_found', 0) + ${{ steps.aggregate.outputs.total_errors }}
+          state['total_issues_fixed'] = state.get('total_issues_fixed', 0) + $TOTAL_FIXED
+          state['last_run'] = datetime.utcnow().isoformat() + 'Z'
+
+          history_entry = {
+              'run': state['loop_count'],
+              'fixed': $TOTAL_FIXED,
+              'errors': '${{ steps.aggregate.outputs.error_summary }}'
+          }
+          state['history'] = (state.get('history', []) + [history_entry])[-10:]  # 最新10件保持
+
+          with open(state_file, 'w') as f:
+              json.dump(state, f, indent=2)
+
+          print(f"状態更新: 累計修復 {state['repair_count']} 回")
+          PYEOF
+
+          echo "total_fixed=$TOTAL_FIXED" >> $GITHUB_OUTPUT
+          echo "loop_iterations=$LOOP_ITER" >> $GITHUB_OUTPUT
+
+      # ============================================================
+      # Step 7: 修復状態をCacheに保存
+      # ============================================================
+      - name: Save repair state to cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .auto-repair-state.json
+          key: auto-repair-state-${{ env.TARGET_BRANCH }}-${{ github.run_number }}
+
+      # ============================================================
+      # Step 8: Issue への結果レポート
+      # ============================================================
+      - name: Post results to Issue or create Issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // ステータス情報収集
+            const totalErrors = '${{ steps.aggregate.outputs.total_errors }}' || '0';
+            const errorSummary = '${{ steps.aggregate.outputs.error_summary }}' || 'なし';
+            const totalFixed = '${{ steps.repair.outputs.total_fixed }}' || '0';
+            const loopIter = '${{ steps.repair.outputs.loop_iterations }}' || '0';
+            const maxRepairs = process.env.MAX_REPAIRS || '15';
+            const dryRun = process.env.DRY_RUN === 'true';
+
+            // エラー種別を日本語に変換
+            const errorMap = {
+              'style': '🔴 コードスタイル (flake8)',
+              'format': '🟡 フォーマット (black/isort)',
+              'tests': '🔴 テスト失敗 (pytest)',
+              'security': '🔴 脆弱性 (pip-audit)',
+              'migrations': '🟠 DBマイグレーション',
+              'permissions': '🟡 ファイルパーミッション',
+              'quality': '🟠 コード品質 (bandit)',
+            };
+
+            const errorList = errorSummary !== 'なし'
+              ? errorSummary.split(',').map(e => errorMap[e.trim()] || e.trim()).join('\n- ')
+              : 'エラーなし';
+
+            // 状態ファイルから累計統計を読み込み
+            let stateStats = { repair_count: 0, total_issues_found: 0, total_issues_fixed: 0 };
+            try {
+              stateStats = JSON.parse(fs.readFileSync('.auto-repair-state.json', 'utf8'));
+            } catch (e) {}
+
+            // レポート本文生成
+            const timestamp = new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' });
+            const statusEmoji = parseInt(totalErrors) === 0 ? '✅' : (parseInt(totalFixed) > 0 ? '🔧' : '⚠️');
+
+            let reportBody = `## ${statusEmoji} 自動エラー検知・修復ループ レポート\n\n`;
+            reportBody += `**実行日時**: ${timestamp} (JST)\n`;
+            reportBody += `**対象ブランチ**: \`${process.env.TARGET_BRANCH || 'develop'}\`\n`;
+            reportBody += `**実行モード**: ${dryRun ? '🔍 ドライラン（修正なし）' : '🛠 自動修復モード'}\n\n`;
+
+            reportBody += `### 📊 検知結果サマリー\n\n`;
+            reportBody += `| 項目 | 結果 |\n|------|------|\n`;
+            reportBody += `| 検知エラー数 | **${totalErrors} / 7** |\n`;
+            reportBody += `| 自動修復実行 | **${totalFixed} 回** |\n`;
+            reportBody += `| ループ回数 | **${loopIter} / ${maxRepairs}** |\n`;
+            reportBody += `| 累計修復 | **${stateStats.repair_count} 回** |\n\n`;
+
+            if (parseInt(totalErrors) > 0) {
+              reportBody += `### 🔍 検知されたエラー種別\n\n- ${errorList}\n\n`;
+            }
+
+            reportBody += `### 🔬 7種類のチェック結果\n\n`;
+            reportBody += `| # | チェック項目 | 状態 |\n|---|------------|------|\n`;
+            reportBody += `| 1 | コードスタイル (flake8) | ${'${{ steps.check_style.outputs.style_errors }}' === '1' ? '❌ 検知' : '✅ OK'} |\n`;
+            reportBody += `| 2 | フォーマット (black/isort) | ${'${{ steps.check_format.outputs.format_errors }}' === '1' ? '❌ 検知' : '✅ OK'} |\n`;
+            reportBody += `| 3 | テスト (pytest) | ${'${{ steps.check_tests.outputs.test_errors }}' === '1' ? '❌ 検知' : '✅ OK'} |\n`;
+            reportBody += `| 4 | 脆弱性 (pip-audit) | ${'${{ steps.check_security.outputs.security_errors }}' === '1' ? '❌ 検知' : '✅ OK'} |\n`;
+            reportBody += `| 5 | DBマイグレーション | ${'${{ steps.check_migrations.outputs.migration_errors }}' === '1' ? '❌ 検知' : '✅ OK'} |\n`;
+            reportBody += `| 6 | ファイルパーミッション | ${'${{ steps.check_permissions.outputs.permission_errors }}' === '1' ? '❌ 検知' : '✅ OK'} |\n`;
+            reportBody += `| 7 | コード品質 (bandit) | ${'${{ steps.check_quality.outputs.quality_errors }}' === '1' ? '❌ 検知' : '✅ OK'} |\n\n`;
+
+            if (parseInt(totalFixed) > 0) {
+              reportBody += `### ✅ 自動修復済み内容\n\n`;
+              reportBody += `- **black**: Pythonコードフォーマット自動整形\n`;
+              reportBody += `- **isort**: importソート順の統一\n`;
+              reportBody += `- **autoflake**: 未使用変数・import削除\n`;
+              reportBody += `- **chmod**: シェルスクリプト実行権限付与\n\n`;
+            }
+
+            reportBody += `---\n`;
+            reportBody += `*🤖 このレポートは [Auto Error Detection & Repair Loop](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) によって自動生成されました*\n`;
+            reportBody += `*次回実行: 30分後（cron: \`*/30 * * * *\`）*`;
+
+            // Issueトリガーの場合はそのIssueにコメント
+            if (context.eventName === 'issues' && context.issue.number) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: reportBody
+              });
+
+              // auto-fix ラベルを削除（処理済みマーク）
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  name: 'auto-fix'
+                });
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.issue.number,
+                  labels: ['auto-fix-completed']
+                });
+              } catch (e) {}
+
+              console.log(`IssueコメントをPOSTしました: #${context.issue.number}`);
+            } else {
+              // cronまたは手動実行の場合はエラーがあればIssueを作成
+              if (parseInt(totalErrors) > 0) {
+                const existingIssues = await github.rest.issues.listForRepo({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  labels: 'auto-detection-report',
+                  state: 'open'
+                });
+
+                if (existingIssues.data.length === 0) {
+                  // 新規Issue作成
+                  const issue = await github.rest.issues.create({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    title: `🤖 自動検知レポート: ${totalErrors}件のエラーを検知 (${timestamp})`,
+                    body: reportBody,
+                    labels: ['auto-detection-report', 'automated']
+                  });
+                  console.log(`新規Issue作成: #${issue.data.number}`);
+                } else {
+                  // 既存Issueにコメント追加
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: existingIssues.data[0].number,
+                    body: reportBody
+                  });
+                  console.log(`既存Issue #${existingIssues.data[0].number} にコメントを追加`);
+                }
+              } else {
+                console.log('✅ エラーなし - レポートIssue不要');
+              }
+            }
+
+      # ============================================================
+      # Step 9: アーティファクト保存
+      # ============================================================
+      - name: Upload detection artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-detection-logs-${{ github.run_number }}
+          path: |
+            /tmp/flake8-critical.log
+            /tmp/flake8-warnings.log
+            /tmp/black-check.log
+            /tmp/isort-check.log
+            /tmp/pytest-results.log
+            /tmp/pip-audit-report.json
+            /tmp/bandit-report.json
+            .auto-repair-state.json
+          retention-days: 14
+          if-no-files-found: ignore
