@@ -1,0 +1,154 @@
+"""
+API Key Status エンドポイントのユニットテスト
+
+Tests:
+- GET /api/v1/auth/api-keys/<id>/status
+- GET /api/v1/auth/api-keys/expiring
+"""
+
+from datetime import datetime, timedelta, timezone
+
+import pytest
+
+from app.models import User, db
+from app.models_api_key import ApiKey
+
+
+class TestApiKeyStatus:
+    """GET /api/v1/auth/api-keys/<id>/status のテスト"""
+
+    def test_get_own_key_status(self, admin_api_client, admin_user, app):
+        """自分のキーの状態を取得できる"""
+        with app.app_context():
+            user = db.session.get(User, admin_user.id)
+            key_text, api_key = ApiKey.create_api_key(
+                user_id=user.id,
+                name="test-status-key",
+                expires_in_days=30,
+            )
+            key_id = api_key.id
+
+        response = admin_api_client.get(f"/api/v1/auth/api-keys/{key_id}/status")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["success"] is True
+        assert "api_key" in data
+        assert "days_until_expiry" in data["api_key"]
+        assert data["api_key"]["expiry_warning"] is False  # 30 days > 7 days
+
+    def test_get_key_status_expiry_warning_flag(self, admin_api_client, admin_user, app):
+        """7日以内に期限切れのキーは expiry_warning=True が返る"""
+        with app.app_context():
+            user = db.session.get(User, admin_user.id)
+            key_text, api_key = ApiKey.create_api_key(
+                user_id=user.id,
+                name="warning-key",
+                expires_in_days=3,
+            )
+            key_id = api_key.id
+
+        response = admin_api_client.get(f"/api/v1/auth/api-keys/{key_id}/status")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["success"] is True
+        assert data["api_key"]["expiry_warning"] is True
+        assert data["api_key"]["days_until_expiry"] <= 7
+
+    def test_get_key_status_no_expiry(self, admin_api_client, admin_user, app):
+        """有効期限なしのキーは days_until_expiry=None, expiry_warning=False が返る"""
+        with app.app_context():
+            user = db.session.get(User, admin_user.id)
+            key_text, api_key = ApiKey.create_api_key(
+                user_id=user.id,
+                name="no-expiry-key",
+                expires_in_days=None,
+            )
+            key_id = api_key.id
+
+        response = admin_api_client.get(f"/api/v1/auth/api-keys/{key_id}/status")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["success"] is True
+        assert data["api_key"]["days_until_expiry"] is None
+        assert data["api_key"]["expiry_warning"] is False
+
+    def test_nonexistent_key_returns_404(self, admin_api_client, app):
+        """存在しないキーで404が返る"""
+        response = admin_api_client.get("/api/v1/auth/api-keys/99999/status")
+        assert response.status_code == 404
+        data = response.get_json()
+        assert data["success"] is False
+
+    def test_unauthenticated_returns_401(self, api_client, app):
+        """未認証でのアクセスが401で拒否される"""
+        response = api_client.client.get("/api/v1/auth/api-keys/1/status")
+        assert response.status_code == 401
+
+
+class TestExpiringApiKeys:
+    """GET /api/v1/auth/api-keys/expiring のテスト"""
+
+    def test_expiring_keys_endpoint_accessible(self, admin_api_client, app):
+        """エンドポイントにアクセスできる"""
+        response = admin_api_client.get("/api/v1/auth/api-keys/expiring")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["success"] is True
+        assert "expiring_keys" in data
+        assert "count" in data
+        assert data["threshold_days"] == 7
+
+    def test_unauthenticated_returns_401(self, api_client, app):
+        """未認証でのアクセスが401で拒否される"""
+        response = api_client.client.get("/api/v1/auth/api-keys/expiring")
+        assert response.status_code == 401
+
+    def test_expiring_keys_contains_keys_expiring_soon(self, admin_api_client, admin_user, app):
+        """7日以内に期限切れのキーが返される"""
+        with app.app_context():
+            user = db.session.get(User, admin_user.id)
+            key_text, api_key = ApiKey.create_api_key(
+                user_id=user.id,
+                name="expiring-soon-key",
+                expires_in_days=3,
+            )
+
+        response = admin_api_client.get("/api/v1/auth/api-keys/expiring")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["count"] >= 1
+        assert any(k["name"] == "expiring-soon-key" for k in data["expiring_keys"])
+
+    def test_keys_not_expiring_soon_excluded(self, admin_api_client, admin_user, app):
+        """7日より先に期限切れのキーは含まれない"""
+        with app.app_context():
+            user = db.session.get(User, admin_user.id)
+            # 30日後に期限切れのキー（対象外）
+            ApiKey.create_api_key(
+                user_id=user.id,
+                name="not-expiring-soon-key",
+                expires_in_days=30,
+            )
+
+        response = admin_api_client.get("/api/v1/auth/api-keys/expiring")
+        assert response.status_code == 200
+        data = response.get_json()
+        # 30日後のキーは含まれない
+        for k in data["expiring_keys"]:
+            assert k["name"] != "not-expiring-soon-key"
+
+    def test_no_expiry_keys_excluded(self, admin_api_client, admin_user, app):
+        """有効期限なしのキーは含まれない"""
+        with app.app_context():
+            user = db.session.get(User, admin_user.id)
+            ApiKey.create_api_key(
+                user_id=user.id,
+                name="no-expiry-permanent",
+                expires_in_days=None,
+            )
+
+        response = admin_api_client.get("/api/v1/auth/api-keys/expiring")
+        assert response.status_code == 200
+        data = response.get_json()
+        for k in data["expiring_keys"]:
+            assert k["name"] != "no-expiry-permanent"
