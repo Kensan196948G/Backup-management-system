@@ -9,9 +9,11 @@ Implements 3-2-1-1-0 backup rule validation:
 - 0 (zero) copies on the original source
 """
 
+import csv
+import io
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from app.config import Config
 from app.models import (
@@ -345,3 +347,187 @@ class ComplianceChecker:
             "warnings": [],
             "details": {},
         }
+
+    # -------------------------------------------------------------------------
+    # Report generation methods (weekly/monthly schedule support)
+    # -------------------------------------------------------------------------
+
+    def check_job_compliance(self, job_id: int) -> Dict:
+        """
+        Check 3-2-1-1-0 rule compliance for a specific backup job.
+        Returns a simplified dict suitable for report generation.
+
+        Returns:
+            Dict with compliance details and violations
+        """
+        job = db.session.get(BackupJob, job_id)
+        if not job:
+            return {"error": f"Job {job_id} not found"}
+
+        violations = []
+        checks = {}
+
+        # Get all copies for this job
+        copies = BackupCopy.query.filter_by(job_id=job_id).all()
+
+        # Rule 1: At least 3 copies
+        copy_count = len(copies)
+        checks["copies"] = {
+            "required": 3,
+            "actual": copy_count,
+            "passed": copy_count >= 3,
+        }
+        if copy_count < 3:
+            violations.append(f"コピー数不足: {copy_count}/3")
+
+        # Rule 2: At least 2 different media types (media_type field)
+        media_types = set(c.media_type for c in copies if getattr(c, "media_type", None))
+        media_type_count = len(media_types)
+        checks["media_types"] = {
+            "required": 2,
+            "actual": media_type_count,
+            "types": list(media_types),
+            "passed": media_type_count >= 2,
+        }
+        if media_type_count < 2:
+            violations.append(f"メディアタイプ不足: {media_type_count}/2")
+
+        # Rule 3: At least 1 offsite copy (copy_type: offsite/cloud/offline)
+        offsite_copies = [
+            c for c in copies
+            if getattr(c, "copy_type", None) in ("offsite", "cloud", "offline")
+        ]
+        has_offsite = len(offsite_copies) >= 1
+        checks["offsite"] = {
+            "required": 1,
+            "actual": len(offsite_copies),
+            "passed": has_offsite,
+        }
+        if not has_offsite:
+            violations.append("オフサイトコピーなし")
+
+        # Rule 4: At least 1 offline/air-gapped copy (OfflineMedia with available status)
+        offline_count = OfflineMedia.query.filter_by(current_status="available").count()
+        has_offline = offline_count >= 1
+        checks["offline"] = {
+            "required": 1,
+            "actual": offline_count,
+            "passed": has_offline,
+        }
+        if not has_offline:
+            violations.append("オフラインメディアなし")
+
+        return {
+            "job_id": job_id,
+            "job_name": job.job_name,
+            "is_compliant": len(violations) == 0,
+            "violations": violations,
+            "checks": checks,
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def generate_system_report(self) -> Dict:
+        """
+        Generate full system compliance report for all active jobs.
+
+        Returns:
+            Dict with system-wide compliance summary
+        """
+        jobs = BackupJob.query.filter_by(is_active=True).all()
+
+        job_results = []
+        compliant_count = 0
+
+        for job in jobs:
+            result = self.check_job_compliance(job.id)
+            job_results.append(result)
+            if result.get("is_compliant"):
+                compliant_count += 1
+
+        total_jobs = len(jobs)
+        compliance_rate = (compliant_count / total_jobs * 100) if total_jobs > 0 else 0
+
+        return {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "total_jobs": total_jobs,
+            "compliant_jobs": compliant_count,
+            "non_compliant_jobs": total_jobs - compliant_count,
+            "compliance_rate": round(compliance_rate, 1),
+            "job_results": job_results,
+            "summary": "COMPLIANT" if compliance_rate == 100 else "NON-COMPLIANT",
+        }
+
+    def generate_csv_report(self, report_data: Dict) -> str:
+        """
+        Generate CSV format compliance report.
+
+        Returns:
+            CSV string
+        """
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        writer.writerow(["生成日時", report_data["generated_at"]])
+        writer.writerow(["コンプライアンス率", f"{report_data['compliance_rate']}%"])
+        writer.writerow([])
+        writer.writerow(["ジョブID", "ジョブ名", "準拠状態", "違反内容"])
+
+        for job in report_data.get("job_results", []):
+            violations_str = "; ".join(job.get("violations", []))
+            status = "準拠" if job.get("is_compliant") else "非準拠"
+            writer.writerow([
+                job.get("job_id"),
+                job.get("job_name"),
+                status,
+                violations_str or "なし",
+            ])
+
+        return output.getvalue()
+
+    def format_email_body(self, report_data: Dict) -> Tuple[str, str]:
+        """
+        Format compliance report for email distribution.
+
+        Returns:
+            Tuple of (text_body, html_body)
+        """
+        rate = report_data["compliance_rate"]
+        status_label = "OK" if rate == 100 else "WARNING" if rate >= 80 else "CRITICAL"
+
+        text_body = (
+            f"\n3-2-1-1-0 バックアップコンプライアンスレポート\n"
+            f"生成日時: {report_data['generated_at']}\n\n"
+            f"[総合結果] {status_label} {report_data['summary']}\n"
+            f"コンプライアンス率: {rate}%\n"
+            f"準拠ジョブ: {report_data['compliant_jobs']}/{report_data['total_jobs']}\n\n"
+        )
+
+        for job in report_data.get("job_results", []):
+            job_status = "[準拠]" if job.get("is_compliant") else "[非準拠]"
+            text_body += f"- {job.get('job_name', 'Unknown')}: {job_status}\n"
+            for v in job.get("violations", []):
+                text_body += f"  - {v}\n"
+
+        html_rows = ""
+        for job in report_data.get("job_results", []):
+            status_cell = "準拠" if job.get("is_compliant") else "非準拠"
+            violations = "<br>".join(job.get("violations", [])) or "なし"
+            html_rows += (
+                f"<tr><td>{job.get('job_name')}</td>"
+                f"<td>{status_cell}</td>"
+                f"<td>{violations}</td></tr>\n"
+            )
+
+        html_body = (
+            "<html><body>"
+            "<h2>3-2-1-1-0 バックアップコンプライアンスレポート</h2>"
+            f"<p><strong>生成日時:</strong> {report_data['generated_at']}</p>"
+            f"<h3>{status_label} {report_data['summary']} - コンプライアンス率: {rate}%</h3>"
+            f"<p>準拠ジョブ: {report_data['compliant_jobs']}/{report_data['total_jobs']}</p>"
+            "<table border=\"1\" cellpadding=\"5\" cellspacing=\"0\">"
+            "<tr><th>ジョブ名</th><th>状態</th><th>違反内容</th></tr>"
+            f"{html_rows}"
+            "</table></body></html>"
+        )
+
+        return text_body, html_body

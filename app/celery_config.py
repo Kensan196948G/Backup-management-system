@@ -110,6 +110,16 @@ class CeleryConfig:
             "task": "app.tasks.postgres_monitoring_tasks.check_backup_status",
             "schedule": crontab(hour=10, minute=0),
         },
+        # Weekly compliance report - every Monday at 09:00 JST
+        "weekly-compliance-report": {
+            "task": "compliance.generate_and_send_weekly_report",
+            "schedule": crontab(hour=9, minute=0, day_of_week=1),
+        },
+        # Monthly compliance report - 1st of each month at 08:00 JST
+        "monthly-compliance-report": {
+            "task": "compliance.generate_and_send_monthly_report",
+            "schedule": crontab(hour=8, minute=0, day_of_month=1),
+        },
     }
 
     # Result backend settings
