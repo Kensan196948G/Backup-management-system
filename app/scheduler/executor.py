@@ -125,7 +125,7 @@ class ResourceManager:
         self.allocated = ResourceAllocation()
         self.job_allocations: Dict[int, ResourceAllocation] = {}
 
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()  # RLock: allocate() calls can_allocate() while holding lock
 
         logger.info(f"ResourceManager initialized: " f"{self.total_cpu} CPUs, {self.total_memory_mb:.0f}MB memory")
 

@@ -4,6 +4,7 @@ Provides JWT and API key authentication for REST API
 """
 
 import logging
+from datetime import datetime, timezone
 
 from flask import Blueprint, jsonify, request
 
@@ -56,7 +57,7 @@ def login():
         }
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
         if not data:
             return jsonify({"success": False, "error": "INVALID_REQUEST", "message": "Request body is required"}), 400
@@ -123,7 +124,7 @@ def refresh():
         }
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
         if not data:
             return jsonify({"success": False, "error": "INVALID_REQUEST", "message": "Request body is required"}), 400
@@ -317,7 +318,7 @@ def create_api_key(current_user):
         }
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
         if not data:
             return jsonify({"success": False, "error": "INVALID_REQUEST", "message": "Request body is required"}), 400
@@ -368,6 +369,83 @@ def create_api_key(current_user):
         db.session.rollback()
         return (
             jsonify({"success": False, "error": "INTERNAL_ERROR", "message": "An error occurred while creating API key"}),
+            500,
+        )
+
+
+@auth_bp.route("/api-keys/<int:key_id>/rotate", methods=["POST"])
+@jwt_required
+def rotate_api_key(current_user, key_id):
+    """
+    Rotate an API key - revokes old key and creates a new one with same settings.
+
+    Headers:
+        Authorization: Bearer <access_token>
+
+    Path Parameters:
+        key_id: API key ID to rotate
+
+    Returns:
+        {
+            "success": true,
+            "message": "API key rotated successfully",
+            "api_key": "bms_xxxxx...",  # ONLY SHOWN ONCE
+            "key_info": {
+                "id": 2,
+                "name": "string",
+                "key_prefix": "bms_xxxxx...",
+                "expires_at": "2026-11-02T00:00:00",
+                "created_at": "2025-11-02T00:00:00"
+            }
+        }
+    """
+    try:
+        old_key = ApiKey.query.filter_by(id=key_id, user_id=current_user.id).first()
+
+        if not old_key:
+            return jsonify({"success": False, "error": "NOT_FOUND", "message": "API key not found"}), 404
+
+        if not old_key.is_active:
+            return jsonify({"success": False, "error": "KEY_INACTIVE", "message": "Cannot rotate an inactive API key"}), 400
+
+        # Calculate remaining expiration (preserve original duration if set)
+        expires_in_days = None
+        if old_key.expires_at:
+            expires = old_key.expires_at
+            now = datetime.now(timezone.utc) if expires.tzinfo else datetime.utcnow()
+            remaining = expires - now
+            expires_in_days = max(1, remaining.days)
+
+        key_name = old_key.name
+
+        # Revoke old key first (atomic-ish: new key created in same transaction scope)
+        old_key.is_active = False
+
+        # Create new key with same settings
+        plaintext_key, new_key = ApiKey.create_api_key(
+            user_id=current_user.id, name=key_name, expires_in_days=expires_in_days
+        )
+
+        logger.info(f"API key '{key_name}' (ID: {key_id}) rotated by user {current_user.username}, new ID: {new_key.id}")
+
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "message": "API key rotated successfully. Please save the new key - it will not be shown again.",
+                    "api_key": plaintext_key,  # ONLY SHOWN ONCE
+                    "key_info": new_key.to_dict(include_key=True),
+                    "revoked_key_id": key_id,
+                }
+            ),
+            201,
+        )
+
+    except Exception as e:
+        logger.error(f"Error rotating API key: {str(e)}", exc_info=True)
+        db.session.rollback()
+        return (
+            jsonify({"success": False, "error": "INTERNAL_ERROR", "message": "An error occurred while rotating API key"}),
             500,
         )
 
@@ -437,7 +515,7 @@ def change_password(current_user):
         }
     """
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
 
         if not data:
             return jsonify({"success": False, "error": "INVALID_REQUEST", "message": "Request body is required"}), 400
