@@ -1,5 +1,5 @@
 diff --git a/app/api/media.py b/app/api/media.py
-index 5e7ca20..3f2510d 100755
+index 85e7b4b..67a72e4 100755
 --- a/app/api/media.py
 +++ b/app/api/media.py
 @@ -4,7 +4,7 @@ CRUD operations for offline media (tapes, external HDDs, USB drives)
@@ -12,7 +12,7 @@ index 5e7ca20..3f2510d 100755
  from flask import jsonify, request
  from flask_login import current_user
 diff --git a/app/scheduler/executor.py b/app/scheduler/executor.py
-index ab458cc..cf0e975 100755
+index 8be4499..e990659 100755
 --- a/app/scheduler/executor.py
 +++ b/app/scheduler/executor.py
 @@ -15,13 +15,12 @@ Features:
