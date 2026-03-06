@@ -278,6 +278,15 @@ def _register_blueprints(app):
     except ImportError as e:
         app.logger.warning(f"API v1 Auth blueprint not found: {e}")
 
+    # SSE (Server-Sent Events) blueprint
+    try:
+        from app.api.v1.sse import sse_bp
+
+        app.register_blueprint(sse_bp)
+        app.logger.info("SSE blueprint registered")
+    except ImportError as e:
+        app.logger.warning(f"SSE blueprint not found: {e}")
+
     app.logger.info("All blueprints registered successfully")
 
     # Register root route
