@@ -118,7 +118,7 @@ def execute():
                 "job_id": request.form.get("job_id"),
                 "test_type": request.form.get("test_type"),
                 "test_date": datetime.now(timezone.utc),
-                "result": request.form.get("result", "pending"),
+                "test_result": request.form.get("result", "pending"),
                 "notes": request.form.get("notes"),
                 "tested_by_id": current_user.id,
             }
