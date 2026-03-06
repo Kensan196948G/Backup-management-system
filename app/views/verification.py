@@ -6,6 +6,7 @@ Test execution, scheduling, and history
 from datetime import datetime, timedelta, timezone
 
 from flask import (
+    abort,
     current_app,
     flash,
     jsonify,
@@ -96,7 +97,9 @@ def detail(test_id):
     Verification test detail page
     Shows test information and results
     """
-    test = VerificationTest.query.get_or_404(test_id)
+    test = db.session.get(VerificationTest, test_id)
+    if test is None:
+        abort(404)
 
     # Get related backup job
     job = db.session.get(BackupJob, test.job_id) if test.job_id else None
@@ -154,7 +157,9 @@ def update(test_id):
     """
     Update verification test result
     """
-    test = VerificationTest.query.get_or_404(test_id)
+    test = db.session.get(VerificationTest, test_id)
+    if test is None:
+        abort(404)
 
     if request.method == "POST":
         try:
@@ -260,7 +265,9 @@ def edit_schedule(schedule_id):
     """
     Edit verification test schedule
     """
-    schedule = VerificationSchedule.query.get_or_404(schedule_id)
+    schedule = db.session.get(VerificationSchedule, schedule_id)
+    if schedule is None:
+        abort(404)
 
     if request.method == "POST":
         try:
@@ -308,7 +315,9 @@ def delete_schedule(schedule_id):
     """
     Delete verification test schedule
     """
-    schedule = VerificationSchedule.query.get_or_404(schedule_id)
+    schedule = db.session.get(VerificationSchedule, schedule_id)
+    if schedule is None:
+        abort(404)
 
     try:
         db.session.delete(schedule)
@@ -354,8 +363,10 @@ def api_detail(test_id):
     """
     API endpoint for verification test detail
     """
+    test = db.session.get(VerificationTest, test_id)
+    if test is None:
+        return jsonify({"error": {"code": "NOT_FOUND", "message": "Test not found"}}), 404
     try:
-        test = VerificationTest.query.get_or_404(test_id)
         return jsonify({"test": test.to_dict()}), 200
 
     except Exception as e:
