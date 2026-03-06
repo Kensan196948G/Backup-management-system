@@ -140,7 +140,12 @@ class ApiKey(db.Model):
         """Check if the API key has expired."""
         if self.expires_at is None:
             return False
-        return self.expires_at < datetime.now(timezone.utc)
+        # SQLite strips timezone info; handle both naive and aware datetimes
+        now = datetime.now(timezone.utc)
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            now = datetime.utcnow()
+        return expires < now
 
     def to_dict(self, include_key: bool = False) -> dict:
         """
@@ -251,4 +256,9 @@ class RefreshToken(db.Model):
 
     def is_expired(self) -> bool:
         """Check if the refresh token has expired."""
-        return self.expires_at < datetime.now(timezone.utc)
+        # SQLite strips timezone info; handle both naive and aware datetimes
+        now = datetime.now(timezone.utc)
+        expires = self.expires_at
+        if expires.tzinfo is None:
+            now = datetime.utcnow()
+        return expires < now
