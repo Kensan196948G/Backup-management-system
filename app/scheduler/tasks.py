@@ -133,7 +133,7 @@ def execute_scheduled_verification_tests(app):
         app: Flask application instance
     """
     with app.app_context():
-        from app.models import BackupJob, VerificationSchedule
+        from app.models import BackupJob, VerificationSchedule, db
         from app.services.verification_service import (
             VerificationType,
             get_verification_service,
