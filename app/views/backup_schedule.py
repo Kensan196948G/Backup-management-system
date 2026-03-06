@@ -25,26 +25,24 @@ bp = Blueprint("backup_schedule", __name__, url_prefix="/backup")
 @role_required("admin", "operator")
 def schedule_list():
     """Display backup schedule management page"""
-    # Fetch all backup jobs with schedule information
-    jobs = BackupJob.query.filter_by(is_active=True).order_by(BackupJob.job_name).all()
+    from app.models import BackupSchedule
 
-    # Mock schedule data (in production, this would come from a Schedule model)
+    # 実DBからスケジュール取得
+    db_schedules = BackupSchedule.query.filter_by(is_active=True).order_by(BackupSchedule.id).all()
+
     schedules = []
-    for job in jobs:
-        if hasattr(job, "schedule_enabled") and job.schedule_enabled:
-            schedules.append(
-                {
-                    "id": job.id,
-                    "job_name": job.job_name,
-                    "source_path": job.source_path,
-                    "cron_expression": getattr(job, "cron_expression", "0 2 * * *"),
-                    "schedule_description": getattr(job, "schedule_description", "Daily at 2:00 AM"),
-                    "next_run": getattr(job, "next_run", datetime.now() + timedelta(hours=2)),
-                    "last_run": getattr(job, "last_run", None),
-                    "priority": getattr(job, "priority", "medium"),
-                    "is_active": getattr(job, "is_active", True),
-                }
-            )
+    for sched in db_schedules:
+        schedules.append({
+            "id": sched.id,
+            "job_name": sched.job.job_name if sched.job else "不明",
+            "source_path": sched.job.source_path if sched.job else "",
+            "cron_expression": sched.cron_expression,
+            "schedule_description": sched.schedule_description or "",
+            "next_run": sched.next_run,
+            "last_run": sched.last_run,
+            "priority": sched.priority,
+            "is_active": sched.is_active,
+        })
 
     # Calculate statistics
     stats = {
@@ -54,6 +52,7 @@ def schedule_list():
         "high_priority": sum(1 for s in schedules if s["priority"] == "high"),
     }
 
+    jobs = BackupJob.query.filter_by(is_active=True).order_by(BackupJob.job_name).all()
     return render_template("backup/schedule.html", schedules=schedules, jobs=jobs, stats=stats)
 
 
@@ -62,76 +61,18 @@ def schedule_list():
 @role_required("admin", "operator")
 def storage_config():
     """Display storage provider configuration page"""
-    # Mock storage provider data (in production, this would come from a StorageProvider model)
-    storage_providers = [
-        {
-            "id": 1,
-            "name": "AWS S3 Production",
-            "provider_type": "s3",
-            "endpoint": "s3.amazonaws.com/backup-prod",
-            "is_active": True,
-            "connection_status": "online",
-            "last_check": datetime.now() - timedelta(minutes=5),
-            "total_capacity": 5 * 1024**4,  # 5 TB
-            "used_capacity": 2.5 * 1024**4,  # 2.5 TB
-            "backup_count": 1234,
-            "file_count": 45678,
-            "success_rate": 99.8,
-            "created_at": datetime.now() - timedelta(days=180),
-        },
-        {
-            "id": 2,
-            "name": "Azure Blob Backup",
-            "provider_type": "azure",
-            "endpoint": "backupstorage.blob.core.windows.net",
-            "is_active": True,
-            "connection_status": "online",
-            "last_check": datetime.now() - timedelta(minutes=3),
-            "total_capacity": 3 * 1024**4,  # 3 TB
-            "used_capacity": 1.8 * 1024**4,  # 1.8 TB
-            "backup_count": 876,
-            "file_count": 32145,
-            "success_rate": 99.5,
-            "created_at": datetime.now() - timedelta(days=120),
-        },
-        {
-            "id": 3,
-            "name": "NFS Local Storage",
-            "provider_type": "nfs",
-            "endpoint": "192.168.1.100:/export/backups",
-            "is_active": True,
-            "connection_status": "online",
-            "last_check": datetime.now() - timedelta(minutes=1),
-            "total_capacity": 10 * 1024**4,  # 10 TB
-            "used_capacity": 7.2 * 1024**4,  # 7.2 TB
-            "backup_count": 2345,
-            "file_count": 89012,
-            "success_rate": 99.9,
-            "created_at": datetime.now() - timedelta(days=365),
-        },
-        {
-            "id": 4,
-            "name": "Offline Archive Storage",
-            "provider_type": "local",
-            "endpoint": "/mnt/offline-archive",
-            "is_active": False,
-            "connection_status": "offline",
-            "last_check": datetime.now() - timedelta(hours=2),
-            "total_capacity": 8 * 1024**4,  # 8 TB
-            "used_capacity": 3.5 * 1024**4,  # 3.5 TB
-            "backup_count": 543,
-            "file_count": 12345,
-            "success_rate": 98.5,
-            "created_at": datetime.now() - timedelta(days=90),
-        },
-    ]
+    from app.models import StorageProvider
+
+    # 実DBからプロバイダー取得
+    storage_providers_db = StorageProvider.query.order_by(StorageProvider.name).all()
+    storage_providers = [p.to_dict() for p in storage_providers_db]
 
     # Calculate statistics
     stats = {
         "total_providers": len(storage_providers),
         "online_providers": sum(1 for p in storage_providers if p["connection_status"] == "online"),
-        "total_capacity": sum(p["total_capacity"] for p in storage_providers),
-        "used_capacity": sum(p["used_capacity"] for p in storage_providers),
+        "total_capacity": sum(p["total_capacity"] or 0 for p in storage_providers),
+        "used_capacity": sum(p["used_capacity"] or 0 for p in storage_providers),
     }
 
     return render_template("backup/storage_config.html", storage_providers=storage_providers, stats=stats)
@@ -175,13 +116,14 @@ def test_cron_expression():
 def create_schedule():
     """Create new backup schedule"""
     try:
+        from app.models import BackupSchedule
         data = request.get_json()
 
         job_id = data.get("job_id")
         cron_expression = data.get("cron_expression")
-        data.get("priority", "medium")
-        data.get("description", "")
-        data.get("is_active", True)
+        priority = data.get("priority", "medium")
+        description = data.get("description", "")
+        is_active = data.get("is_active", True)
 
         if not job_id or not cron_expression:
             return jsonify({"success": False, "message": "Job ID and cron expression are required"}), 400
@@ -191,21 +133,19 @@ def create_schedule():
         if not job:
             return jsonify({"success": False, "message": "Backup job not found"}), 404
 
-        # In production, create Schedule record
-        # For now, update job with schedule info (mock)
-        # schedule = Schedule(
-        #     job_id=job_id,
-        #     cron_expression=cron_expression,
-        #     priority=priority,
-        #     description=description,
-        #     is_active=is_active,
-        #     created_by=current_user.id
-        # )
-        # db.session.add(schedule)
-        # db.session.commit()
+        schedule = BackupSchedule(
+            job_id=job_id,
+            cron_expression=cron_expression,
+            priority=priority,
+            schedule_description=description,
+            is_active=is_active,
+            created_by_id=current_user.id
+        )
+        db.session.add(schedule)
+        db.session.commit()
 
         flash("スケジュールを作成しました", "success")
-        return jsonify({"success": True, "message": "Schedule created successfully", "schedule_id": job_id})  # Mock ID
+        return jsonify({"success": True, "message": "Schedule created successfully", "schedule_id": schedule.id})
 
     except Exception as e:
         db.session.rollback()
@@ -318,6 +258,7 @@ def test_schedule(schedule_id):
 def create_storage_provider():
     """Create new storage provider"""
     try:
+        from app.models import StorageProvider
         data = request.get_json()
 
         name = data.get("name")
@@ -326,18 +267,19 @@ def create_storage_provider():
         if not name or not provider_type:
             return jsonify({"success": False, "message": "Name and provider type are required"}), 400
 
-        # In production, create StorageProvider record
-        # provider = StorageProvider(
-        #     name=name,
-        #     provider_type=provider_type,
-        #     config=data,
-        #     created_by=current_user.id
-        # )
-        # db.session.add(provider)
-        # db.session.commit()
+        import json
+        provider = StorageProvider(
+            name=name,
+            provider_type=provider_type,
+            endpoint=data.get("endpoint", ""),
+            config=json.dumps(data),
+            created_by_id=current_user.id
+        )
+        db.session.add(provider)
+        db.session.commit()
 
         flash("ストレージプロバイダーを作成しました", "success")
-        return jsonify({"success": True, "message": "Storage provider created successfully", "provider_id": 1})  # Mock ID
+        return jsonify({"success": True, "message": "Storage provider created successfully", "provider_id": provider.id})
 
     except Exception as e:
         db.session.rollback()

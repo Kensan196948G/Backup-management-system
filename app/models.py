@@ -19,7 +19,7 @@ Tables:
 - system_settings: System configuration key-value store
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
@@ -556,3 +556,84 @@ class ScheduledReport(db.Model):
 
     def __repr__(self):
         return f"<ScheduledReport type={self.report_type} schedule={self.schedule_type} active={self.is_active}>"
+
+
+class BackupSchedule(db.Model):
+    """バックアップスケジュールモデル"""
+    __tablename__ = "backup_schedules"
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey("backup_jobs.id"), nullable=False)
+    cron_expression = db.Column(db.String(100), nullable=False, default="0 2 * * *")
+    schedule_description = db.Column(db.String(200))
+    priority = db.Column(db.String(20), default="medium")  # low/medium/high
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    next_run = db.Column(db.DateTime(timezone=True), nullable=True)
+    last_run = db.Column(db.DateTime(timezone=True), nullable=True)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    job = db.relationship("BackupJob", backref=db.backref("schedules", lazy="dynamic"))
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "job_id": self.job_id,
+            "job_name": self.job.job_name if self.job else None,
+            "cron_expression": self.cron_expression,
+            "schedule_description": self.schedule_description,
+            "priority": self.priority,
+            "is_active": self.is_active,
+            "next_run": self.next_run.isoformat() if self.next_run else None,
+            "last_run": self.last_run.isoformat() if self.last_run else None,
+        }
+
+    def __repr__(self):
+        return f"<BackupSchedule job_id={self.job_id} cron={self.cron_expression} active={self.is_active}>"
+
+
+class StorageProvider(db.Model):
+    """ストレージプロバイダーモデル"""
+    __tablename__ = "storage_providers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    provider_type = db.Column(db.String(20), nullable=False)  # s3/azure/nfs/local
+    endpoint = db.Column(db.String(500))
+    config = db.Column(db.Text)  # JSON文字列で設定保存
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    connection_status = db.Column(db.String(20), default="unknown")  # online/offline/unknown
+    last_check = db.Column(db.DateTime(timezone=True), nullable=True)
+    total_capacity = db.Column(db.BigInteger, nullable=True)  # bytes
+    used_capacity = db.Column(db.BigInteger, nullable=True)   # bytes
+    backup_count = db.Column(db.Integer, default=0)
+    file_count = db.Column(db.Integer, default=0)
+    success_rate = db.Column(db.Float, default=100.0)
+    created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    # Relationships
+    created_by = db.relationship("User", foreign_keys=[created_by_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "provider_type": self.provider_type,
+            "endpoint": self.endpoint,
+            "is_active": self.is_active,
+            "connection_status": self.connection_status,
+            "last_check": self.last_check.isoformat() if self.last_check else None,
+            "total_capacity": self.total_capacity,
+            "used_capacity": self.used_capacity,
+            "backup_count": self.backup_count,
+            "file_count": self.file_count,
+            "success_rate": self.success_rate,
+        }
+
+    def __repr__(self):
+        return f"<StorageProvider name={self.name} type={self.provider_type} status={self.connection_status}>"

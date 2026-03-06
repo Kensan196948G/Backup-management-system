@@ -67,6 +67,15 @@ class Config:
     SLACK_WEBHOOK_URL = os.environ.get("SLACK_WEBHOOK_URL", "")
     SLACK_CHANNEL = os.environ.get("SLACK_CHANNEL", "#backup-alerts")
 
+    # Email notification settings (SMTP)
+    SMTP_HOST = os.environ.get("SMTP_HOST", "")
+    SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
+    SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "")
+    SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+    SMTP_FROM_EMAIL = os.environ.get("SMTP_FROM_EMAIL", "noreply@backup-system.local")
+    SMTP_USE_TLS = os.environ.get("SMTP_USE_TLS", "true").lower() == "true"
+    ALERT_EMAIL_RECIPIENTS = os.environ.get("ALERT_EMAIL_RECIPIENTS", "").split(",")
+
     # Logging
     LOG_DIR = BASE_DIR / "logs"
     LOG_LEVEL = os.environ.get("LOG_LEVEL") or "INFO"

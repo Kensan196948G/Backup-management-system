@@ -6,6 +6,7 @@ Job list, detail, create, edit, and delete views
 from datetime import datetime, timezone
 
 from flask import (
+    abort,
     current_app,
     flash,
     jsonify,
@@ -118,7 +119,9 @@ def detail(job_id):
     Backup job detail page
     Shows job information, compliance status, execution history, and verification tests
     """
-    job = BackupJob.query.get_or_404(job_id)
+    job = db.session.get(BackupJob, job_id)
+    if job is None:
+        abort(404)
 
     # Get compliance status
     compliance = ComplianceStatus.query.filter_by(job_id=job_id).first()
@@ -207,7 +210,9 @@ def edit(job_id):
     """
     Edit backup job
     """
-    job = BackupJob.query.get_or_404(job_id)
+    job = db.session.get(BackupJob, job_id)
+    if job is None:
+        abort(404)
 
     if request.method == "POST":
         try:
@@ -253,7 +258,9 @@ def delete(job_id):
     """
     Delete backup job (admin only)
     """
-    job = BackupJob.query.get_or_404(job_id)
+    job = db.session.get(BackupJob, job_id)
+    if job is None:
+        abort(404)
 
     try:
         job_name = job.job_name
@@ -290,7 +297,9 @@ def toggle_active(job_id):
     """
     Toggle job active status
     """
-    job = BackupJob.query.get_or_404(job_id)
+    job = db.session.get(BackupJob, job_id)
+    if job is None:
+        abort(404)
 
     try:
         job.is_active = not job.is_active
@@ -325,7 +334,9 @@ def check_compliance(job_id):
     """
     Manually trigger compliance check for a job
     """
-    BackupJob.query.get_or_404(job_id)
+    job = db.session.get(BackupJob, job_id)
+    if job is None:
+        abort(404)
 
     try:
         checker = ComplianceChecker()
@@ -371,8 +382,10 @@ def api_detail(job_id):
     API endpoint for job detail
     Returns JSON object with job details
     """
+    job = db.session.get(BackupJob, job_id)
+    if job is None:
+        return jsonify({"error": {"code": "NOT_FOUND", "message": "Job not found"}}), 404
     try:
-        job = BackupJob.query.get_or_404(job_id)
         compliance = ComplianceStatus.query.filter_by(job_id=job_id).first()
 
         return jsonify({"job": job.to_dict(), "compliance": compliance.to_dict() if compliance else None}), 200
