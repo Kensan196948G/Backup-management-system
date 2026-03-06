@@ -1,0 +1,703 @@
+name: Auto Error Detection & Fix Loop
+
+# =============================================================================
+# 🤖 自動エラー検知・修復ループシステム
+#
+# 機能:
+#   - 30分間隔で自動的にエラーを検知し、可能な限り自動修復を行う
+#   - 最大15サイクルの修復ループ
+#   - 手動実行 / Issueトリガー対応
+#
+# エラー検知項目（7種類）:
+#   1. Flake8      - コード品質検知（ESLint相当）
+#   2. Black       - フォーマット検証（Prettier相当）
+#   3. Pytest      - 全テスト実行（Jest相当）
+#   4. pip-audit   - セキュリティ脆弱性（npm audit相当）
+#   5. Flask DB    - マイグレーション確認（Database Migrations相当）
+#   6. Permissions - ファイルパーミッション検証
+#   7. Radon       - コード複雑度チェック（Code Quality相当）
+#
+# 自動修復機能:
+#   - Flake8:      autoflake + black --fix
+#   - Black:       black app/ --line-length=127
+#   - pip-audit:   pip install --upgrade (脆弱性パッケージ)
+#   - Flask DB:    flask db upgrade
+#   - Permissions: chmod 自動適用
+#   - ループ:      エラー検知 → 修復 → 最大15回ループ
+# =============================================================================
+
+on:
+  # 30分ごとの定期実行（永続ループ）
+  schedule:
+    - cron: '*/30 * * * *'
+
+  # 手動実行も可能
+  workflow_dispatch:
+    inputs:
+      max_cycles:
+        description: '最大修復サイクル数（デフォルト: 15）'
+        required: false
+        default: '15'
+        type: string
+      force_full_scan:
+        description: '強制フルスキャン（エラーなしでも全チェック実行）'
+        required: false
+        default: false
+        type: boolean
+
+  # auto-fixラベルが付与されたIssueトリガー
+  issues:
+    types: [labeled]
+
+env:
+  MAX_REPAIR_CYCLES: 15
+  PYTHON_VERSION: '3.11'
+
+# 同一ブランチへの並列実行を防止
+concurrency:
+  group: auto-error-detection-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================================================
+  # Job 1: エラー検知 (7種類)
+  # ==========================================================================
+  detect-errors:
+    name: 🔍 エラー検知 (7種類)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # auto-fixラベル付与、または手動/スケジュール実行のみ対象
+    if: |
+      github.event_name == 'schedule' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'auto-fix')
+    outputs:
+      has_errors: ${{ steps.summary.outputs.has_errors }}
+      error_count: ${{ steps.summary.outputs.error_count }}
+      flake8_result: ${{ steps.check_flake8.outputs.result }}
+      black_result: ${{ steps.check_black.outputs.result }}
+      pytest_result: ${{ steps.check_pytest.outputs.result }}
+      pipaudit_result: ${{ steps.check_pipaudit.outputs.result }}
+      db_result: ${{ steps.check_db.outputs.result }}
+      permissions_result: ${{ steps.check_permissions.outputs.result }}
+      radon_result: ${{ steps.check_radon.outputs.result }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 black isort autoflake radon pip-audit
+
+      # ------------------------------------------------------------------
+      # 検知1: Flake8 - コード品質検知（ESLint相当）
+      # ------------------------------------------------------------------
+      - name: 🔎 [1/7] Flake8 - コード品質チェック
+        id: check_flake8
+        run: |
+          echo "### [1/7] Flake8 コード品質チェック" >> $GITHUB_STEP_SUMMARY
+          if flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics 2>&1; then
+            echo "result=ok" >> $GITHUB_OUTPUT
+            echo "✅ Flake8: パス" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "❌ Flake8: エラーあり" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+
+      # ------------------------------------------------------------------
+      # 検知2: Black - フォーマット検証（Prettier相当）
+      # ------------------------------------------------------------------
+      - name: 🔎 [2/7] Black - フォーマット検証
+        id: check_black
+        run: |
+          echo "### [2/7] Black フォーマット検証" >> $GITHUB_STEP_SUMMARY
+          if black --check app/ --line-length=127 2>&1; then
+            echo "result=ok" >> $GITHUB_OUTPUT
+            echo "✅ Black: パス" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "❌ Black: フォーマット不一致" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+
+      # ------------------------------------------------------------------
+      # 検知3: Pytest - 全テスト実行（Jest相当）
+      # ------------------------------------------------------------------
+      - name: 🔎 [3/7] Pytest - テスト実行
+        id: check_pytest
+        run: |
+          echo "### [3/7] Pytest テスト実行" >> $GITHUB_STEP_SUMMARY
+          if [ -d "tests" ]; then
+            if pytest tests/ -x --tb=short -q 2>&1; then
+              echo "result=ok" >> $GITHUB_OUTPUT
+              echo "✅ Pytest: 全テストパス" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "result=fail" >> $GITHUB_OUTPUT
+              echo "❌ Pytest: テスト失敗あり" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "result=skip" >> $GITHUB_OUTPUT
+            echo "⏭️  Pytest: testsディレクトリなし（スキップ）" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+        env:
+          FLASK_ENV: testing
+          SECRET_KEY: test-secret-key-for-ci
+
+      # ------------------------------------------------------------------
+      # 検知4: pip-audit - セキュリティ脆弱性（npm audit相当）
+      # ------------------------------------------------------------------
+      - name: 🔎 [4/7] pip-audit - セキュリティ脆弱性スキャン
+        id: check_pipaudit
+        run: |
+          echo "### [4/7] pip-audit セキュリティスキャン" >> $GITHUB_STEP_SUMMARY
+          if pip-audit -r requirements.txt --format=json -o /tmp/pip-audit-report.json 2>&1; then
+            echo "result=ok" >> $GITHUB_OUTPUT
+            echo "✅ pip-audit: 脆弱性なし" >> $GITHUB_STEP_SUMMARY
+          else
+            VULN_COUNT=$(python3 -c "import json; d=json.load(open('/tmp/pip-audit-report.json')); print(len(d.get('vulnerabilities', [])))" 2>/dev/null || echo "不明")
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "❌ pip-audit: 脆弱性${VULN_COUNT}件検出" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+
+      # ------------------------------------------------------------------
+      # 検知5: Database Migrations - マイグレーション確認
+      # ------------------------------------------------------------------
+      - name: 🔎 [5/7] Database Migrations - マイグレーション確認
+        id: check_db
+        run: |
+          echo "### [5/7] Database Migrations 確認" >> $GITHUB_STEP_SUMMARY
+          if [ -d "migrations" ] && [ -f "migrations/env.py" ]; then
+            # alembicでmigration headの確認
+            if python3 -c "
+          from app import create_app
+          app = create_app('testing')
+          with app.app_context():
+              from flask_migrate import upgrade
+              from alembic.runtime.migration import MigrationContext
+              from sqlalchemy import create_engine
+              import os
+              engine = app.extensions['sqlalchemy'].engine
+              with engine.connect() as conn:
+                  context = MigrationContext.configure(conn)
+                  current = context.get_current_heads()
+                  print(f'Current migration heads: {current}')
+          " 2>&1; then
+              echo "result=ok" >> $GITHUB_OUTPUT
+              echo "✅ Migrations: 正常" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "result=fail" >> $GITHUB_OUTPUT
+              echo "❌ Migrations: 問題検出" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "result=skip" >> $GITHUB_OUTPUT
+            echo "⏭️  Migrations: migrationsディレクトリなし（スキップ）" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+        env:
+          FLASK_ENV: testing
+          SECRET_KEY: test-secret-key-for-ci
+
+      # ------------------------------------------------------------------
+      # 検知6: File Permissions - パーミッション検証
+      # ------------------------------------------------------------------
+      - name: 🔎 [6/7] File Permissions - パーミッション検証
+        id: check_permissions
+        run: |
+          echo "### [6/7] File Permissions 検証" >> $GITHUB_STEP_SUMMARY
+          PERM_ERRORS=0
+
+          # .pyファイルに実行権限がついていないかチェック（app/内）
+          EXEC_PY=$(find app/ -name "*.py" -perm /111 2>/dev/null | grep -v "__pycache__" | wc -l)
+          if [ "$EXEC_PY" -gt 0 ]; then
+            echo "⚠️  Pythonソースファイルに実行権限が付与されています: ${EXEC_PY}件"
+            PERM_ERRORS=$((PERM_ERRORS + EXEC_PY))
+          fi
+
+          # secretsや.envファイルが公開されていないか確認
+          SENSITIVE_FILES=$(find . -name "*.env" -not -path "./.git/*" -not -path "./venv/*" 2>/dev/null | wc -l)
+          if [ "$SENSITIVE_FILES" -gt 0 ]; then
+            echo "⚠️  .envファイルが検出されました: ${SENSITIVE_FILES}件"
+          fi
+
+          if [ "$PERM_ERRORS" -eq 0 ]; then
+            echo "result=ok" >> $GITHUB_OUTPUT
+            echo "✅ Permissions: 正常" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "❌ Permissions: ${PERM_ERRORS}件の問題を検出" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+
+      # ------------------------------------------------------------------
+      # 検知7: Radon - コード複雑度チェック（Code Quality相当）
+      # ------------------------------------------------------------------
+      - name: 🔎 [7/7] Radon - コード複雑度チェック
+        id: check_radon
+        run: |
+          echo "### [7/7] Radon コード複雑度チェック" >> $GITHUB_STEP_SUMMARY
+          # 複雑度Dまたは以上（高複雑度）のコードブロックを検出
+          HIGH_COMPLEXITY=$(radon cc app/ -n D --total-average 2>&1 | grep -c "^" || echo "0")
+          AVG_COMPLEXITY=$(radon cc app/ --total-average 2>&1 | tail -1 | grep -oP '\d+\.\d+' | head -1 || echo "0")
+
+          echo "平均複雑度: ${AVG_COMPLEXITY}"
+          echo "高複雑度ブロック数: ${HIGH_COMPLEXITY}"
+
+          # 高複雑度ブロックが20件以上の場合は警告
+          if [ "$HIGH_COMPLEXITY" -gt 20 ]; then
+            echo "result=fail" >> $GITHUB_OUTPUT
+            echo "❌ Radon: 高複雑度ブロック${HIGH_COMPLEXITY}件（平均: ${AVG_COMPLEXITY}）" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "result=ok" >> $GITHUB_OUTPUT
+            echo "✅ Radon: 複雑度OK（平均: ${AVG_COMPLEXITY}、高複雑度ブロック: ${HIGH_COMPLEXITY}件）" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+
+      # ------------------------------------------------------------------
+      # 検知結果サマリー
+      # ------------------------------------------------------------------
+      - name: 📊 検知結果サマリー
+        id: summary
+        run: |
+          ERROR_COUNT=0
+          [ "${{ steps.check_flake8.outputs.result }}" = "fail" ] && ERROR_COUNT=$((ERROR_COUNT + 1))
+          [ "${{ steps.check_black.outputs.result }}" = "fail" ] && ERROR_COUNT=$((ERROR_COUNT + 1))
+          [ "${{ steps.check_pytest.outputs.result }}" = "fail" ] && ERROR_COUNT=$((ERROR_COUNT + 1))
+          [ "${{ steps.check_pipaudit.outputs.result }}" = "fail" ] && ERROR_COUNT=$((ERROR_COUNT + 1))
+          [ "${{ steps.check_db.outputs.result }}" = "fail" ] && ERROR_COUNT=$((ERROR_COUNT + 1))
+          [ "${{ steps.check_permissions.outputs.result }}" = "fail" ] && ERROR_COUNT=$((ERROR_COUNT + 1))
+          [ "${{ steps.check_radon.outputs.result }}" = "fail" ] && ERROR_COUNT=$((ERROR_COUNT + 1))
+
+          echo "error_count=$ERROR_COUNT" >> $GITHUB_OUTPUT
+
+          if [ "$ERROR_COUNT" -gt 0 ]; then
+            echo "has_errors=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_errors=false" >> $GITHUB_OUTPUT
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "## 📊 検知結果サマリー" >> $GITHUB_STEP_SUMMARY
+          echo "**合計エラー数**: ${ERROR_COUNT}件" >> $GITHUB_STEP_SUMMARY
+
+          if [ "$ERROR_COUNT" -gt 0 ]; then
+            echo "**ステータス**: ❌ エラーあり → 自動修復ループを起動します" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**ステータス**: ✅ エラーなし" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload detection report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: detection-report-${{ github.run_number }}
+          path: /tmp/pip-audit-report.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ==========================================================================
+  # Job 2: 自動修復ループ（最大15サイクル）
+  # ==========================================================================
+  auto-repair-loop:
+    name: 🔧 自動修復ループ（最大${{ github.event.inputs.max_cycles || 15 }}サイクル）
+    runs-on: ubuntu-latest
+    needs: detect-errors
+    permissions:
+      contents: write
+    if: |
+      needs.detect-errors.outputs.has_errors == 'true' ||
+      github.event.inputs.force_full_scan == 'true'
+    outputs:
+      repair_success: ${{ steps.repair_result.outputs.success }}
+      cycles_used: ${{ steps.repair_result.outputs.cycles_used }}
+      fixed_count: ${{ steps.repair_result.outputs.fixed_count }}
+      has_changes: ${{ steps.check_changes.outputs.has_changes }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 black isort autoflake radon pip-audit
+
+      # ------------------------------------------------------------------
+      # 修復ループ本体（最大15サイクル）
+      # ------------------------------------------------------------------
+      - name: 🔄 修復ループ実行
+        id: repair_loop
+        run: |
+          MAX_CYCLES=${{ github.event.inputs.max_cycles || env.MAX_REPAIR_CYCLES }}
+          FIXED_COUNT=0
+          CYCLE=0
+
+          echo "## 🔄 修復ループ開始（最大 ${MAX_CYCLES} サイクル）" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          while [ $CYCLE -lt $MAX_CYCLES ]; do
+            CYCLE=$((CYCLE + 1))
+            echo "--- サイクル ${CYCLE}/${MAX_CYCLES} 開始 ---"
+            echo "### サイクル ${CYCLE}/${MAX_CYCLES}" >> $GITHUB_STEP_SUMMARY
+
+            CYCLE_FIXED=0
+            CYCLE_ERRORS=0
+
+            # ======================================================
+            # 修復1: Flake8エラーの自動修復
+            # ======================================================
+            if [ "${{ needs.detect-errors.outputs.flake8_result }}" = "fail" ] || \
+               ! flake8 app/ --count --select=E9,F63,F7,F82 --statistics -q > /dev/null 2>&1; then
+
+              echo "🔧 [修復1] Flake8エラー修復中..."
+
+              # autoflakeで未使用変数削除（エラーはログに記録）
+              if ! autoflake --in-place --remove-unused-variables -r app/ 2>/tmp/autoflake-error.log; then
+                echo "  ⚠️  autoflake エラー: $(cat /tmp/autoflake-error.log | head -3)"
+              fi
+
+              # blackでフォーマット
+              black app/ --line-length=127 -q 2>/dev/null || true
+
+              # isortでimport整理
+              isort app/ --profile black -q 2>/dev/null || true
+
+              # 修復後チェック
+              if flake8 app/ --count --select=E9,F63,F7,F82 --statistics -q > /dev/null 2>&1; then
+                echo "  ✅ Flake8: 修復成功" >> $GITHUB_STEP_SUMMARY
+                CYCLE_FIXED=$((CYCLE_FIXED + 1))
+              else
+                echo "  ⚠️  Flake8: 一部エラーが残存" >> $GITHUB_STEP_SUMMARY
+                CYCLE_ERRORS=$((CYCLE_ERRORS + 1))
+              fi
+            fi
+
+            # ======================================================
+            # 修復2: Blackフォーマット修復
+            # ======================================================
+            if [ "${{ needs.detect-errors.outputs.black_result }}" = "fail" ] || \
+               ! black --check app/ --line-length=127 -q > /dev/null 2>&1; then
+
+              echo "🔧 [修復2] Blackフォーマット修復中..."
+              black app/ --line-length=127 -q 2>/dev/null || true
+
+              if black --check app/ --line-length=127 -q > /dev/null 2>&1; then
+                echo "  ✅ Black: 修復成功" >> $GITHUB_STEP_SUMMARY
+                CYCLE_FIXED=$((CYCLE_FIXED + 1))
+              else
+                echo "  ⚠️  Black: 一部フォーマット問題が残存" >> $GITHUB_STEP_SUMMARY
+                CYCLE_ERRORS=$((CYCLE_ERRORS + 1))
+              fi
+            fi
+
+            # ======================================================
+            # 修復3: Pytestの失敗は自動修復対象外（ログのみ）
+            # ======================================================
+            if [ "${{ needs.detect-errors.outputs.pytest_result }}" = "fail" ]; then
+              echo "  ℹ️  Pytest: テスト失敗は手動修正が必要です" >> $GITHUB_STEP_SUMMARY
+              CYCLE_ERRORS=$((CYCLE_ERRORS + 1))
+            fi
+
+            # ======================================================
+            # 修復4: pip-audit セキュリティ修復
+            # ======================================================
+            if [ "${{ needs.detect-errors.outputs.pipaudit_result }}" = "fail" ]; then
+              echo "🔧 [修復4] pip-audit セキュリティ修復中..."
+              # pip-audit JSONレポートから脆弱性パッケージを特定してアップグレード
+              pip-audit -r requirements.txt --format=json -o /tmp/pip-audit-fix.json 2>/dev/null || true
+              if [ -f /tmp/pip-audit-fix.json ]; then
+                VULN_PKGS=$(python3 -c "
+          import json, sys
+          try:
+              d = json.load(open('/tmp/pip-audit-fix.json'))
+              pkgs = [v['name'] for v in d.get('vulnerabilities', [])]
+              print(' '.join(set(pkgs)))
+          except Exception as e:
+              print('', end='')
+          " 2>/dev/null || echo "")
+                if [ -n "$VULN_PKGS" ]; then
+                  echo "  脆弱性パッケージ: $VULN_PKGS"
+                  for PKG in $VULN_PKGS; do
+                    pip install --upgrade "$PKG" 2>/dev/null || true
+                  done
+                fi
+              fi
+              if pip-audit -r requirements.txt --format=json -o /tmp/pip-audit-fix-after.json 2>/dev/null; then
+                echo "  ✅ pip-audit: 脆弱性解消" >> $GITHUB_STEP_SUMMARY
+                CYCLE_FIXED=$((CYCLE_FIXED + 1))
+              else
+                echo "  ⚠️  pip-audit: 一部脆弱性が残存（手動対応が必要な場合あり）" >> $GITHUB_STEP_SUMMARY
+                CYCLE_ERRORS=$((CYCLE_ERRORS + 1))
+              fi
+            fi
+
+            # ======================================================
+            # 修復5: Database Migrations修復
+            # ======================================================
+            if [ "${{ needs.detect-errors.outputs.db_result }}" = "fail" ] && \
+               [ -d "migrations" ] && [ -f "migrations/env.py" ]; then
+              echo "🔧 [修復5] Database Migration修復中..."
+              export FLASK_APP=app
+              export FLASK_ENV=testing
+              export SECRET_KEY=test-secret-key-for-ci
+              if flask db upgrade 2>/dev/null; then
+                echo "  ✅ Migrations: マイグレーション適用成功" >> $GITHUB_STEP_SUMMARY
+                CYCLE_FIXED=$((CYCLE_FIXED + 1))
+              else
+                echo "  ⚠️  Migrations: マイグレーション失敗" >> $GITHUB_STEP_SUMMARY
+                CYCLE_ERRORS=$((CYCLE_ERRORS + 1))
+              fi
+            fi
+
+            # ======================================================
+            # 修復6: File Permissions修復
+            # ======================================================
+            if [ "${{ needs.detect-errors.outputs.permissions_result }}" = "fail" ]; then
+              echo "🔧 [修復6] File Permissions修復中..."
+              # Pythonソースファイルの実行権限を削除
+              find app/ -name "*.py" -perm /111 -not -path "*/__pycache__/*" \
+                -exec chmod 644 {} \; 2>/dev/null || true
+
+              REMAINING=$(find app/ -name "*.py" -perm /111 -not -path "*/__pycache__/*" 2>/dev/null | wc -l)
+              if [ "$REMAINING" -eq 0 ]; then
+                echo "  ✅ Permissions: 修復成功" >> $GITHUB_STEP_SUMMARY
+                CYCLE_FIXED=$((CYCLE_FIXED + 1))
+              else
+                echo "  ⚠️  Permissions: ${REMAINING}件残存" >> $GITHUB_STEP_SUMMARY
+                CYCLE_ERRORS=$((CYCLE_ERRORS + 1))
+              fi
+            fi
+
+            # ======================================================
+            # 修復7: Radon - コード複雑度（情報のみ、自動修復対象外）
+            # ======================================================
+            if [ "${{ needs.detect-errors.outputs.radon_result }}" = "fail" ]; then
+              echo "  ℹ️  Radon: 複雑度問題は手動リファクタリングが必要です" >> $GITHUB_STEP_SUMMARY
+              CYCLE_ERRORS=$((CYCLE_ERRORS + 1))
+            fi
+
+            FIXED_COUNT=$((FIXED_COUNT + CYCLE_FIXED))
+
+            echo "  サイクル${CYCLE}結果: ${CYCLE_FIXED}件修復、${CYCLE_ERRORS}件残存エラー"
+            echo "  - 修復件数: ${CYCLE_FIXED}" >> $GITHUB_STEP_SUMMARY
+            echo "  - 残存エラー: ${CYCLE_ERRORS}" >> $GITHUB_STEP_SUMMARY
+
+            # 全エラーが解消された場合、ループ終了
+            if [ "$CYCLE_ERRORS" -eq 0 ]; then
+              echo "✅ 全エラーが修復されました（サイクル${CYCLE}で完了）"
+              break
+            fi
+
+            # 変更なしの場合もループ終了
+            if [ "$CYCLE_FIXED" -eq 0 ] && [ "$CYCLE_ERRORS" -gt 0 ]; then
+              echo "⚠️  これ以上自動修復できるエラーがありません"
+              break
+            fi
+          done
+
+          echo "FINAL_CYCLES=$CYCLE" >> $GITHUB_ENV
+          echo "FINAL_FIXED=$FIXED_COUNT" >> $GITHUB_ENV
+          echo "FINAL_ERRORS=$CYCLE_ERRORS" >> $GITHUB_ENV
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "**修復ループ完了**: ${CYCLE}サイクル使用、${FIXED_COUNT}件修復" >> $GITHUB_STEP_SUMMARY
+
+      # ------------------------------------------------------------------
+      # 変更確認・コミット
+      # ------------------------------------------------------------------
+      - name: 📝 変更確認
+        id: check_changes
+        run: |
+          if [[ -n $(git status --porcelain) ]]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "変更ファイル:"
+            git diff --stat
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "変更なし"
+          fi
+
+      - name: 💾 修復結果をコミット
+        if: steps.check_changes.outputs.has_changes == 'true'
+        run: |
+          git add -A
+          TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          CYCLE_COUNT="${FINAL_CYCLES:-0}"
+          FIXED_COUNT="${FINAL_FIXED:-0}"
+          MAX_CYCLES=${{ github.event.inputs.max_cycles || env.MAX_REPAIR_CYCLES }}
+
+          git commit -m "🤖 自動修復: ${FIXED_COUNT}件のエラーを修正 (${CYCLE_COUNT}/${MAX_CYCLES}サイクル)" \
+            -m "" \
+            -m "## 自動修復レポート" \
+            -m "- 修復件数: ${FIXED_COUNT}" \
+            -m "- 使用サイクル: ${CYCLE_COUNT}/${MAX_CYCLES}" \
+            -m "- 実行日時: ${TIMESTAMP}" \
+            -m "" \
+            -m "### 修復内容" \
+            -m "- Black: コードフォーマット自動修正" \
+            -m "- autoflake: 未使用変数削除" \
+            -m "- isort: import文整理" \
+            -m "- chmod: ファイルパーミッション修正" \
+            -m "" \
+            -m "Co-Authored-By: auto-error-fix[bot] <auto-error-fix[bot]@users.noreply.github.com>"
+
+          git push origin HEAD
+          echo "✅ 修復内容をコミット・プッシュしました"
+
+      - name: 📊 修復結果出力
+        id: repair_result
+        run: |
+          CYCLE_COUNT="${FINAL_CYCLES:-0}"
+          FIXED_COUNT="${FINAL_FIXED:-0}"
+          ERROR_COUNT="${FINAL_ERRORS:-0}"
+
+          echo "cycles_used=${CYCLE_COUNT}" >> $GITHUB_OUTPUT
+          echo "fixed_count=${FIXED_COUNT}" >> $GITHUB_OUTPUT
+
+          if [ "${ERROR_COUNT}" -eq 0 ] || [ "${FIXED_COUNT}" -gt 0 ]; then
+            echo "success=true" >> $GITHUB_OUTPUT
+          else
+            echo "success=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload repair logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repair-logs-${{ github.run_number }}
+          path: /tmp/pip-audit-fix.json
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ==========================================================================
+  # Job 3: Issue更新（auto-fixラベルトリガー時）
+  # ==========================================================================
+  update-issue:
+    name: 📝 Issue更新
+    runs-on: ubuntu-latest
+    needs: [detect-errors, auto-repair-loop]
+    if: |
+      always() &&
+      github.event_name == 'issues' &&
+      github.event.label.name == 'auto-fix'
+    permissions:
+      issues: write
+
+    steps:
+      - name: Issue更新コメント投稿
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasErrors = '${{ needs.detect-errors.outputs.has_errors }}' === 'true';
+            const errorCount = parseInt('${{ needs.detect-errors.outputs.error_count }}') || 0;
+            const repairSuccess = '${{ needs.auto-repair-loop.outputs.repair_success }}' === 'true';
+            const cyclesUsed = '${{ needs.auto-repair-loop.outputs.cycles_used }}' || '0';
+            const fixedCount = '${{ needs.auto-repair-loop.outputs.fixed_count }}' || '0';
+            const maxCycles = process.env.MAX_REPAIR_CYCLES || '15';
+
+            const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+
+            const formatStatus = (result) =>
+              result === 'ok' ? '✅ OK' : result === 'fail' ? '❌ エラー' : '⏭️  スキップ';
+
+            let body = '## 🤖 自動エラー検知・修復ループ 実行結果\n\n';
+            body += `**実行日時**: ${timestamp}\n\n`;
+            body += '### 📋 検知結果\n\n';
+            body += '| 検知項目 | ステータス |\n';
+            body += '|---------|----------|\n';
+            body += `| 🔎 Flake8 (コード品質) | ${formatStatus('${{ needs.detect-errors.outputs.flake8_result }}')} |\n`;
+            body += `| 🔎 Black (フォーマット) | ${formatStatus('${{ needs.detect-errors.outputs.black_result }}')} |\n`;
+            body += `| 🔎 Pytest (テスト) | ${formatStatus('${{ needs.detect-errors.outputs.pytest_result }}')} |\n`;
+            body += `| 🔎 pip-audit (セキュリティ) | ${formatStatus('${{ needs.detect-errors.outputs.pipaudit_result }}')} |\n`;
+            body += `| 🔎 DB Migrations | ${formatStatus('${{ needs.detect-errors.outputs.db_result }}')} |\n`;
+            body += `| 🔎 File Permissions | ${formatStatus('${{ needs.detect-errors.outputs.permissions_result }}')} |\n`;
+            body += `| 🔎 Radon (複雑度) | ${formatStatus('${{ needs.detect-errors.outputs.radon_result }}')} |\n`;
+            body += '\n';
+
+            if (hasErrors) {
+              body += '### 🔧 修復結果\n\n';
+              body += `| 項目 | 値 |\n`;
+              body += `|------|----|\n`;
+              body += `| 修復件数 | ${fixedCount} |\n`;
+              body += `| 使用サイクル | ${cyclesUsed} / ${maxCycles} |\n`;
+              body += `| 修復成功 | ${repairSuccess ? '✅ はい' : '❌ いいえ（手動対応が必要）'} |\n`;
+
+              if (repairSuccess) {
+                body += '\n✅ **自動修復が完了しました。**\n';
+              } else {
+                body += '\n⚠️ **一部エラーは手動対応が必要です。**次回実行（30分後）で再試行します。\n';
+              }
+            } else {
+              body += '### ✅ エラーなし\n\nすべての検知項目でエラーは検出されませんでした。\n';
+            }
+
+            body += '\n---\n🤖 *Generated by Auto Error Detection & Fix Loop*';
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # ==========================================================================
+  # Job 4: 最終レポート
+  # ==========================================================================
+  final-report:
+    name: 📊 最終レポート
+    runs-on: ubuntu-latest
+    needs: [detect-errors, auto-repair-loop]
+    if: always()
+    permissions: {}
+
+    steps:
+      - name: 最終サマリー生成
+        run: |
+          echo "## 🤖 Auto Error Detection & Fix Loop - 実行レポート" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 項目 | 値 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-----|" >> $GITHUB_STEP_SUMMARY
+          echo "| 実行番号 | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| トリガー | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 検知エラー数 | ${{ needs.detect-errors.outputs.error_count || '0' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 修復件数 | ${{ needs.auto-repair-loop.outputs.fixed_count || '0' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 使用サイクル | ${{ needs.auto-repair-loop.outputs.cycles_used || '0' }} / ${{ env.MAX_REPAIR_CYCLES }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 修復成功 | ${{ needs.auto-repair-loop.outputs.repair_success || 'N/A' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 次回スケジュール実行" >> $GITHUB_STEP_SUMMARY
+          echo "次回の自動実行は約30分後に行われます。" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "🤖 *Auto Error Detection & Fix Loop - $(date -u +'%Y-%m-%d %H:%M:%S UTC')*" >> $GITHUB_STEP_SUMMARY
