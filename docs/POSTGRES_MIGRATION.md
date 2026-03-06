@@ -1,0 +1,262 @@
+# PostgreSQL移行手順書
+
+## 概要
+
+SQLite（開発）から PostgreSQL（本番）への移行手順を記載する。
+
+- 対象システム: Backup Management System
+- 移行ツール: Alembic（Flask-Migrate）
+- 現行DB: SQLite (`data/backup_mgmt.db`)
+- 移行先DB: PostgreSQL 14+
+
+---
+
+## 前提条件
+
+- PostgreSQL 14+ がインストール・起動済み
+- psycopg2-binary がインストール済み:
+
+```bash
+pip install psycopg2-binary
+```
+
+- Alembic がインストール済み（requirements.txt に含まれる）:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## 1. PostgreSQL セットアップ
+
+### データベース・ユーザー作成
+
+```sql
+-- PostgreSQL に接続（管理者ユーザーで実行）
+-- psql -U postgres
+
+CREATE USER backup_user WITH PASSWORD 'your_secure_password';
+CREATE DATABASE backup_management OWNER backup_user;
+GRANT ALL PRIVILEGES ON DATABASE backup_management TO backup_user;
+
+-- PostgreSQL 15+ では追加権限が必要な場合がある
+\c backup_management
+GRANT ALL ON SCHEMA public TO backup_user;
+```
+
+---
+
+## 2. 環境変数設定
+
+### Linux / macOS
+
+```bash
+export DATABASE_URL=postgresql://backup_user:your_secure_password@localhost:5432/backup_management
+export FLASK_ENV=production
+export SECRET_KEY=your-production-secret-key-minimum-32-chars
+export JWT_SECRET_KEY=your-jwt-secret-key
+```
+
+### `.env` ファイル使用（推奨）
+
+```bash
+# .env ファイルを作成（gitignoreに追加済み）
+cat > .env << 'EOF'
+DATABASE_URL=postgresql://backup_user:your_secure_password@localhost:5432/backup_management
+FLASK_ENV=production
+SECRET_KEY=your-production-secret-key-minimum-32-chars
+JWT_SECRET_KEY=your-jwt-secret-key
+EOF
+```
+
+> **注意**: `.env` ファイルをgitにコミットしないこと。
+
+---
+
+## 3. 移行前チェック
+
+```bash
+# 移行前環境チェックスクリプトを実行
+python scripts/check_postgres_migration.py
+```
+
+確認項目:
+- 環境変数の設定状況
+- psycopg2 ドライバーのインストール
+- alembic.ini の存在
+- マイグレーションファイルの確認
+- PostgreSQL接続テスト
+
+---
+
+## 4. Alembicマイグレーション実行
+
+### 現在の状態確認
+
+```bash
+# 現在のマイグレーション状態を確認
+DATABASE_URL=postgresql://backup_user:pass@localhost:5432/backup_management \
+  alembic current
+
+# マイグレーション履歴を確認
+DATABASE_URL=postgresql://backup_user:pass@localhost:5432/backup_management \
+  alembic history --verbose
+```
+
+### マイグレーション実行
+
+```bash
+# 最新バージョンまでマイグレーション
+DATABASE_URL=postgresql://backup_user:pass@localhost:5432/backup_management \
+  alembic upgrade head
+```
+
+### マイグレーション後の確認
+
+```bash
+# テーブル一覧確認（psql）
+psql -U backup_user -d backup_management -c "\dt"
+
+# バージョン確認
+DATABASE_URL=postgresql://... alembic current
+```
+
+---
+
+## 5. データ移行（SQLite -> PostgreSQL）
+
+既存の SQLite データを PostgreSQL に移行する場合:
+
+### SQLiteデータのエクスポート
+
+```bash
+# SQLite データをJSON形式でエクスポート
+python -c "
+import sqlite3, json
+conn = sqlite3.connect('data/backup_mgmt.db')
+conn.row_factory = sqlite3.Row
+
+tables = conn.execute(\"SELECT name FROM sqlite_master WHERE type='table'\").fetchall()
+data = {}
+for (table,) in tables:
+    rows = conn.execute(f'SELECT * FROM {table}').fetchall()
+    data[table] = [dict(r) for r in rows]
+
+with open('/tmp/sqlite_export.json', 'w') as f:
+    json.dump(data, f, indent=2, default=str)
+print('エクスポート完了: /tmp/sqlite_export.json')
+"
+```
+
+### PostgreSQLへのインポート
+
+```bash
+# Flask シェルを使ってインポート
+DATABASE_URL=postgresql://... python -c "
+import json
+from app import create_app, db
+
+app = create_app('production')
+with app.app_context():
+    # テーブル作成（alembic upgrade head 後不要）
+    # db.create_all()
+
+    with open('/tmp/sqlite_export.json') as f:
+        data = json.load(f)
+
+    # 各テーブルへのデータ挿入は個別に実装
+    print('インポート処理を実装してください')
+"
+```
+
+> **注意**: データ移行は本番環境への影響を最小化するため、メンテナンス時間帯に実施すること。
+
+---
+
+## 6. アプリケーション起動確認
+
+```bash
+# 本番設定でアプリ起動
+DATABASE_URL=postgresql://... FLASK_ENV=production python run.py --config production
+
+# ヘルスチェック
+curl http://localhost:5000/api/v1/health
+```
+
+---
+
+## 7. PostgreSQL接続設定（alembic.ini）
+
+`alembic.ini` のデフォルト設定は SQLite を使用:
+
+```ini
+sqlalchemy.url = sqlite:///data/backup_system.db
+```
+
+PostgreSQL使用時は環境変数 `DATABASE_URL` を設定することで、`migrations/env.py` が自動的に上書きする。
+直接 `alembic.ini` を編集する場合:
+
+```ini
+# PostgreSQL接続URL例
+# sqlalchemy.url = postgresql://backup_user:password@localhost:5432/backup_management
+# sqlalchemy.url = postgresql://backup_user:password@db-host:5432/backup_management
+# SSL接続の場合
+# sqlalchemy.url = postgresql://backup_user:password@db-host:5432/backup_management?sslmode=require
+```
+
+> **重要**: `alembic.ini` にパスワードを直接記載しないこと。環境変数を使用すること。
+
+---
+
+## 8. 本番環境向けConnectionPool設定
+
+`app/config.py` の `ProductionConfig` に以下を追加することを推奨:
+
+```python
+# PostgreSQL Connection Pool設定（本番推奨）
+SQLALCHEMY_ENGINE_OPTIONS = {
+    'pool_size': 10,          # 基本接続数
+    'max_overflow': 20,       # 最大追加接続数
+    'pool_timeout': 30,       # 接続タイムアウト（秒）
+    'pool_recycle': 3600,     # 接続リサイクル間隔（秒）
+    'pool_pre_ping': True,    # 接続前の死活確認
+}
+```
+
+---
+
+## トラブルシューティング
+
+### `psycopg2.OperationalError: could not connect to server`
+
+- PostgreSQL サービスが起動しているか確認: `systemctl status postgresql`
+- ホスト・ポート・認証情報が正しいか確認
+- pg_hba.conf の認証設定を確認
+
+### `alembic.util.exc.CommandError: Can't locate revision identified by '...'`
+
+- `migrations/versions/` 内のファイルを確認
+- `alembic history` でマイグレーション履歴を確認
+- 必要に応じて `alembic stamp head` でマーキング
+
+### `sqlalchemy.exc.ProgrammingError: column ... does not exist`
+
+- マイグレーションが最新か確認: `alembic current`
+- `alembic upgrade head` を実行
+
+### SQLiteとPostgreSQLの互換性
+
+- `BOOLEAN`: SQLite では `0/1`、PostgreSQL では `true/false`
+- `DATETIME`: PostgreSQL では `TIMESTAMP WITH TIME ZONE` を推奨
+- `AUTOINCREMENT`: PostgreSQL では `SERIAL` または `IDENTITY`
+
+---
+
+## 参照
+
+- [Alembic Documentation](https://alembic.sqlalchemy.org/)
+- [psycopg2 Documentation](https://www.psycopg.org/docs/)
+- [Flask-Migrate Documentation](https://flask-migrate.readthedocs.io/)
+- `migrations/versions/` - 既存マイグレーションファイル
+- `scripts/check_postgres_migration.py` - 移行前チェックスクリプト
