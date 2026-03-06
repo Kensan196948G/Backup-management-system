@@ -18,7 +18,7 @@ from flask_login import current_user, login_required
 from sqlalchemy import desc, or_
 
 from app.auth.decorators import role_required
-from app.models import BackupJob, MediaLending, MediaRotationSchedule, OfflineMedia, db
+from app.models import MediaLending, MediaRotationSchedule, OfflineMedia, db
 from app.views import media_bp
 
 
@@ -45,8 +45,6 @@ def list():
         query = query.filter(
             or_(
                 OfflineMedia.media_id.ilike(f"%{search}%"),
-                OfflineMedia.label.ilike(f"%{search}%"),
-                OfflineMedia.description.ilike(f"%{search}%"),
             )
         )
 
@@ -54,7 +52,7 @@ def list():
         query = query.filter_by(media_type=media_type)
 
     if status:
-        query = query.filter_by(status=status)
+        query = query.filter_by(current_status=status)
 
     if location:
         query = query.filter_by(storage_location=location)
@@ -116,17 +114,12 @@ def detail(media_id):
     media = OfflineMedia.query.get_or_404(media_id)
 
     # Get rotation schedule
-    rotation = MediaRotationSchedule.query.filter_by(media_id=media_id).first()
+    rotation = MediaRotationSchedule.query.filter_by(offline_media_id=media_id).first()
 
     # Get lending history
-    lending_history = MediaLending.query.filter_by(media_id=media_id).order_by(MediaLending.borrowed_at.desc()).limit(20).all()
+    lending_history = MediaLending.query.filter_by(offline_media_id=media_id).order_by(MediaLending.borrow_date.desc()).limit(20).all()
 
-    # Get associated backup job
-    job = None
-    if media.job_id:
-        job = db.session.get(BackupJob, media.job_id)
-
-    return render_template("media/detail.html", media=media, rotation=rotation, lending_history=lending_history, job=job)
+    return render_template("media/detail.html", media=media, rotation=rotation, lending_history=lending_history, job=None)
 
 
 @media_bp.route("/create", methods=["GET", "POST"])
@@ -142,12 +135,9 @@ def create():
             media_data = {
                 "media_id": request.form.get("media_id"),
                 "media_type": request.form.get("media_type"),
-                "label": request.form.get("label"),
-                "description": request.form.get("description"),
                 "capacity_gb": float(request.form.get("capacity_gb", 0)),
                 "storage_location": request.form.get("storage_location"),
-                "status": request.form.get("status", "available"),
-                "job_id": request.form.get("job_id") or None,
+                "current_status": request.form.get("current_status", "available"),
                 "owner_id": current_user.id,
             }
 
@@ -161,7 +151,7 @@ def create():
 
             log_audit("create", resource_type="offline_media", resource_id=media.id, action_result="success")
 
-            flash(f"オフラインメディア「{media.label}」を作成しました", "success")
+            flash(f"オフラインメディア「{media.media_id}」を作成しました", "success")
             return redirect(url_for("media.detail", media_id=media.id))
 
         except Exception as e:
@@ -169,10 +159,7 @@ def create():
             current_app.logger.error(f"Error creating media: {str(e)}")
             flash(f"メディアの作成に失敗しました: {str(e)}", "danger")
 
-    # Get jobs for dropdown
-    jobs = BackupJob.query.filter_by(is_active=True).all()
-
-    return render_template("media/create.html", jobs=jobs)
+    return render_template("media/create.html")
 
 
 @media_bp.route("/<int:media_id>/edit", methods=["GET", "POST"])
@@ -189,12 +176,9 @@ def edit(media_id):
             # Update media data
             media.media_id = request.form.get("media_id")
             media.media_type = request.form.get("media_type")
-            media.label = request.form.get("label")
-            media.description = request.form.get("description")
             media.capacity_gb = float(request.form.get("capacity_gb", 0))
             media.storage_location = request.form.get("storage_location")
-            media.status = request.form.get("status")
-            media.job_id = request.form.get("job_id") or None
+            media.current_status = request.form.get("current_status")
             media.updated_at = datetime.now(timezone.utc)
 
             db.session.commit()
@@ -204,7 +188,7 @@ def edit(media_id):
 
             log_audit("update", resource_type="offline_media", resource_id=media.id, action_result="success")
 
-            flash(f"オフラインメディア「{media.label}」を更新しました", "success")
+            flash(f"オフラインメディア「{media.media_id}」を更新しました", "success")
             return redirect(url_for("media.detail", media_id=media.id))
 
         except Exception as e:
@@ -212,10 +196,7 @@ def edit(media_id):
             current_app.logger.error(f"Error updating media: {str(e)}")
             flash(f"メディアの更新に失敗しました: {str(e)}", "danger")
 
-    # Get jobs for dropdown
-    jobs = BackupJob.query.filter_by(is_active=True).all()
-
-    return render_template("media/edit.html", media=media, jobs=jobs)
+    return render_template("media/edit.html", media=media)
 
 
 @media_bp.route("/<int:media_id>/delete", methods=["POST"])
@@ -228,11 +209,11 @@ def delete(media_id):
     media = OfflineMedia.query.get_or_404(media_id)
 
     try:
-        label = media.label
+        label = media.media_id
 
         # Delete related records
-        MediaRotationSchedule.query.filter_by(media_id=media_id).delete()
-        MediaLending.query.filter_by(media_id=media_id).delete()
+        MediaRotationSchedule.query.filter_by(offline_media_id=media_id).delete()
+        MediaLending.query.filter_by(offline_media_id=media_id).delete()
 
         # Delete media
         db.session.delete(media)
@@ -265,16 +246,16 @@ def lend(media_id):
     if request.method == "POST":
         try:
             # Check if media is available
-            if media.status != "available":
+            if media.current_status != "available":
                 flash("このメディアは貸出できません", "warning")
                 return redirect(url_for("media.detail", media_id=media_id))
 
             # Create lending record
             lending = MediaLending(
-                media_id=media_id,
+                offline_media_id=media_id,
                 borrower_id=current_user.id,
-                purpose=request.form.get("purpose"),
-                expected_return_date=(
+                borrow_purpose=request.form.get("purpose"),
+                expected_return=(
                     datetime.strptime(request.form.get("expected_return_date"), "%Y-%m-%d")
                     if request.form.get("expected_return_date")
                     else None
@@ -282,7 +263,7 @@ def lend(media_id):
             )
 
             # Update media status
-            media.status = "lent"
+            media.current_status = "lent"
             media.updated_at = datetime.now(timezone.utc)
 
             db.session.add(lending)
@@ -293,7 +274,7 @@ def lend(media_id):
 
             log_audit("lend", resource_type="offline_media", resource_id=media.id, action_result="success")
 
-            flash(f"メディア「{media.label}」を貸出しました", "success")
+            flash(f"メディア「{media.media_id}」を貸出しました", "success")
             return redirect(url_for("media.detail", media_id=media_id))
 
         except Exception as e:
@@ -315,17 +296,17 @@ def return_media(media_id):
 
     try:
         # Find active lending record
-        lending = MediaLending.query.filter_by(media_id=media_id, returned_at=None).first()
+        lending = MediaLending.query.filter_by(offline_media_id=media_id, actual_return=None).first()
 
         if not lending:
             flash("貸出記録が見つかりません", "warning")
             return redirect(url_for("media.detail", media_id=media_id))
 
         # Update lending record
-        lending.returned_at = datetime.now(timezone.utc)
+        lending.actual_return = datetime.now(timezone.utc)
 
         # Update media status
-        media.status = "available"
+        media.current_status = "available"
         media.updated_at = datetime.now(timezone.utc)
 
         db.session.commit()
@@ -335,7 +316,7 @@ def return_media(media_id):
 
         log_audit("return", resource_type="offline_media", resource_id=media.id, action_result="success")
 
-        flash(f"メディア「{media.label}」を返却しました", "success")
+        flash(f"メディア「{media.media_id}」を返却しました", "success")
 
     except Exception as e:
         db.session.rollback()
