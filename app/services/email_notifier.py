@@ -2,6 +2,7 @@
 Email Notification Service
 Provides email notifications for backup events using SMTP
 """
+
 import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -32,8 +33,7 @@ class EmailNotifier:
         "warning": "バックアップ警告",
     }
 
-    def __init__(self, smtp_host: str, smtp_port: int, username: str, password: str,
-                 from_email: str, use_tls: bool = True):
+    def __init__(self, smtp_host: str, smtp_port: int, username: str, password: str, from_email: str, use_tls: bool = True):
         self.smtp_host = smtp_host
         self.smtp_port = smtp_port
         self.username = username
@@ -41,8 +41,7 @@ class EmailNotifier:
         self.from_email = from_email
         self.use_tls = use_tls
 
-    def send_email(self, to_emails: List[str], subject: str, body_text: str,
-                   body_html: Optional[str] = None) -> bool:
+    def send_email(self, to_emails: List[str], subject: str, body_text: str, body_html: Optional[str] = None) -> bool:
         """
         メール送信。
 
@@ -85,8 +84,9 @@ class EmailNotifier:
             logger.error(f"Failed to send email: {e}", exc_info=True)
             return False
 
-    def send_backup_alert(self, job_name: str, status: str, message: str,
-                          to_emails: List[str], details: Optional[dict] = None) -> bool:
+    def send_backup_alert(
+        self, job_name: str, status: str, message: str, to_emails: List[str], details: Optional[dict] = None
+    ) -> bool:
         """
         バックアップ結果のEmail通知。
 
@@ -137,8 +137,7 @@ class EmailNotifier:
 
         return self.send_email(to_emails, subject, body_text, body_html)
 
-    def send_system_alert(self, alert_type: str, message: str,
-                          to_emails: List[str]) -> bool:
+    def send_system_alert(self, alert_type: str, message: str, to_emails: List[str]) -> bool:
         """
         システムアラートのEmail通知。
         """

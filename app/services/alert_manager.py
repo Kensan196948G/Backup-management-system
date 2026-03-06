@@ -367,7 +367,7 @@ class AlertManager:
                     recipients.append(job.owner.email)
 
             # Add admin users
-            admin_users = User.query.filter(User.role == "admin", User.is_active == True, User.email != None).all()
+            admin_users = User.query.filter(User.role == "admin", User.is_active.is_(True), User.email.isnot(None)).all()
 
             for user in admin_users:
                 if user.email not in recipients:
@@ -668,7 +668,7 @@ class AlertManager:
         try:
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
-            count = Alert.query.filter(Alert.is_acknowledged == True, Alert.acknowledged_at < cutoff_date).delete()
+            count = Alert.query.filter(Alert.is_acknowledged.is_(True), Alert.acknowledged_at < cutoff_date).delete()
 
             db.session.commit()
 

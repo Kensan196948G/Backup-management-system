@@ -365,6 +365,7 @@ class VerificationService:
                 if source_path.is_dir():
                     all_files = [f for f in source_path.rglob("*") if f.is_file()]
                     import random  # nosec B311 - non-cryptographic use: random file sampling for verification
+
                     files_to_test = random.sample(all_files, min(10, len(all_files)))  # nosec B311
                 else:
                     files_to_test = [source_path]
@@ -657,7 +658,7 @@ class VerificationService:
         """
         today = datetime.now(timezone.utc).date()
         overdue = VerificationSchedule.query.filter(
-            VerificationSchedule.is_active == True, VerificationSchedule.next_test_date <= today
+            VerificationSchedule.is_active.is_(True), VerificationSchedule.next_test_date <= today
         ).all()
 
         logger.info(f"Found {len(overdue)} overdue verification tests")

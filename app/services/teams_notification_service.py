@@ -540,7 +540,7 @@ class TeamsNotificationService:
 
             # Check response
             if response.status_code == 200:
-                logger.info(f"Teams notification sent successfully")
+                logger.info("Teams notification sent successfully")
                 return True
             else:
                 logger.error(f"Teams webhook returned status {response.status_code}: {response.text}")

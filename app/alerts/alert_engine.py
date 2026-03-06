@@ -98,7 +98,10 @@ class AlertEngine:
                 severity=AlertSeverity.CRITICAL,
                 condition=self._check_consecutive_failures,
                 title_template="Critical: {job_name} Failed {failure_count} Times",
-                message_template="Backup job '{job_name}' has failed {failure_count} consecutive times. Last error: {error_message}",
+                message_template=(
+                    "Backup job '{job_name}' has failed {failure_count} consecutive times. "
+                    "Last error: {error_message}"
+                ),
                 cooldown_minutes=60,
             )
         )
@@ -112,7 +115,10 @@ class AlertEngine:
                 severity=AlertSeverity.WARNING,
                 condition=self._check_backup_warning,
                 title_template="Backup Warning: {job_name}",
-                message_template="Backup job '{job_name}' completed with warnings at {execution_date}. Details: {error_message}",
+                message_template=(
+                    "Backup job '{job_name}' completed with warnings at {execution_date}. "
+                    "Details: {error_message}"
+                ),
                 cooldown_minutes=30,
             )
         )
@@ -126,7 +132,10 @@ class AlertEngine:
                 severity=AlertSeverity.ERROR,
                 condition=self._check_compliance_violation,
                 title_template="Compliance Violation: {job_name}",
-                message_template="Backup job '{job_name}' violates 3-2-1-1-0 rule. Status: {compliance_status}. Details: {details}",
+                message_template=(
+                    "Backup job '{job_name}' violates 3-2-1-1-0 rule. "
+                    "Status: {compliance_status}. Details: {details}"
+                ),
                 cooldown_minutes=120,
             )
         )
@@ -154,7 +163,10 @@ class AlertEngine:
                 severity=AlertSeverity.WARNING,
                 condition=self._check_no_recent_backup,
                 title_template="No Recent Backup: {job_name}",
-                message_template="Backup job '{job_name}' has not executed in the last {hours} hours. Last execution: {last_execution}",
+                message_template=(
+                    "Backup job '{job_name}' has not executed in the last {hours} hours. "
+                    "Last execution: {last_execution}"
+                ),
                 cooldown_minutes=360,  # 6 hours
             )
         )
@@ -406,7 +418,7 @@ class AlertEngine:
 
         overdue_schedules = (
             VerificationSchedule.query.filter(
-                and_(VerificationSchedule.is_active == True, VerificationSchedule.next_test_date < today)  # noqa: E712
+                and_(VerificationSchedule.is_active.is_(True), VerificationSchedule.next_test_date < today)
             )
             .order_by(VerificationSchedule.next_test_date.asc())
             .all()
@@ -525,9 +537,7 @@ class AlertEngine:
             .all()
         )
 
-        acknowledged = Alert.query.filter(
-            and_(Alert.created_at >= start_date, Alert.is_acknowledged == True)
-        ).count()  # noqa: E712
+        acknowledged = Alert.query.filter(and_(Alert.created_at >= start_date, Alert.is_acknowledged.is_(True))).count()
 
         return {
             "period_days": days,

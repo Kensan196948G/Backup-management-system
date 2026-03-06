@@ -652,7 +652,10 @@ def create_user():
                     {
                         "error": {
                             "code": "VALIDATION_ERROR",
-                            "message": "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
+                            "message": (
+                                "Password must be at least 8 characters and contain "
+                                "uppercase, lowercase, number, and special character"
+                            ),
                         }
                     }
                 ),
@@ -775,7 +778,10 @@ def update_user(user_id):
                         {
                             "error": {
                                 "code": "VALIDATION_ERROR",
-                                "message": "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
+                                "message": (
+                                    "Password must be at least 8 characters and contain "
+                                    "uppercase, lowercase, number, and special character"
+                                ),
                             }
                         }
                     ),

@@ -4,6 +4,7 @@ Scheduled tasks:
 - Weekly report: Every Monday at 09:00 JST
 - Monthly report: 1st of each month at 08:00 JST
 """
+
 from datetime import datetime, timezone
 
 from celery import shared_task
@@ -28,10 +29,7 @@ def generate_and_send_weekly_report():
 
         notifier = get_email_notifier()
         if notifier:
-            subject = (
-                f"【週次レポート】3-2-1-1-0 コンプライアンス率: "
-                f"{report_data['compliance_rate']}%"
-            )
+            subject = f"【週次レポート】3-2-1-1-0 コンプライアンス率: " f"{report_data['compliance_rate']}%"
             recipients = current_app.config.get("ALERT_EMAIL_RECIPIENTS", [])
             notifier.send_email(
                 to_emails=recipients,
@@ -39,13 +37,9 @@ def generate_and_send_weekly_report():
                 body_text=text_body,
                 body_html=html_body,
             )
-            current_app.logger.info(
-                f"Weekly compliance report sent: {report_data['compliance_rate']}%"
-            )
+            current_app.logger.info(f"Weekly compliance report sent: {report_data['compliance_rate']}%")
         else:
-            current_app.logger.warning(
-                "EmailNotifier not configured, skipping email send"
-            )
+            current_app.logger.warning("EmailNotifier not configured, skipping email send")
 
         return {
             "status": "success",
@@ -84,13 +78,9 @@ def generate_and_send_monthly_report():
                 body_text=text_body,
                 body_html=html_body,
             )
-            current_app.logger.info(
-                f"Monthly compliance report sent: {report_data['compliance_rate']}%"
-            )
+            current_app.logger.info(f"Monthly compliance report sent: {report_data['compliance_rate']}%")
         else:
-            current_app.logger.warning(
-                "EmailNotifier not configured, skipping email send"
-            )
+            current_app.logger.warning("EmailNotifier not configured, skipping email send")
 
         return {
             "status": "success",

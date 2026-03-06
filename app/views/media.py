@@ -120,7 +120,9 @@ def detail(media_id):
     rotation = MediaRotationSchedule.query.filter_by(offline_media_id=media_id).first()
 
     # Get lending history
-    lending_history = MediaLending.query.filter_by(offline_media_id=media_id).order_by(MediaLending.borrow_date.desc()).limit(20).all()
+    lending_history = (
+        MediaLending.query.filter_by(offline_media_id=media_id).order_by(MediaLending.borrow_date.desc()).limit(20).all()
+    )
 
     return render_template("media/detail.html", media=media, rotation=rotation, lending_history=lending_history, job=None)
 

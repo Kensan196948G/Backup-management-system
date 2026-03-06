@@ -40,7 +40,7 @@ class Rule321110Validator:
         Raises:
             Rule321110ViolationError: ルール違反（raise_on_violation=Trueの場合）
         """
-        logger.info(f"Validating 3-2-1-1-0 rule", extra={"job_id": job_id})
+        logger.info("Validating 3-2-1-1-0 rule", extra={"job_id": job_id})
 
         result = {
             "job_id": job_id,
@@ -58,7 +58,7 @@ class Rule321110Validator:
 
         job = db.session.get(BackupJob, job_id)
         if not job:
-            logger.error(f"Job not found", extra={"job_id": job_id})
+            logger.error("Job not found", extra={"job_id": job_id})
             return result
 
         # BackupCopyからコピー数とメディア情報を取得（実際のモデルに基づく）
@@ -92,9 +92,7 @@ class Rule321110Validator:
         result["details"]["offline_copies"] = offline_count
 
         # Rule: 検証エラー0件（execution_result == "failed"のカウント）
-        failed_count = BackupExecution.query.filter_by(
-            job_id=job_id, execution_result="failed"
-        ).count()
+        failed_count = BackupExecution.query.filter_by(job_id=job_id, execution_result="failed").count()
 
         result["zero_errors"] = failed_count == 0
         result["details"]["verification_errors"] = failed_count
@@ -110,9 +108,9 @@ class Rule321110Validator:
 
         # ログ記録
         if result["compliant"]:
-            logger.info(f"3-2-1-1-0 rule validation passed", extra={"job_id": job_id})
+            logger.info("3-2-1-1-0 rule validation passed", extra={"job_id": job_id})
         else:
-            logger.warning(f"3-2-1-1-0 rule validation failed", extra={"job_id": job_id, "violations": result})
+            logger.warning("3-2-1-1-0 rule validation failed", extra={"job_id": job_id, "violations": result})
 
             if raise_on_violation:
                 raise Rule321110ViolationError(job_id, result)

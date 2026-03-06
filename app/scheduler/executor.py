@@ -370,13 +370,19 @@ class JobExecutor:
         if not self.resource_manager.can_allocate(limits):
             logger.warning(f"Cannot execute job {job_id}: insufficient resources")
             return ExecutionResult(
-                job_id=job_id, status=ExecutionStatus.FAILED, start_time=datetime.now(timezone.utc), error="Insufficient resources"
+                job_id=job_id,
+                status=ExecutionStatus.FAILED,
+                start_time=datetime.now(timezone.utc),
+                error="Insufficient resources",
             )
 
         # Allocate resources
         if not self.resource_manager.allocate(job_id, limits):
             return ExecutionResult(
-                job_id=job_id, status=ExecutionStatus.FAILED, start_time=datetime.now(timezone.utc), error="Resource allocation failed"
+                job_id=job_id,
+                status=ExecutionStatus.FAILED,
+                start_time=datetime.now(timezone.utc),
+                error="Resource allocation failed",
             )
 
         # Submit job

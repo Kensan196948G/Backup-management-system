@@ -91,9 +91,7 @@ def update_backup_status():
         # Generate alerts for failed backups
         if data["execution_result"] in ["failed", "warning"]:
             alert_manager = AlertManager()
-            alert_manager.create_failure_alert(
-                job_id=data["job_id"], error_message=data.get("error_message")
-            )
+            alert_manager.create_failure_alert(job_id=data["job_id"], error_message=data.get("error_message"))
 
         # Check compliance and generate alerts if needed
         compliance_checker = ComplianceChecker()

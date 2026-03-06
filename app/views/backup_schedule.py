@@ -5,11 +5,10 @@ Handles schedule CRUD operations and storage provider configuration
 
 from datetime import datetime, timedelta
 
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, flash, jsonify, render_template, request
 from flask_login import current_user, login_required
-from sqlalchemy import func
 
-from app.models import BackupJob, SystemSetting, db
+from app.models import BackupJob, db
 from app.auth.decorators import role_required
 
 bp = Blueprint("backup_schedule", __name__, url_prefix="/backup")
@@ -32,17 +31,19 @@ def schedule_list():
 
     schedules = []
     for sched in db_schedules:
-        schedules.append({
-            "id": sched.id,
-            "job_name": sched.job.job_name if sched.job else "不明",
-            "source_path": sched.job.source_path if sched.job else "",
-            "cron_expression": sched.cron_expression,
-            "schedule_description": sched.schedule_description or "",
-            "next_run": sched.next_run,
-            "last_run": sched.last_run,
-            "priority": sched.priority,
-            "is_active": sched.is_active,
-        })
+        schedules.append(
+            {
+                "id": sched.id,
+                "job_name": sched.job.job_name if sched.job else "不明",
+                "source_path": sched.job.source_path if sched.job else "",
+                "cron_expression": sched.cron_expression,
+                "schedule_description": sched.schedule_description or "",
+                "next_run": sched.next_run,
+                "last_run": sched.last_run,
+                "priority": sched.priority,
+                "is_active": sched.is_active,
+            }
+        )
 
     # Calculate statistics
     stats = {
@@ -117,6 +118,7 @@ def create_schedule():
     """Create new backup schedule"""
     try:
         from app.models import BackupSchedule
+
         data = request.get_json()
 
         job_id = data.get("job_id")
@@ -139,7 +141,7 @@ def create_schedule():
             priority=priority,
             schedule_description=description,
             is_active=is_active,
-            created_by_id=current_user.id
+            created_by_id=current_user.id,
         )
         db.session.add(schedule)
         db.session.commit()
@@ -259,6 +261,7 @@ def create_storage_provider():
     """Create new storage provider"""
     try:
         from app.models import StorageProvider
+
         data = request.get_json()
 
         name = data.get("name")
@@ -268,12 +271,13 @@ def create_storage_provider():
             return jsonify({"success": False, "message": "Name and provider type are required"}), 400
 
         import json
+
         provider = StorageProvider(
             name=name,
             provider_type=provider_type,
             endpoint=data.get("endpoint", ""),
             config=json.dumps(data),
-            created_by_id=current_user.id
+            created_by_id=current_user.id,
         )
         db.session.add(provider)
         db.session.commit()

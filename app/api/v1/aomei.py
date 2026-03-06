@@ -64,7 +64,7 @@ def aomei_api_key_required(f):
             )
 
         if not AOMEIService.validate_api_key(api_key):
-            logger.warning(f"AOMEI API request with invalid API key")
+            logger.warning("AOMEI API request with invalid API key")
             return (
                 jsonify(
                     {

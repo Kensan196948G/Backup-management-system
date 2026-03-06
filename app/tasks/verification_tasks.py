@@ -59,7 +59,7 @@ def verify_backup(
     }
 
     try:
-        from app.models import BackupJob, VerificationResult, db
+        from app.models import BackupJob, db
 
         # Fetch job
         job = db.session.get(BackupJob, job_id)
@@ -177,7 +177,7 @@ def verify_all_pending(
     try:
         from datetime import timedelta
 
-        from app.models import BackupJob, db
+        from app.models import BackupJob
 
         # Find jobs needing verification
         # Criteria: completed successfully, not verified in last 7 days

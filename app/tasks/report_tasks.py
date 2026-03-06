@@ -150,7 +150,7 @@ def generate_daily_report(self) -> Dict[str, Any]:
     }
 
     try:
-        from app.models import Alert, BackupJob, db
+        from app.models import Alert, BackupJob
         from app.services.compliance_checker import ComplianceChecker
 
         # Get yesterday's date range

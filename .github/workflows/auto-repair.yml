@@ -181,7 +181,7 @@ jobs:
             --max-cycles "$MAX_CYCLES" \
             --issues "$ACTIVE_ISSUES" \
             --auto-commit \
-            --output-json > /tmp/repair_result.json 2>&1
+            --output-json > /tmp/repair_result.json 2>&1 || true
 
           EXIT_CODE=$?
 

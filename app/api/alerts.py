@@ -336,7 +336,7 @@ def bulk_acknowledge_alerts():
 
         # Update alerts
         now = datetime.now(timezone.utc)
-        updated_count = Alert.query.filter(Alert.id.in_(data["alert_ids"]), Alert.is_acknowledged == False).update(
+        updated_count = Alert.query.filter(Alert.id.in_(data["alert_ids"]), Alert.is_acknowledged.is_(False)).update(
             {Alert.is_acknowledged: True, Alert.acknowledged_by: user_id, Alert.acknowledged_at: now},
             synchronize_session=False,
         )

@@ -16,7 +16,6 @@ from app.models import (
     ComplianceStatus,
     OfflineMedia,
     VerificationTest,
-    db,
 )
 from app.views import dashboard_bp
 
@@ -179,8 +178,6 @@ def api_storage_chart():
         # Calculate storage usage by copy type
         # This is a simplified version - you may want to add actual storage calculation
         pass
-
-        storage_stats = db.session.query(func.count(BackupJob.id).label("count")).filter(BackupJob.is_active == True).first()
 
         # For demonstration, using job counts as proxy
         # In production, you would calculate actual storage from BackupCopy table

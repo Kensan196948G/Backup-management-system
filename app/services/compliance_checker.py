@@ -17,9 +17,7 @@ from typing import Dict, List, Tuple
 
 from app.config import Config
 from app.models import (
-    Alert,
     BackupCopy,
-    BackupExecution,
     BackupJob,
     ComplianceStatus,
     OfflineMedia,
@@ -393,10 +391,7 @@ class ComplianceChecker:
             violations.append(f"メディアタイプ不足: {media_type_count}/2")
 
         # Rule 3: At least 1 offsite copy (copy_type: offsite/cloud/offline)
-        offsite_copies = [
-            c for c in copies
-            if getattr(c, "copy_type", None) in ("offsite", "cloud", "offline")
-        ]
+        offsite_copies = [c for c in copies if getattr(c, "copy_type", None) in ("offsite", "cloud", "offline")]
         has_offsite = len(offsite_copies) >= 1
         checks["offsite"] = {
             "required": 1,
@@ -475,12 +470,14 @@ class ComplianceChecker:
         for job in report_data.get("job_results", []):
             violations_str = "; ".join(job.get("violations", []))
             status = "準拠" if job.get("is_compliant") else "非準拠"
-            writer.writerow([
-                job.get("job_id"),
-                job.get("job_name"),
-                status,
-                violations_str or "なし",
-            ])
+            writer.writerow(
+                [
+                    job.get("job_id"),
+                    job.get("job_name"),
+                    status,
+                    violations_str or "なし",
+                ]
+            )
 
         return output.getvalue()
 
@@ -512,11 +509,7 @@ class ComplianceChecker:
         for job in report_data.get("job_results", []):
             status_cell = "準拠" if job.get("is_compliant") else "非準拠"
             violations = "<br>".join(job.get("violations", [])) or "なし"
-            html_rows += (
-                f"<tr><td>{job.get('job_name')}</td>"
-                f"<td>{status_cell}</td>"
-                f"<td>{violations}</td></tr>\n"
-            )
+            html_rows += f"<tr><td>{job.get('job_name')}</td>" f"<td>{status_cell}</td>" f"<td>{violations}</td></tr>\n"
 
         html_body = (
             "<html><body>"
@@ -524,7 +517,7 @@ class ComplianceChecker:
             f"<p><strong>生成日時:</strong> {report_data['generated_at']}</p>"
             f"<h3>{status_label} {report_data['summary']} - コンプライアンス率: {rate}%</h3>"
             f"<p>準拠ジョブ: {report_data['compliant_jobs']}/{report_data['total_jobs']}</p>"
-            "<table border=\"1\" cellpadding=\"5\" cellspacing=\"0\">"
+            '<table border="1" cellpadding="5" cellspacing="0">'
             "<tr><th>ジョブ名</th><th>状態</th><th>違反内容</th></tr>"
             f"{html_rows}"
             "</table></body></html>"
