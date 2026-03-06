@@ -450,6 +450,122 @@ def rotate_api_key(current_user, key_id):
         )
 
 
+@auth_bp.route("/api-keys/<int:key_id>/status", methods=["GET"])
+@jwt_required
+def get_api_key_status(current_user, key_id):
+    """
+    Get the status of an API key including expiration details.
+
+    Headers:
+        Authorization: Bearer <access_token>
+
+    Path Parameters:
+        key_id: API key ID
+
+    Returns:
+        {
+            "success": true,
+            "api_key": {
+                "id": 1,
+                "name": "string",
+                "is_active": true,
+                "expires_at": "2025-12-31T23:59:59",
+                "days_until_expiry": 25,
+                "expiry_warning": false,
+                "last_used_at": "2025-11-02T10:30:00",
+                "created_at": "2025-11-01T00:00:00"
+            }
+        }
+    """
+    try:
+        api_key = db.session.get(ApiKey, key_id)
+        if not api_key:
+            return jsonify({"success": False, "message": "API Key not found"}), 404
+
+        # Only the owner or admin can view key status
+        if api_key.user_id != current_user.id and current_user.role != "admin":
+            return jsonify({"success": False, "message": "Access denied"}), 403
+
+        now = datetime.now(timezone.utc)
+        status_info = api_key.to_dict(include_key=True)
+
+        # Calculate days remaining until expiry
+        if api_key.expires_at:
+            expires = api_key.expires_at
+            if expires.tzinfo is None:
+                expires = expires.replace(tzinfo=timezone.utc)
+            days_remaining = (expires - now).days
+            status_info["days_until_expiry"] = max(0, days_remaining)
+            status_info["expiry_warning"] = days_remaining <= 7
+        else:
+            status_info["days_until_expiry"] = None
+            status_info["expiry_warning"] = False
+
+        return jsonify({"success": True, "api_key": status_info}), 200
+
+    except Exception as e:
+        logger.error(f"Error getting API key status: {str(e)}", exc_info=True)
+        return (
+            jsonify({"success": False, "error": "INTERNAL_ERROR", "message": "An error occurred while getting API key status"}),
+            500,
+        )
+
+
+@auth_bp.route("/api-keys/expiring", methods=["GET"])
+@jwt_required
+def get_expiring_api_keys(current_user):
+    """
+    Get API keys expiring within the next 7 days.
+
+    Headers:
+        Authorization: Bearer <access_token>
+
+    Query Parameters:
+        days: Warning threshold in days (default: 7)
+
+    Returns:
+        {
+            "success": true,
+            "expiring_keys": [...],
+            "count": 2,
+            "threshold_days": 7
+        }
+    """
+    try:
+        from datetime import timedelta
+
+        threshold_days = 7
+        now = datetime.now(timezone.utc)
+        warning_threshold = now + timedelta(days=threshold_days)
+
+        # Admin sees all users' keys; regular users see only their own
+        query = ApiKey.query.filter(
+            ApiKey.is_active == True,  # noqa: E712
+            ApiKey.expires_at.isnot(None),
+            ApiKey.expires_at <= warning_threshold,
+            ApiKey.expires_at > now,
+        )
+
+        if current_user.role != "admin":
+            query = query.filter(ApiKey.user_id == current_user.id)
+
+        expiring_keys = query.order_by(ApiKey.expires_at.asc()).all()
+
+        return jsonify({
+            "success": True,
+            "expiring_keys": [k.to_dict(include_key=True) for k in expiring_keys],
+            "count": len(expiring_keys),
+            "threshold_days": threshold_days,
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error getting expiring API keys: {str(e)}", exc_info=True)
+        return (
+            jsonify({"success": False, "error": "INTERNAL_ERROR", "message": "An error occurred while getting expiring API keys"}),
+            500,
+        )
+
+
 @auth_bp.route("/api-keys/<int:key_id>", methods=["DELETE"])
 @jwt_required
 def revoke_api_key(current_user, key_id):
