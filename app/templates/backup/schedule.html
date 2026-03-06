@@ -374,8 +374,6 @@
 
 {% block extra_js %}
 <!-- DataTables JS -->
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <!-- Custom Schedule Management JS -->
 <script src="{{ url_for('static', filename='js/backup_schedule.js') }}"></script>
@@ -387,7 +385,7 @@
             order: [[2, 'asc']], // Sort by next run time
             pageLength: 25,
             language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ja.json'
+                url: '/static/js/datatables-ja.json'
             }
         });
     });

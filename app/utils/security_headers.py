@@ -133,7 +133,7 @@ class SecurityHeaders:
                 "'self'",
                 "https://cdn.jsdelivr.net",
             ],
-            "connect-src": ["'self'"],
+            "connect-src": ["'self'", "https://cdn.jsdelivr.net"],
             "frame-ancestors": ["'self'"],
             "base-uri": ["'self'"],
             "form-action": ["'self'"],
