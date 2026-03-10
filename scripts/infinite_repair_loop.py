@@ -703,7 +703,9 @@ def main():
     result = repair_loop.run()
     repair_loop.output_result()
 
-    sys.exit(0 if result.success else 1)
+    # 修復不要・完了どちらの場合も正常終了（exit 0）
+    # 成功/失敗の判断はJSON出力のsuccess フィールドで行う
+    sys.exit(0)
 
 
 if __name__ == "__main__":
