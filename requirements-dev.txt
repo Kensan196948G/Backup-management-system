@@ -24,6 +24,12 @@ mypy==1.7.1
 # E2E Testing (Playwright)
 playwright>=1.40.0
 pytest-playwright>=0.4.0
+pytest-base-url>=1.0.0
+pyee>=11.0.0
+python-slugify>=8.0.0
+
+# System Monitoring
+psutil>=5.9.0
 
 # Load Testing
 locust==2.20.0
