@@ -141,10 +141,11 @@ class ApiKey(db.Model):
         if self.expires_at is None:
             return False
         # SQLite strips timezone info; handle both naive and aware datetimes
-        now = datetime.now(timezone.utc)
         expires = self.expires_at
         if expires.tzinfo is None:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+        else:
+            now = datetime.now(timezone.utc)
         return expires < now
 
     def to_dict(self, include_key: bool = False) -> dict:
@@ -259,8 +260,9 @@ class RefreshToken(db.Model):
     def is_expired(self) -> bool:
         """Check if the refresh token has expired."""
         # SQLite strips timezone info; handle both naive and aware datetimes
-        now = datetime.now(timezone.utc)
         expires = self.expires_at
         if expires.tzinfo is None:
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+        else:
+            now = datetime.now(timezone.utc)
         return expires < now
