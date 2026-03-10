@@ -135,11 +135,11 @@ def get_dashboard_summary():
         today = datetime.now(timezone.utc).date()
 
         pending_tests = VerificationSchedule.query.filter(
-            VerificationSchedule.is_active == True, VerificationSchedule.next_test_date <= today + timedelta(days=7)
+            VerificationSchedule.is_active.is_(True), VerificationSchedule.next_test_date <= today + timedelta(days=7)
         ).count()
 
         overdue_tests = VerificationSchedule.query.filter(
-            VerificationSchedule.is_active == True, VerificationSchedule.next_test_date < today
+            VerificationSchedule.is_active.is_(True), VerificationSchedule.next_test_date < today
         ).count()
 
         summary["verification_tests"] = {"pending": pending_tests, "overdue": overdue_tests}

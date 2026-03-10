@@ -2,6 +2,7 @@
 Slack通知サービス
 Slack Incoming Webhookを使用したアラート・通知送信
 """
+
 import json
 import logging
 from datetime import datetime, timezone
@@ -18,9 +19,9 @@ class SlackNotifier:
     # アラートレベルに対応する色
     COLORS = {
         "critical": "#FF0000",  # 赤
-        "warning": "#FFA500",   # オレンジ
-        "info": "#36A64F",      # 緑
-        "success": "#36A64F",   # 緑
+        "warning": "#FFA500",  # オレンジ
+        "info": "#36A64F",  # 緑
+        "success": "#36A64F",  # 緑
     }
 
     EMOJIS = {
@@ -185,6 +186,7 @@ def get_slack_notifier() -> Optional[SlackNotifier]:
         SlackNotifier または None（未設定時）
     """
     from flask import current_app
+
     webhook_url = current_app.config.get("SLACK_WEBHOOK_URL")
     if not webhook_url:
         return None

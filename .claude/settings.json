@@ -1,1 +1,10 @@
-{"statusLine":{"padding":0,"type":"command","command":"/mnt/LinuxHDD/Backup-Management-System/.claude/statusline.sh"}}
+{
+  "statusLine": {
+    "type": "command",
+    "command": "/mnt/LinuxHDD/Backup-Management-System/.claude/statusline.sh",
+    "padding": 0
+  },
+  "env": {
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  }
+}

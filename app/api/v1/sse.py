@@ -2,6 +2,7 @@
 Server-Sent Events API Endpoints
 Provides real-time backup progress via SSE
 """
+
 from flask import Blueprint, Response, stream_with_context
 from flask_login import login_required
 

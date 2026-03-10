@@ -521,7 +521,10 @@ class PostgresMonitorService:
                         "index_scans": row[3] or 0,
                         "rows": row[4],
                         "recommendation": f"テーブル '{row[1]}' でシーケンシャルスキャンが多発しています。インデックス追加を検討してください。",
-                        "action": f"-- テーブル '{row[1]}' の頻繁に検索されるカラムにインデックスを作成\n-- 例: CREATE INDEX idx_{row[1]}_column_name ON {row[1]}(column_name);",
+                        "action": (
+                            f"-- テーブル '{row[1]}' の頻繁に検索されるカラムにインデックスを作成\n"
+                            f"-- 例: CREATE INDEX idx_{row[1]}_column_name ON {row[1]}(column_name);"
+                        ),
                     }
                 )
 

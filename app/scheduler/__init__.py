@@ -22,25 +22,25 @@ Components:
 
 Usage:
     from app.scheduler import BackupScheduler, JobQueue, JobExecutor
-    
+
     scheduler = BackupScheduler()
     queue = JobQueue()
     executor = JobExecutor(max_workers=4)
-    
+
     # Schedule a job
     scheduler.schedule_cron(
         job_id=1,
         cron_expression="0 2 * * *",
         callback=run_backup
     )
-    
+
     # Add to queue with priority
     queue.add_job(
         job_id=1,
         priority=1,
         dependencies=[2, 3]
     )
-    
+
     # Execute with resource limits
     executor.execute_job(job_data)
 """

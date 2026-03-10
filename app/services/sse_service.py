@@ -1,6 +1,7 @@
 """
 Server-Sent Events Service for Real-time Backup Progress
 """
+
 import json
 import time
 from datetime import datetime, timezone
@@ -8,7 +9,7 @@ from typing import Generator
 
 from flask import current_app
 
-from app.models import BackupExecution, BackupJob, db
+from app.models import BackupExecution, BackupJob
 
 
 def generate_job_progress_stream(job_id: int) -> Generator[str, None, None]:
@@ -42,11 +43,7 @@ def generate_job_progress_stream(job_id: int) -> Generator[str, None, None]:
     for _ in range(max_iterations):
         try:
             # Get the latest execution for this job
-            execution = (
-                BackupExecution.query.filter_by(job_id=job_id)
-                .order_by(BackupExecution.id.desc())
-                .first()
-            )
+            execution = BackupExecution.query.filter_by(job_id=job_id).order_by(BackupExecution.id.desc()).first()
 
             if execution is None:
                 yield format_sse(
@@ -65,11 +62,7 @@ def generate_job_progress_stream(job_id: int) -> Generator[str, None, None]:
                 "execution_id": execution.id,
                 "job_id": job_id,
                 "status": execution.execution_result,
-                "execution_date": (
-                    execution.execution_date.isoformat()
-                    if execution.execution_date
-                    else None
-                ),
+                "execution_date": (execution.execution_date.isoformat() if execution.execution_date else None),
                 "duration_seconds": execution.duration_seconds,
                 "backup_size_bytes": execution.backup_size_bytes,
                 "source_system": execution.source_system,
@@ -147,22 +140,14 @@ def generate_all_jobs_stream() -> Generator[str, None, None]:
 
             jobs_data = []
             for job in jobs:
-                latest_exec = (
-                    BackupExecution.query.filter_by(job_id=job.id)
-                    .order_by(BackupExecution.id.desc())
-                    .first()
-                )
+                latest_exec = BackupExecution.query.filter_by(job_id=job.id).order_by(BackupExecution.id.desc()).first()
 
                 job_info = {
                     "id": job.id,
                     "job_name": job.job_name,
-                    "last_status": (
-                        latest_exec.execution_result if latest_exec else "never_run"
-                    ),
+                    "last_status": (latest_exec.execution_result if latest_exec else "never_run"),
                     "last_run": (
-                        latest_exec.execution_date.isoformat()
-                        if latest_exec and latest_exec.execution_date
-                        else None
+                        latest_exec.execution_date.isoformat() if latest_exec and latest_exec.execution_date else None
                     ),
                 }
                 jobs_data.append(job_info)

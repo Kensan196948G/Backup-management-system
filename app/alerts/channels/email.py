@@ -263,7 +263,8 @@ This is an automated notification from Backup Management System.
         .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
         .header {{ background-color: {color}; color: white; padding: 15px; border-radius: 5px 5px 0 0; }}
         .content {{ background-color: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; }}
-        .footer {{ background-color: #e9ecef; padding: 10px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
+        .footer {{ background-color: #e9ecef; padding: 10px; text-align: center;
+            font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
         .badge {{ display: inline-block; padding: 5px 10px; border-radius: 3px; font-weight: bold; }}
         .info {{ background-color: #d1ecf1; color: #0c5460; }}
         .warning {{ background-color: #fff3cd; color: #856404; }}
@@ -298,7 +299,6 @@ This is an automated notification from Backup Management System.
         """Generate subject for digest email"""
         critical_count = sum(1 for a in alerts if a.severity == "critical")
         error_count = sum(1 for a in alerts if a.severity == "error")
-        warning_count = sum(1 for a in alerts if a.severity == "warning")
 
         if critical_count > 0:
             return f"[CRITICAL] Backup Alert Digest: {len(alerts)} alerts ({critical_count} critical)"
@@ -358,7 +358,8 @@ This is an automated notification from Backup Management System.
         .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
         .header {{ background-color: #343a40; color: white; padding: 15px; border-radius: 5px 5px 0 0; }}
         .content {{ background-color: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; }}
-        .footer {{ background-color: #e9ecef; padding: 10px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
+        .footer {{ background-color: #e9ecef; padding: 10px; text-align: center;
+            font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
         .badge {{ display: inline-block; padding: 5px 10px; border-radius: 3px; font-weight: bold; }}
         .info {{ background-color: #d1ecf1; color: #0c5460; }}
         .warning {{ background-color: #fff3cd; color: #856404; }}
@@ -398,7 +399,8 @@ This is an automated notification from Backup Management System.
         .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
         .header {{ background-color: #007bff; color: white; padding: 15px; border-radius: 5px 5px 0 0; }}
         .content {{ background-color: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; }}
-        .footer {{ background-color: #e9ecef; padding: 10px; text-align: center; font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
+        .footer {{ background-color: #e9ecef; padding: 10px; text-align: center;
+            font-size: 12px; color: #6c757d; border-radius: 0 0 5px 5px; }}
     </style>
 </head>
 <body>

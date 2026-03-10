@@ -20,7 +20,7 @@ from app.api import reports  # noqa: F401, E402
 from app.api import verification  # noqa: F401, E402
 
 # Register error handlers
-from app.api.errors import register_error_handlers
+from app.api.errors import register_error_handlers  # noqa: E402
 
 # Note: v1 auth blueprint is registered separately in app/__init__.py
 # to preserve its full URL prefix (/api/v1/auth)

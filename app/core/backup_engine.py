@@ -72,7 +72,7 @@ class BackupEngine:
             BackupJobNotFoundError: ジョブが見つからない
             BackupEngineError: 実行エラー
         """
-        logger.info(f"Starting backup execution", extra={"job_id": job_id, "agent": "agent-01-core"})
+        logger.info("Starting backup execution", extra={"job_id": job_id, "agent": "agent-01-core"})
 
         start_time = datetime.now()
 
@@ -141,7 +141,7 @@ class BackupEngine:
             return result
 
         except Exception as e:
-            logger.error(f"Backup execution failed", extra={"job_id": job_id, "error": str(e)})
+            logger.error("Backup execution failed", extra={"job_id": job_id, "error": str(e)})
             raise BackupEngineError(f"Backup execution failed: {str(e)}", {"job_id": job_id})
 
     def copy_file(self, source: str, destination: str, progress_callback: Optional[Callable] = None) -> Dict[str, Any]:
@@ -163,7 +163,7 @@ class BackupEngine:
         source_path = Path(source)
         dest_path = Path(destination)
 
-        logger.debug(f"Starting copy operation", extra={"source": source, "destination": destination})
+        logger.debug("Starting copy operation", extra={"source": source, "destination": destination})
 
         # ソースファイル存在確認
         if not source_path.exists():
@@ -212,7 +212,7 @@ class BackupEngine:
                 result = {"bytes_copied": bytes_copied, "checksum": sha256_hash.hexdigest(), "duration": duration}
 
                 logger.info(
-                    f"Copy completed",
+                    "Copy completed",
                     extra={
                         "source": source,
                         "destination": destination,
@@ -275,7 +275,7 @@ class BackupEngine:
         if original_hash != copy_hash:
             raise VerificationFailedError(0, "checksum_mismatch", f"Checksum mismatch: {original_hash} != {copy_hash}")
 
-        logger.info(f"Verification passed", extra={"original": original_path, "copy": copy_path, "checksum": original_hash})
+        logger.info("Verification passed", extra={"original": original_path, "copy": copy_path, "checksum": original_hash})
 
         return True
 

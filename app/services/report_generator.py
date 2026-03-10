@@ -24,12 +24,10 @@ from typing import Dict, Optional, Tuple
 from app.config import Config
 from app.models import (
     AuditLog,
-    BackupCopy,
     BackupExecution,
     BackupJob,
     ComplianceStatus,
     Report,
-    User,
     VerificationTest,
     db,
 )

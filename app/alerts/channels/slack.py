@@ -165,6 +165,7 @@ class SlackChannel:
         """
         # Validate URL scheme to prevent SSRF (only allow HTTPS)
         from urllib.parse import urlparse
+
         parsed = urlparse(webhook_url)
         if parsed.scheme not in ("https",):
             logger.error(f"Rejected non-HTTPS webhook URL scheme: {parsed.scheme}")

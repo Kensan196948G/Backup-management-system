@@ -110,7 +110,7 @@ def check_verification_reminders(app):
 
             # Find upcoming verification tests
             upcoming_tests = VerificationSchedule.query.filter(
-                VerificationSchedule.next_test_date <= threshold_date, VerificationSchedule.is_active == True
+                VerificationSchedule.next_test_date <= threshold_date, VerificationSchedule.is_active.is_(True)
             ).all()
 
             alert_manager = AlertManager()
@@ -146,7 +146,7 @@ def execute_scheduled_verification_tests(app):
 
             # Find verification schedules that are due
             due_schedules = VerificationSchedule.query.filter(
-                VerificationSchedule.is_active == True, VerificationSchedule.next_test_date <= today
+                VerificationSchedule.is_active.is_(True), VerificationSchedule.next_test_date <= today
             ).all()
 
             if not due_schedules:
@@ -373,7 +373,7 @@ def generate_daily_report(app):
             }
 
             # Get admin users to send report to
-            admin_users = User.query.filter(User.role == "admin", User.is_active == True, User.email != None).all()
+            admin_users = User.query.filter(User.role == "admin", User.is_active.is_(True), User.email.isnot(None)).all()
             recipients = [user.email for user in admin_users if user.email]
 
             if recipients:

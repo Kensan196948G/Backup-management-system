@@ -243,7 +243,7 @@ class SLAMonitor:
                         Alert.alert_type == "sla_violation",
                         Alert.job_id == metrics.job_id,
                         Alert.created_at >= one_day_ago,
-                        Alert.is_acknowledged == False,  # noqa: E712
+                        Alert.is_acknowledged.is_(False),
                     )
                 )
                 .order_by(Alert.created_at.desc())
@@ -262,7 +262,8 @@ class SLAMonitor:
                 f"Executions: {metrics.executions_count} "
                 f"({metrics.success_count} success, {metrics.failed_count} failed, {metrics.warning_count} warning)\n"
                 f"Average Duration: {metrics.average_duration_seconds}s\n"
-                f"Last Execution: {metrics.last_execution_date.strftime('%Y-%m-%d %H:%M:%S') if metrics.last_execution_date else 'Never'}\n\n"
+                f"Last Execution: "
+                f"{metrics.last_execution_date.strftime('%Y-%m-%d %H:%M:%S') if metrics.last_execution_date else 'Never'}\n\n"
                 f"Violations:\n" + "\n".join(f"- {v}" for v in metrics.violations)
             )
 

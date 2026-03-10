@@ -200,7 +200,7 @@ class InfiniteRepairLoop:
         errors = []
         try:
             result = subprocess.run(
-                ["flake8", "--max-line-length=120", "--exclude=venv,__pycache__,migrations", "."],
+                ["flake8", "--max-line-length=127", "--exclude=venv,__pycache__,migrations", "."],
                 cwd=PROJECT_ROOT,
                 capture_output=True,
                 text=True,
@@ -465,7 +465,7 @@ with app.test_client() as client:
 
         try:
             # black でフォーマット
-            result = subprocess.run(["black", "--line-length=120", str(file_path)], capture_output=True, text=True, timeout=30)
+            result = subprocess.run(["black", "--line-length=127", str(file_path)], capture_output=True, text=True, timeout=30)
 
             # isort でインポート整理
             subprocess.run(["isort", "--profile=black", str(file_path)], capture_output=True, timeout=30)
@@ -654,7 +654,7 @@ print('OK')
 
             # 次のサイクルまで少し待機
             if cycle + 1 < self.max_cycles and not self.result.success:
-                self.log(f"Waiting before next cycle...")
+                self.log("Waiting before next cycle...")
                 time.sleep(5)
 
         if not self.result.success:

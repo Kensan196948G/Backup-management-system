@@ -447,7 +447,12 @@ def generate_refresh_token(user):
     if isinstance(expires_delta, int):
         expires_delta = timedelta(seconds=expires_delta)
 
-    payload = {"user_id": user.id, "exp": datetime.now(timezone.utc) + expires_delta, "iat": datetime.now(timezone.utc), "type": "refresh"}
+    payload = {
+        "user_id": user.id,
+        "exp": datetime.now(timezone.utc) + expires_delta,
+        "iat": datetime.now(timezone.utc),
+        "type": "refresh",
+    }
 
     token = jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm="HS256")
 
@@ -471,7 +476,12 @@ def verify_refresh_token(token):
 
 def generate_reset_token(user):
     """Generate password reset token"""
-    payload = {"user_id": user.id, "exp": datetime.now(timezone.utc) + timedelta(hours=1), "iat": datetime.now(timezone.utc), "type": "reset"}
+    payload = {
+        "user_id": user.id,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=1),
+        "iat": datetime.now(timezone.utc),
+        "type": "reset",
+    }
 
     token = jwt.encode(payload, current_app.config["SECRET_KEY"], algorithm="HS256")
 

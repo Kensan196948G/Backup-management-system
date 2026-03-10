@@ -148,7 +148,10 @@ def refresh():
 
         logger.info(f"Access token refreshed for user_id={refresh_token_obj.user_id}")
 
-        return jsonify({"success": True, "access_token": new_access_token, "expires_in": 3600, "token_type": "Bearer"}), 200  # nosec B105
+        return (
+            jsonify({"success": True, "access_token": new_access_token, "expires_in": 3600, "token_type": "Bearer"}),
+            200,
+        )  # nosec B105
 
     except Exception as e:
         logger.error(f"Token refresh error: {str(e)}", exc_info=True)
@@ -422,9 +425,7 @@ def rotate_api_key(current_user, key_id):
         old_key.is_active = False
 
         # Create new key with same settings
-        plaintext_key, new_key = ApiKey.create_api_key(
-            user_id=current_user.id, name=key_name, expires_in_days=expires_in_days
-        )
+        plaintext_key, new_key = ApiKey.create_api_key(user_id=current_user.id, name=key_name, expires_in_days=expires_in_days)
 
         logger.info(f"API key '{key_name}' (ID: {key_id}) rotated by user {current_user.username}, new ID: {new_key.id}")
 
@@ -506,7 +507,9 @@ def get_api_key_status(current_user, key_id):
     except Exception as e:
         logger.error(f"Error getting API key status: {str(e)}", exc_info=True)
         return (
-            jsonify({"success": False, "error": "INTERNAL_ERROR", "message": "An error occurred while getting API key status"}),
+            jsonify(
+                {"success": False, "error": "INTERNAL_ERROR", "message": "An error occurred while getting API key status"}
+            ),
             500,
         )
 
@@ -540,7 +543,7 @@ def get_expiring_api_keys(current_user):
 
         # Admin sees all users' keys; regular users see only their own
         query = ApiKey.query.filter(
-            ApiKey.is_active == True,  # noqa: E712
+            ApiKey.is_active.is_(True),
             ApiKey.expires_at.isnot(None),
             ApiKey.expires_at <= warning_threshold,
             ApiKey.expires_at > now,
@@ -551,17 +554,24 @@ def get_expiring_api_keys(current_user):
 
         expiring_keys = query.order_by(ApiKey.expires_at.asc()).all()
 
-        return jsonify({
-            "success": True,
-            "expiring_keys": [k.to_dict(include_key=True) for k in expiring_keys],
-            "count": len(expiring_keys),
-            "threshold_days": threshold_days,
-        }), 200
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "expiring_keys": [k.to_dict(include_key=True) for k in expiring_keys],
+                    "count": len(expiring_keys),
+                    "threshold_days": threshold_days,
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         logger.error(f"Error getting expiring API keys: {str(e)}", exc_info=True)
         return (
-            jsonify({"success": False, "error": "INTERNAL_ERROR", "message": "An error occurred while getting expiring API keys"}),
+            jsonify(
+                {"success": False, "error": "INTERNAL_ERROR", "message": "An error occurred while getting expiring API keys"}
+            ),
             500,
         )
 

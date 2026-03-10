@@ -149,12 +149,14 @@ def api_token_required(f):
 
             # Verify JWT token
             from app.api.auth import verify_jwt_token
+
             payload = verify_jwt_token(token)
             if payload is None:
                 return jsonify({"error": {"code": "INVALID_TOKEN", "message": "Invalid or expired token"}}), 401
 
             # Log in the user for this request
             from app.models import User
+
             user = User.query.get(payload.get("user_id"))
             if user and user.is_active:
                 login_user(user)

@@ -560,6 +560,7 @@ class ScheduledReport(db.Model):
 
 class BackupSchedule(db.Model):
     """バックアップスケジュールモデル"""
+
     __tablename__ = "backup_schedules"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -572,7 +573,9 @@ class BackupSchedule(db.Model):
     last_run = db.Column(db.DateTime(timezone=True), nullable=True)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+    )
 
     # Relationships
     job = db.relationship("BackupJob", backref=db.backref("schedules", lazy="dynamic"))
@@ -597,6 +600,7 @@ class BackupSchedule(db.Model):
 
 class StorageProvider(db.Model):
     """ストレージプロバイダーモデル"""
+
     __tablename__ = "storage_providers"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -608,13 +612,15 @@ class StorageProvider(db.Model):
     connection_status = db.Column(db.String(20), default="unknown")  # online/offline/unknown
     last_check = db.Column(db.DateTime(timezone=True), nullable=True)
     total_capacity = db.Column(db.BigInteger, nullable=True)  # bytes
-    used_capacity = db.Column(db.BigInteger, nullable=True)   # bytes
+    used_capacity = db.Column(db.BigInteger, nullable=True)  # bytes
     backup_count = db.Column(db.Integer, default=0)
     file_count = db.Column(db.Integer, default=0)
     success_rate = db.Column(db.Float, default=100.0)
     created_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(
+        db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc)
+    )
 
     # Relationships
     created_by = db.relationship("User", foreign_keys=[created_by_id])

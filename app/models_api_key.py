@@ -241,7 +241,9 @@ class RefreshToken(db.Model):
             RefreshToken object if valid, None otherwise
         """
         # Find all non-revoked, non-expired tokens
-        candidates = RefreshToken.query.filter_by(is_revoked=False).filter(RefreshToken.expires_at > datetime.now(timezone.utc)).all()
+        candidates = (
+            RefreshToken.query.filter_by(is_revoked=False).filter(RefreshToken.expires_at > datetime.now(timezone.utc)).all()
+        )
 
         for refresh_token in candidates:
             if check_password_hash(refresh_token.token_hash, token):

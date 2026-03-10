@@ -11,7 +11,6 @@ import logging
 from datetime import UTC, datetime
 from typing import Any, Dict, List, Optional
 
-from celery import shared_task
 from celery.exceptions import MaxRetriesExceededError, Retry
 
 from app.tasks import celery_app
