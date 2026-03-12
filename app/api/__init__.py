@@ -18,6 +18,7 @@ from app.api import jobs  # noqa: F401, E402
 from app.api import media  # noqa: F401, E402
 from app.api import reports  # noqa: F401, E402
 from app.api import verification  # noqa: F401, E402
+from app.api.v1 import storage_health  # noqa: F401, E402
 
 # Register error handlers
 from app.api.errors import register_error_handlers  # noqa: E402

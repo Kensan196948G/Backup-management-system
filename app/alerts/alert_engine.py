@@ -454,14 +454,17 @@ class AlertEngine:
             else:
                 continue  # Skip manual jobs
 
-            threshold_time = datetime.now(timezone.utc) - timedelta(hours=threshold_hours)
+            threshold_time = datetime.utcnow() - timedelta(hours=threshold_hours)
 
             # Get last successful execution
             last_execution = (
                 BackupExecution.query.filter_by(job_id=job.id).order_by(BackupExecution.execution_date.desc()).first()
             )
 
-            if not last_execution or last_execution.execution_date < threshold_time:
+            exec_date = last_execution.execution_date if last_execution else None
+            if exec_date and exec_date.tzinfo is not None:
+                exec_date = exec_date.replace(tzinfo=None)
+            if not exec_date or exec_date < threshold_time:
                 last_exec_str = last_execution.execution_date.strftime("%Y-%m-%d %H:%M:%S") if last_execution else "Never"
 
                 triggers.append(

@@ -22,23 +22,61 @@ logger = logging.getLogger(__name__)
 @api_token_required
 def update_backup_status():
     """
-    Update backup execution status from PowerShell scripts
-
-    Request Body:
-    {
-        "job_id": 1,
-        "execution_date": "2025-10-30T03:00:00Z",
-        "execution_result": "success",
-        "backup_size_bytes": 1073741824,
-        "duration_seconds": 300,
-        "error_message": null,
-        "source_system": "powershell"
-    }
-
-    Returns:
-        201: Backup status updated successfully
-        400: Invalid request data
-        404: Backup job not found
+    バックアップ実行ステータスを更新する (PowerShell スクリプトから)
+    ---
+    tags:
+      - Backup
+    security:
+      - ApiKeyAuth: []
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - job_id
+            - execution_result
+          properties:
+            job_id:
+              type: integer
+              description: バックアップジョブ ID
+              example: 1
+            execution_date:
+              type: string
+              format: date-time
+              description: 実行日時 (ISO 8601)
+              example: "2025-10-30T03:00:00Z"
+            execution_result:
+              type: string
+              enum: [success, failed, warning]
+              description: 実行結果
+              example: success
+            backup_size_bytes:
+              type: integer
+              description: バックアップサイズ (バイト)
+              example: 1073741824
+            duration_seconds:
+              type: integer
+              description: 実行時間 (秒)
+              example: 300
+            error_message:
+              type: string
+              nullable: true
+              description: エラーメッセージ
+            source_system:
+              type: string
+              description: ソースシステム名
+              example: powershell
+    responses:
+      201:
+        description: バックアップステータスが正常に更新された
+      400:
+        description: 無効なリクエストデータ
+      404:
+        description: バックアップジョブが見つからない
     """
     try:
         data = request.get_json()

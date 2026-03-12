@@ -88,6 +88,15 @@ def create_app(config_name=None):
         except Exception as e:
             app.logger.warning(f"Scheduler initialization skipped: {str(e)}")
 
+    # Initialize Swagger/OpenAPI documentation
+    try:
+        from app.api.swagger import init_swagger
+
+        init_swagger(app)
+        app.logger.info("Swagger UI initialized at /api/v1/docs")
+    except Exception as e:
+        app.logger.warning(f"Swagger initialization skipped: {str(e)}")
+
     # Initialize Prometheus metrics (Phase 17)
     if app.config.get("PROMETHEUS_ENABLED", False):
         try:
