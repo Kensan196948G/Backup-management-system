@@ -284,11 +284,13 @@ jobs:
           echo "sha=$SHA" >> $GITHUB_OUTPUT
           echo "Committed with SHA: $SHA"
 
-      - name: Push changes
+      - name: Push changes via feature branch
         if: steps.check.outputs.has_changes == 'true'
         run: |
-          git push origin HEAD
-          echo "Changes pushed successfully"
+          BRANCH="auto-repair/run-${{ github.run_number }}"
+          git checkout -b "$BRANCH"
+          git push origin "$BRANCH"
+          echo "Changes pushed to branch: $BRANCH"
 
   # ==========================================================================
   # Job 4: プルリクエスト作成＆自動マージ
@@ -459,7 +461,7 @@ jobs:
   final-report:
     name: 📊 Final Report
     runs-on: ubuntu-latest
-    needs: [detect-errors, auto-repair-loop, auto-commit-push, update-issues]
+    needs: [detect-errors, auto-repair-loop]
     if: always()
 
     steps:
@@ -479,7 +481,7 @@ jobs:
           echo "| Cycles Used | ${{ needs.auto-repair-loop.outputs.cycles_used || '0' }}/${{ env.MAX_REPAIR_CYCLES }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Fixed Errors | ${{ needs.auto-repair-loop.outputs.fixed_errors || '0' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Remaining Errors | ${{ needs.auto-repair-loop.outputs.remaining_errors || '0' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Commit SHA | ${{ needs.auto-commit-push.outputs.commit_sha || 'No changes' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit SHA | No changes (skipped or not applicable) |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Scheduled Run" >> $GITHUB_STEP_SUMMARY
           echo "The next automatic run will execute in approximately 30 minutes." >> $GITHUB_STEP_SUMMARY

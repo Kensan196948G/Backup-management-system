@@ -456,7 +456,7 @@ def rotate_api_key(current_user, key_id):
         expires_in_days = None
         if old_key.expires_at:
             expires = old_key.expires_at
-            now = datetime.now(timezone.utc) if expires.tzinfo else datetime.utcnow()
+            now = datetime.now(timezone.utc) if expires.tzinfo else datetime.now(timezone.utc).replace(tzinfo=None)
             remaining = expires - now
             expires_in_days = max(1, remaining.days)
 
