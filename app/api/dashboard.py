@@ -408,3 +408,83 @@ def get_storage_usage():
     except Exception as e:
         logger.error(f"Error getting storage usage: {str(e)}", exc_info=True)
         return error_response(500, "Failed to get storage usage", "QUERY_FAILED")
+
+
+@api_bp.route("/v1/dashboard/backup-progress", methods=["GET"])
+@api_token_required
+def get_backup_progress():
+    """
+    Return in-progress backup jobs with estimated completion percentage.
+
+    BackupExecution has no native 'running' status, so this endpoint returns
+    executions started within the last 2 hours whose elapsed time is less than
+    the job's average backup duration, alongside a computed progress estimate.
+
+    Returns:
+        200: List of in-progress backup executions with % completion
+        500: Internal server error
+    """
+    try:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=2)
+
+        # Recent executions that could still be running (started within 2 hours)
+        recent = (
+            BackupExecution.query.filter(BackupExecution.execution_date >= cutoff)
+            .order_by(BackupExecution.execution_date.desc())
+            .all()
+        )
+
+        # Compute per-job average duration from historical data for progress estimate
+        avg_durations = dict(
+            db.session.query(
+                BackupExecution.job_id,
+                func.avg(BackupExecution.duration_seconds),
+            )
+            .filter(BackupExecution.duration_seconds.isnot(None))
+            .group_by(BackupExecution.job_id)
+            .all()
+        )
+
+        now = datetime.now(timezone.utc)
+        result = []
+        for execution in recent:
+            exec_date = execution.execution_date
+            if exec_date.tzinfo is None:
+                exec_date = exec_date.replace(tzinfo=timezone.utc)
+
+            elapsed_seconds = (now - exec_date).total_seconds()
+            avg_duration = avg_durations.get(execution.job_id) or 300  # default 5 min
+
+            # Clamp progress between 1% and 99% while execution is in the window
+            progress_percent = min(round((elapsed_seconds / avg_duration) * 100, 1), 99.0)
+            progress_percent = max(progress_percent, 1.0)
+
+            result.append(
+                {
+                    "execution_id": execution.id,
+                    "job_id": execution.job_id,
+                    "job_name": execution.job.job_name if execution.job else None,
+                    "started_at": exec_date.isoformat(),
+                    "elapsed_seconds": int(elapsed_seconds),
+                    "estimated_duration_seconds": int(avg_duration),
+                    "progress_percent": progress_percent,
+                    "execution_result": execution.execution_result,
+                    "source_system": execution.source_system,
+                }
+            )
+
+        return (
+            jsonify(
+                {
+                    "success": True,
+                    "data": result,
+                    "total": len(result),
+                    "timestamp": now.isoformat(),
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        logger.error(f"Error getting backup progress: {str(e)}", exc_info=True)
+        return error_response(500, "Failed to get backup progress", "QUERY_FAILED")
