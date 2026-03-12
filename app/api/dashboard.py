@@ -29,44 +29,74 @@ logger = logging.getLogger(__name__)
 @api_token_required
 def get_dashboard_summary():
     """
-    Get dashboard summary statistics
-
-    Returns:
-        200: Dashboard summary data
-        {
-            "jobs": {
-                "total": 50,
-                "active": 48,
-                "inactive": 2
-            },
-            "compliance": {
-                "compliant": 45,
-                "non_compliant": 3,
-                "warning": 2
-            },
-            "executions_24h": {
-                "total": 120,
-                "success": 115,
-                "failed": 3,
-                "warning": 2
-            },
-            "alerts": {
-                "critical": 2,
-                "error": 5,
-                "warning": 10,
-                "total_unacknowledged": 17
-            },
-            "verification_tests": {
-                "pending": 5,
-                "overdue": 2
-            },
-            "offline_media": {
-                "total": 30,
-                "in_use": 15,
-                "stored": 12,
-                "retired": 3
-            }
-        }
+    ダッシュボードのサマリー統計を取得する
+    ---
+    tags:
+      - Dashboard
+    security:
+      - ApiKeyAuth: []
+    responses:
+      200:
+        description: ダッシュボードサマリーデータ
+        schema:
+          type: object
+          properties:
+            jobs:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 50
+                active:
+                  type: integer
+                  example: 48
+                inactive:
+                  type: integer
+                  example: 2
+            compliance:
+              type: object
+              properties:
+                compliant:
+                  type: integer
+                  example: 45
+                non_compliant:
+                  type: integer
+                  example: 3
+                warning:
+                  type: integer
+                  example: 2
+            executions_24h:
+              type: object
+              properties:
+                total:
+                  type: integer
+                  example: 120
+                success:
+                  type: integer
+                  example: 115
+                failed:
+                  type: integer
+                  example: 3
+                warning:
+                  type: integer
+                  example: 2
+            alerts:
+              type: object
+              properties:
+                critical:
+                  type: integer
+                  example: 2
+                error:
+                  type: integer
+                  example: 5
+                warning:
+                  type: integer
+                  example: 10
+                total_unacknowledged:
+                  type: integer
+                  example: 17
+      401:
+        description: 認証が必要
     """
     try:
         summary = {}

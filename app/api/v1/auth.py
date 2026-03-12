@@ -34,27 +34,68 @@ auth_bp = Blueprint("auth_api", __name__, url_prefix="/api/v1/auth")
 @limit_login_attempts("5 per minute")
 def login():
     """
-    User login endpoint - returns JWT access and refresh tokens.
-
-    Request Body:
-        {
-            "username": "string",
-            "password": "string"
-        }
-
-    Returns:
-        {
-            "success": true,
-            "access_token": "string",
-            "refresh_token": "string",
-            "expires_in": 3600,
-            "token_type": "Bearer",  # nosec B105
-            "user": {
-                "id": 1,
-                "username": "string",
-                "role": "string"
-            }
-        }
+    ユーザーログイン - JWT アクセストークンとリフレッシュトークンを返す
+    ---
+    tags:
+      - Authentication
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+              description: ユーザー名
+              example: admin
+            password:
+              type: string
+              format: password
+              description: パスワード
+              example: "********"
+    responses:
+      200:
+        description: ログイン成功
+        schema:
+          type: object
+          properties:
+            success:
+              type: boolean
+              example: true
+            access_token:
+              type: string
+              description: JWT アクセストークン
+            refresh_token:
+              type: string
+              description: JWT リフレッシュトークン
+            expires_in:
+              type: integer
+              example: 3600
+            token_type:
+              type: string
+              example: Bearer
+            user:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                username:
+                  type: string
+                  example: admin
+                role:
+                  type: string
+                  example: admin
+      400:
+        description: リクエストが不正
+      401:
+        description: 認証失敗
     """
     try:
         data = request.get_json(silent=True)

@@ -74,3 +74,6 @@ Flask-Limiter==3.5.0
 
 # API Validation
 pydantic==2.5.0
+
+# API Documentation
+flasgger==0.9.7.1
